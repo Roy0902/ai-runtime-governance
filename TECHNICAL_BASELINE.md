@@ -14,7 +14,8 @@ introducing additional distributed infrastructure.
 - The governance service does not host a large local model.
 - Models may be local services, remote services, or cloud APIs.
 - The service must proxy or observe model and MCP/tool activity.
-- Policy decisions for critical actions are synchronous.
+- Required input-policy decisions are synchronous in Phase 1; tool-action and
+  output-content enforcement are future capabilities.
 - Trace persistence and analysis are asynchronous where possible.
 - PostgreSQL is available as a concurrent client/server database.
 - The first deployment may run all core components on one machine.
@@ -22,6 +23,69 @@ introducing additional distributed infrastructure.
 If a local model is hosted on the same machine, its CPU, memory, and especially
 GPU requirements must be planned separately. The hardware below covers the
 governance service, not model inference.
+
+## Initial scope boundaries and deferred capabilities
+
+This baseline describes intended architecture, not proof that a capability is
+implemented or production-ready. Follow the phased development plan in the
+[README](./README.md) and the detailed
+[Phase 1 requirements specification](./REQUIREMENTS.md). The latter records the
+confirmed scope expansion, proposed details, and unresolved release gates.
+A capability mentioned for future growth must not become an implicit requirement
+for the first release.
+
+The initial implementation must stay within these boundaries:
+
+- **Integrate with runtimes, not replace them.** Do not expand the service into
+  an agent framework, model-training platform, or inference host. Execution
+  remains with the integrated runtime and its model and tool services.
+- **Support explicit integrations, not universal interception.** Start with the
+  planned model and tool adapters. Do not promise compatibility with every
+  provider or visibility into activity outside instrumented boundaries.
+- **Distinguish observation from enforcement.** A trace is not proof that an
+  action was governed. Do not describe an observation-only integration as
+  enforcing policy unless it can stop the action before execution.
+- **Keep analysis advisory.** Do not let trace analysis or model-generated
+  reasoning automatically create or execute tools, grant approvals, or change
+  active policy. Human review remains required for recommendations.
+- **Keep reasoning archiving optional.** Do not make governance, ordinary
+  timelines, or trace collection depend on reasoning text. Do not infer hidden
+  reasoning or bypass the archive setting to fill missing telemetry.
+- **Target one node before distributed operation.** Do not claim high
+  availability, automatic failover, regional replication, or horizontal scaling
+  from the initial single-node deployment. These need separate designs and
+  failure testing; portable interfaces alone do not provide them.
+- **Do not imply offline enforcement is already available.** Signed cached
+  policies and offline execution are later-phase capabilities. Until explicitly
+  implemented and tested, unavailable policy evaluation must not become an
+  implicit allow for critical actions.
+- **Do not equate baseline security with enterprise readiness.** Tenant
+  isolation and authorization are initial requirements, not deferred features.
+  Compliance certification, tamper-evident audit storage, and advanced
+  organization-wide workflows are not established by this baseline.
+
+### Decisions still required before the affected capability is ready
+
+These are design gaps, not permission to invent silent defaults:
+
+- **Integration and API contracts:** select the first model and tool
+  integrations and define supported lifecycle hooks, event versions, ordering,
+  duplicate handling, and capability reporting.
+- **Policy and approval semantics:** define rule precedence, restriction
+  enforcement, approval authority, expiry, and how an approval is bound to the
+  exact action. Do not treat an approval event alone as execution authorization.
+- **Payload lifecycle:** define retention, deletion, quotas, compression and
+  retrieval behavior, and explicit handling of full storage or interrupted
+  capture before enabling the affected archive path.
+- **Operational acceptance:** define workload and latency targets, resource
+  limits, backup and restore procedures, and failure tests before claiming
+  production readiness. Hardware profiles below are planning estimates, not
+  measured capacity guarantees.
+
+When implementing an affected capability, resolve its open decisions explicitly
+and document the supported behavior and limits. Leave unrelated future
+capabilities deferred rather than expanding scope to make the architecture
+appear complete.
 
 ## Selected application stack
 
@@ -33,7 +97,7 @@ governance service, not model inference.
 | Build | Maven |
 | Main framework | Spring Boot, using the current supported release compatible with Java 25 |
 | HTTP server | Spring MVC with virtual threads initially |
-| Streaming | Servlet streaming or asynchronous response handling |
+| Response handling | Delivery mode unresolved; bounded transport and advisory output analysis, not pre-delivery content-policy buffering |
 | Database access | Spring JDBC or jOOQ for explicit SQL |
 | Database migrations | Flyway |
 | Authentication | Spring Security with OIDC/OAuth2 and service credentials |
@@ -60,7 +124,8 @@ connections, so resource-specific bounds remain required.
 
 ### Frontend
 
-The initial timeline UI may use:
+The Phase 1 UI uses the selected frontend stack for timelines, workspace/account
+management, integration configuration, and policy editing:
 
 ```text
 TypeScript
@@ -86,14 +151,21 @@ Use PostgreSQL for:
 - Analysis results
 - Timeline query indexes
 
+Every tenant-owned record must carry or be unambiguously scoped to a `tenant_id`.
+The authenticated principal or runtime credential determines the tenant scope;
+request payloads and model output cannot select or override it. Every database
+query and API operation must enforce that scope, including access to artifact
+metadata and storage references. Application identity is subordinate to tenant
+identity and does not provide cross-tenant authorization.
+
 Do not use SQLite as the primary deployment database. The system must support
 concurrent writers and readers through a server database.
 
 ### Large payloads
 
-Store large prompts, model responses, tool output, and generated artifacts in
-S3-compatible object storage or a controlled artifact volume. PostgreSQL should
-store:
+Store large prompts, model responses, tool output, opt-in reasoning artifacts,
+and generated artifacts in S3-compatible object storage or a controlled artifact
+volume. PostgreSQL should store:
 
 ```text
 artifact_id
@@ -104,6 +176,30 @@ size_bytes
 redaction_status
 storage_reference
 ```
+
+Reasoning archiving is deferred beyond Phase 1; the following describes its
+future opt-in behavior, not an available first-release path.
+Reasoning artifacts may be stored only when explicitly exposed by a model or
+runtime integration. Associate each with its model call, source, and artifact
+type. Record whether the integration supports this telemetry so unavailable
+data is distinguishable from an empty artifact. Do not infer hidden reasoning
+from other outputs or label a summary as complete private chain-of-thought;
+availability is provider-dependent and is not guaranteed.
+
+Reasoning archiving is off by default. Authorized users may enable or disable it
+only within tenant policy; a tenant prohibition takes precedence over user
+preferences. Enforce the effective setting at the adapter/capture boundary.
+When disabled, keep only availability and capture-status metadata, do not
+capture reasoning text for live viewing, and filter upstream reasoning text
+before persistence, logging, enqueueing, spooling, or export. Model execution and
+ordinary trace metadata collection continue independently of this setting.
+
+When enabled, reasoning artifacts follow tenant authorization, redaction, and
+retention policies and can be retrieved on demand by the timeline UI.
+Disabling archiving stops subsequent capture, not automatic deletion of existing
+artifacts; existing archives remain governed by retention and deletion policies.
+Expose the disabled state in the API and timeline so it cannot be confused with
+unsupported telemetry or an empty artifact.
 
 ### Initial event delivery
 
@@ -117,7 +213,7 @@ request
   -> alerts, indexing, analysis, and exports
 ```
 
-This avoids operating Kafka during the first single-user deployment while
+This avoids operating Kafka during the initial single-node deployment while
 preserving a reliable asynchronous boundary.
 
 Kafka, Redpanda, or another event broker can be added later if event volume,
@@ -134,6 +230,9 @@ Use application workers for:
 - Tool recommendations
 - OpenTelemetry or external export
 
+This is the architectural worker inventory, not a Phase 1 feature checklist.
+Offline analysis, recommendations, and external export follow the roadmap.
+
 All worker queues must be bounded and must expose retry, failure, and dead-letter
 behavior. No background failure should be silently discarded.
 
@@ -148,8 +247,7 @@ Runtime client or harness
           +-- authenticate and establish trace context
           +-- pre-input/context policy
           +-- model proxy or forwarding
-          +-- output and tool-call inspection
-          +-- action policy and approval
+          +-- output/tool telemetry and advisory findings
           +-- event/outbox write
           |
           +--> local or cloud model
@@ -163,7 +261,7 @@ authenticate
   -> validate
   -> load policy snapshot
   -> evaluate deterministic rules
-  -> allow, deny, constrain, or require approval
+  -> allow or deny input forwarding
 ```
 
 The following should normally be asynchronous:
@@ -178,6 +276,13 @@ The following should normally be asynchronous:
 If the governance service is unavailable, the configured policy decides whether a
 critical action fails closed, uses a signed cached policy, or is allowed only for
 an explicitly low-risk operation.
+In Phase 1, unavailable required input evaluation blocks input forwarding;
+signed cached/offline fallback is not implemented. Tool-action enforcement and
+human approvals are deferred. Outputs serve timeline visualization and advisory
+local non-model secret/PII detection, not a blocking content/schema check.
+Delivery mode and scan-storage/resource limits remain open under OD-10 in the
+requirements. Basic protocol/error handling and workspace authorization remain
+required; built-in agent tool telemetry is observation-only.
 
 ### Concurrency model
 
@@ -188,7 +293,7 @@ network or database I/O:
 virtual thread per request
   -> input policy
   -> model/MCP I/O
-  -> response streaming
+  -> bounded response transport (delivery mode to be decided)
   -> compact event enqueue
 ```
 
@@ -213,14 +318,18 @@ service must limit:
 - Event queue depth.
 - Per-client and per-tenant request rates.
 
-Streaming, backpressure, upstream timeouts, cancellation propagation, and
-bounded buffers are required for high throughput. A virtual thread can still
+Backpressure, upstream timeouts, cancellation propagation, and bounded buffers
+are required. Future streaming support must preserve enforcement guarantees.
+A virtual thread can still
 consume excessive memory if it retains a large prompt, response, or tool result.
 
 ## Security baseline
 
 - OIDC/OAuth2 for human users.
 - Short-lived service credentials for runtime clients.
+- Public OIDC signup and self-service workspace management with workspace roles.
+- Workspace-owner BYOK configuration through both encrypted credential storage
+  and an external secret-manager integration; no stored secret readback to users.
 - Optional mTLS for trusted service-to-service deployments.
 - Role and scope checks before trace access or action approval.
 - TLS termination at Caddy or the cloud load balancer.
@@ -228,7 +337,12 @@ consume excessive memory if it retains a large prompt, response, or tool result.
 - Redaction before persistence when possible.
 - Separate operational logs from detailed audit payloads.
 - No model-supplied identity or policy result is trusted.
-- Trace and event data is tenant/application scoped.
+- Tenant isolation is a Phase 1 requirement: derive tenant identity from
+  authenticated credentials and enforce it on every read, write, and artifact
+  access. Reject cross-tenant access even when a caller supplies another
+  tenant's resource identifier.
+- Trace and event data is scoped by tenant, with application identity as a
+  subordinate scope.
 - Critical policy and audit decisions are independently authenticated.
 
 The request context should carry only request-scoped information such as:
@@ -237,7 +351,8 @@ The request context should carry only request-scoped information such as:
 trace_id
 request_id
 authenticated principal
-tenant/application identity
+tenant_id resolved from authenticated credentials
+application identity within that tenant
 authorization scopes
 deadline and cancellation
 ```
@@ -368,7 +483,7 @@ Use:
 - Container-aware heap sizing.
 - Explicit request and connection timeouts.
 - Bounded event and worker queues.
-- Streaming model responses where possible.
+- Bounded response transport; no mandatory pre-delivery output-policy buffering.
 - Payload size limits.
 - Connection pooling sized to the database.
 - JFR and GC logging during performance testing.

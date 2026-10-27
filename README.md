@@ -57,6 +57,8 @@ visualization technically independent.
 - Block dangerous actions or require approval before execution.
 - Record policy decisions, safeguard triggers, errors, retries, and alerts.
 - Visualize a nested timeline of agents, subagents, models, tools, and policies.
+- Offer opt-in archiving and visualization of reasoning artifacts when a model
+  or runtime explicitly exposes them.
 - Support local models, cloud model APIs, and managed runtimes where telemetry
   hooks are available.
 - Work with MCP, shell commands, function calls, HTTP tools, and custom skills.
@@ -69,7 +71,8 @@ visualization technically independent.
 
 ## Non-goals
 
-- Capturing private hidden chain-of-thought.
+- Capturing or reconstructing private hidden chain-of-thought that a model or
+  runtime does not expose; availability cannot be guaranteed across providers.
 - Treating a model-generated explanation as an authoritative policy decision.
 - Automatically creating tools or changing safeguards without review.
 - Replacing every existing observability platform.
@@ -78,10 +81,17 @@ visualization technically independent.
 - Using an embedded single-writer database as the primary deployment store.
 
 The project records observable execution evidence, such as prompts and responses
-where permitted, tool calls, tool results, policy decisions, approvals, timing,
-errors, and final responses.
+where permitted, provider/runtime-exposed reasoning artifacts, tool calls, tool
+results, policy decisions, approvals, timing, errors, and final responses.
 
 ## Scope
+
+The sections below describe the product direction. The current Phase 1 release
+enforces input request boundaries only. Tool activity and outputs are observed
+for the timeline; secret/PII output findings are advisory, not delivery gates.
+Tool-action enforcement, human approval and output-content enforcement are
+deferred. Built-in agent tools are outside enforcement scope. See the
+[requirements](./REQUIREMENTS.md) for the release contract and open decisions.
 
 ### 1. Pre-processing governance
 
@@ -113,12 +123,34 @@ The system records the observable model lifecycle:
 - Model request and response metadata.
 - Model and deployment identity.
 - Prompt and context references, hashes, or redacted payloads.
+- Reasoning artifacts explicitly exposed by the model or runtime, such as
+  summaries, explanations, or structured traces, only when reasoning archiving
+  is enabled. Associate them with the relevant model call and label their source
+  and type.
 - Token usage and payload size where available.
 - Latency, retries, timeouts, and provider errors.
 - Context sources and tool descriptions supplied to the model.
 
 Raw payload retention must be configurable. Large or sensitive content should be
 stored by reference or omitted according to the deployment profile.
+Reasoning artifacts are optional and provider-dependent. The service must not
+infer hidden reasoning from other outputs or present an exposed summary as the
+model's complete private reasoning. Integrations should report whether this
+telemetry is supported and distinguish unavailable data from an empty artifact.
+
+Reasoning archiving is **off by default**. Authorized users may enable or disable
+it within tenant policy; user preferences cannot override a tenant prohibition.
+When disabled, retain only reasoning availability and capture-status metadata,
+not reasoning text. Do not capture reasoning text for live visualization or
+persist it in databases, artifact storage, logs, queues, spools, or exports.
+Adapters must filter any reasoning text supplied by an upstream runtime before
+it enters those paths. This setting does not disable model reasoning or ordinary
+trace metadata collection.
+
+Enabling archiving permits storage and timeline retrieval subject to tenant
+authorization, redaction, and retention policy. Disabling it stops subsequent
+capture; previously archived artifacts remain subject to their retention and
+deletion policies.
 
 ### 3. Action governance
 
@@ -169,7 +201,10 @@ Trace: request-123
 ```
 
 The timeline should show order, hierarchy, duration, status, policy outcomes,
-approvals, retries, and links to available redacted payloads.
+approvals, retries, available reasoning artifacts with their source/type, and
+links to available redacted payloads. It must not imply that an artifact is
+complete hidden chain-of-thought. Show when reasoning archiving is disabled,
+rather than presenting the absence of archived text as an empty reasoning result.
 
 ### 6. Offline analysis
 
@@ -272,6 +307,12 @@ pooling, and reliable multi-process access. A local installation may run
 PostgreSQL in a container or use another compatible server database, but an
 embedded single-writer database is not the primary storage model.
 
+For data isolation, a **tenant** is a customer, organization, or workspace
+boundary. An application is a resource within a tenant, not a substitute for
+the tenant identity. Every tenant-owned record, including events, traces,
+policies, approvals, alerts, analysis results, and artifact metadata, must be
+associated with its tenant.
+
 The storage design should separate:
 
 - **Trace metadata and event records** in the server database.
@@ -296,6 +337,7 @@ Every event should support a common correlation structure:
 
 ```text
 event_id
+tenant_id
 trace_id
 span_id
 parent_span_id
@@ -347,6 +389,10 @@ model and tool activity appears in the same timeline.
 
 - Do not trust model-supplied identity, timestamps, or policy outcomes.
 - Derive identity from authenticated runtime or service credentials.
+- Resolve each request's tenant from its authenticated principal or credential;
+  never trust a tenant identifier supplied only in a request payload.
+- Enforce tenant authorization on every read and write, including trace queries,
+  approvals, policies, and artifact access. Cross-tenant access must be denied.
 - Keep critical policy evaluation independent from the timeline UI.
 - Fail closed for critical operations when required policy evaluation is
   unavailable.
@@ -360,24 +406,51 @@ model and tool activity appears in the same timeline.
 
 ## Initial development plan
 
+The [Phase 1 requirements specification](./REQUIREMENTS.md) defines the initial
+release, confirmed decisions, proposed details, acceptance criteria, and
+remaining release blockers. Phase 1 has been expanded from the original minimal
+vertical slice; later phases below describe capabilities not included in it.
+
 ### Phase 1: Service vertical slice
 
-- Define the event and trace schema.
+- Define the event and trace schema, including `tenant_id` on tenant-owned data.
+- Implement tenant identity binding and tenant-scoped authorization and queries
+  for ingestion, persistence, APIs, and artifact references.
+- Add public OIDC accounts, self-service workspaces, owner/operator/viewer roles,
+  invitations, member management, and safe ownership transfer.
 - Implement authenticated runtime ingestion.
-- Implement one model client and one MCP or tool client adapter.
-- Add input, action, and output policy checks.
+- Implement one direct model API and one MCP integration through a gateway.
+- Support workspace-owned integration credentials through both encrypted
+  server-side storage and an external secret-manager integration.
+- Add a policy editing UI and deterministic allow/deny input checks, with deny
+  precedence and unmatched input requests denied.
+- Observe tool/output activity without action approvals or output-content gates.
+  Add advisory local non-model secret/PII output findings to the timeline.
+  Resolve delivery mode and scan-storage/resource bounds before implementation;
+  mandatory output-policy buffering is no longer a Phase 1 requirement.
 - Store events in PostgreSQL.
 - Render a basic nested timeline from the server API.
+- Add bounded ordinary payload archives, off by default, with lifecycle controls
+  required before enablement. Reasoning text archiving/viewing remains deferred.
+- Add opt-in asynchronous advisory attachment scans using local non-model
+  scanners, separately consented temporary storage, and timeline findings.
+  Scan results do not hold or block prompts; detection coverage and lifecycle
+  details must be resolved before enablement.
 - Package the service for a single-node deployment that can run locally or in
   the cloud.
 
 ### Phase 2: Safeguards and reliability
 
-- Add redaction and payload references.
-- Add allow, deny, constraint, and approval decisions.
-- Add structured errors and alert events.
-- Add retries, durable spooling, and explicit failure behavior.
+- Extend payload handling with redaction and additional artifact capabilities.
+- Extend allow/deny with constraint and approval decisions.
+- Design tool-action and output-content enforcement separately; neither is
+  implied by Phase 1 observation or advisory findings.
+- Extend baseline structured errors with richer safeguard and alert events.
+- Extend basic failure handling with durable client spooling and supported
+  retries; do not blindly retry side-effecting tools.
 - Add subagent context propagation.
+- Add optional reasoning archives only after resolving their capture, storage,
+  and visualization lifecycle; keep them off by default.
 
 ### Phase 3: Portable integrations and cloud clients
 
@@ -397,10 +470,11 @@ model and tool activity appears in the same timeline.
 
 ### Phase 5: Scaled and enterprise deployment
 
-- Add authenticated collectors.
-- Add role-based access.
+- Extend authenticated collection for distributed deployments.
+- Extend baseline workspace roles with enterprise access-management capabilities.
 - Add append-only or tamper-evident storage options.
-- Add retention, classification, and compliance controls.
+- Extend basic archive retention/deletion with classification and compliance
+  controls.
 - Add centralized alert routing and approval workflows.
 - Move high-volume artifacts and events to independently scalable services.
 
