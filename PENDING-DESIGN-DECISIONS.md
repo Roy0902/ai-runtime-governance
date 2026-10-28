@@ -19,23 +19,107 @@ changes observable behavior, update the requirements as well.
 
 ### PD-01: Prompt guard and supported detection
 
-- **Status: core behavior established; integration and detection design pending.**
-  Phase 1 guards prompt content, sensitive data, and injection/safety indicators
-  and visualizes the observable agent activity loop. This is product scope, not
-  evidence that a detector or integration has been implemented or benchmarked.
+- **Status: prompt-guard behavior established; external-agent integration
+  selection and rule-design details pending.**
+  Phase 1 guards the newly submitted user message for prompt content, sensitive
+  data, and injection/safety indicators and visualizes the observable agent
+  activity loop. This is product scope, not evidence that a detector or
+  integration has been implemented or benchmarked.
 - **Decision:** a prompt check may allow, deny, redact, or require human approval.
+  The product monitors and guards existing agents; it does not host or replace
+  them. OpenCode CLI/TUI and GitHub Copilot agent mode in VS Code are
+  candidates only.
+  The integration mechanism and feasibility of intercepting prompts and
+  receiving activity events must be verified for each product before it is
+  selected. The prompt-guard engine remains Phase 1 scope independently of
+  adapter feasibility. Observation-only integrations may ship; they must
+  explicitly report that prompt enforcement is unavailable and must not imply
+  that the monitor guarded their prompts. The guard logic is an internal module
+  tested independently. Expose a guard API/service only when an enabled agent
+  hook can invoke it; without a compatible hook, do not deploy a standalone
+  guard service and allow a monitoring-only release.
+- **Initial feasibility evidence:** VS Code's Copilot hook documentation lists
+  `userPromptSubmitted` for observing a prompt, but says command-hook output is
+  ignored for that event; `preToolUse` can make a tool-call decision, not a
+  prompt-forwarding decision. The Chat Participant API is deprecated and not
+  supported by the Copilot harness. OpenCode's plugin docs list message/session
+  events and `tool.execute.before`, which can modify or reject a tool call, but
+  do not document a general pre-model user-prompt gate. These interfaces may
+  support observation or tool controls, but the reviewed documentation does
+  not establish prompt deny/redact/approval behavior for OpenCode CLI/TUI or
+  Copilot in VS Code. Treat both surfaces as monitoring candidates; verify guard capability
+  separately and label an integration observation-only if it cannot block or
+  transform a prompt before model forwarding. Prototype both candidates in
+  parallel; production support selection remains open.
+  Sources: [VS Code agent hooks](https://code.visualstudio.com/docs/agent-customization/hooks),
+  [Copilot hooks reference](https://docs.github.com/en/copilot/reference/hooks-reference),
+  [VS Code AI extensibility](https://code.visualstudio.com/api/extension-guides/ai/ai-extensibility-overview),
+  [OpenCode plugins](https://opencode.ai/docs/plugins/).
   Denied, redacted, or approval-pending prompts must not be forwarded unchanged.
+  Initial detection uses a built-in deterministic rule catalog only; user-
+  authored rules are outside the initial scope. No model-based or ML-based
+  detector is included. Injection and safety rules report configured indicators;
+  they do not provide comprehensive semantic threat detection.
+  Rules detect configured invalid/weak-prompt indicators; there is no required
+  prompt format or checklist. If no enabled rule matches, the prompt is allowed.
+  Users may enable or disable built-in rules. Each rule's outcome and priority
+  are fixed by the catalog and are not user-configurable. All built-in rules
+  are enabled by default on a fresh installation.
+  The first catalog covers common credentials/API tokens, email addresses and
+  phone numbers, payment-card/financial identifiers, prompt-injection indicator
+  patterns, unsafe-content indicator patterns, and explicit invalid/weak-prompt
+  patterns.
+  Sensitive-data matches are replaced with typed markers and forwarded.
+  Prompt-injection and unsafe-content indicator matches require approval by the
+  submitting user before forwarding. These are fixed category actions; users
+  can toggle rules but cannot change actions or priorities. Explicit
+  invalid/weak-prompt patterns deny the message; this is not general semantic
+  prompt-quality grading.
+  Rule matching supports literal strings and bounded regular expressions.
+  Regex syntax, allowed features, and execution limits remain to be specified.
+  Redaction replaces a match with a type-specific marker, such as
+  `[REDACTED_EMAIL]` or `[REDACTED_API_TOKEN]`. Exact marker identifiers and
+  rule-to-marker mapping remain to be specified.
+  The submitting user resolves a require-approval decision. Approval is bound
+  to the exact submitted message; changing the message requires a new guard
+  evaluation and approval. A pending approval expires when its originating
+  request ends; no decision by that point means the prompt is not forwarded.
+  If the submitter cancels while approval is pending, the request ends
+  immediately and the prompt is never forwarded. A canceled approval cannot be
+  resumed; resubmission is a new request requiring fresh evaluation.
+  Matching effects compose: apply all sensitive-data redactions; deny if any
+  deny rule matches; otherwise require approval if any approval rule matches;
+  otherwise allow. Explicit priorities resolve overlapping redaction matches
+  only; a tie among top-priority overlapping redactions is an evaluation error
+  and blocks forwarding.
+  The guard inspects only the newly submitted user message; system/developer
+  instructions, prior conversation history, and separately assembled or
+  retrieved context are outside this guard's input scope.
   The monitor's “reasoning loop” is the ordered sequence of observable agent,
   model, and tool events, not private hidden chain-of-thought.
-- **Processing order:** authenticate and admit through the selected boundary;
-  enforce applicable request-size and structural limits; run configured prompt
-  checks; resolve the decision; persist the authoritative decision as required;
-  then forward only an allowed or correctly redacted prompt, or wait for the
-  resolved approval outcome.
-- **Not selected:** runtime instrumentation versus gateway versus both; rule
-  vocabulary and precedence; detector methods/packages; prompt/context coverage;
-  redaction semantics; approval authority, expiry, and action binding; and
-  latency/resource budgets. Resolve these under OD-01, OD-04, and OD-08.
+- **LangChain reference comparison:** official Python and JavaScript middleware
+  docs describe parallel lifecycle hooks (`before_agent`/`beforeAgent`,
+  `before_model`/`beforeModel`, after hooks) and wrappers around model and tool
+  calls. Both wrappers can short-circuit by not invoking the underlying handler,
+  which provides a useful reference for the desired guard/monitor capabilities.
+  LangChain is not a target runtime, and its middleware APIs do not prove that
+  OpenCode or GitHub Copilot expose equivalent hooks. Verify each product's
+  supported interface directly.
+  Sources: [Python middleware](https://docs.langchain.com/oss/python/langchain/middleware/custom),
+  [JavaScript middleware](https://docs.langchain.com/oss/javascript/langchain/middleware/custom).
+- **Processing order:** the independent guard validates the newly submitted
+  message, runs enabled built-in checks, applies redactions, and returns a
+  decision; a guard-capable integration persists the decision as required and
+  forwards only the permitted redacted message, or waits for approval.
+  Observation-only integrations do not invoke this enforcement path.
+- **Not selected:** first supported external agent product and its supported
+  integration surface; exact patterns and coverage within the selected
+  categories, including the
+  definition of invalid/weak-prompt indicators; regex syntax/features and
+  matching limits; exact marker identifiers and rule-to-marker mapping;
+  conditional hook-to-guard API request/response and authentication contract;
+  broader request retry behavior;
+  and latency/resource budgets. Resolve these under OD-01, OD-04, and OD-08.
 - **Failure behavior:** malformed, uninspectable, denied, timed-out, or
   unevaluated prompts must not be forwarded. Do not truncate or skip required
   checks. Return structured errors for failures and prevent late results from
@@ -44,14 +128,29 @@ changes observable behavior, update the requirements as well.
   false negatives. The product must document supported checks and limitations
   rather than claim complete detection. Do not assume a model-based detector or
   external content submission.
+- **Deferred alternatives:** local non-model detectors and model-assisted
+  detection are not part of the initial scope. Reconsider them only if tests
+  show a material detection gap that deterministic rules cannot address and a
+  separate decision approves their privacy, latency, cost, and operational
+  trade-offs.
 - **Candidate approach:** keep deterministic request-boundary validation
-  distinct from content checks. Use explicit, attributable rule outcomes and
-  only add detectors after their method, data path, resource use, and coverage
-  are reviewed.
-- **Verification:** use bounded synthetic prompts covering each configured
-  rule, benign lookalikes, redaction, approval, timeout, and detector failure.
-  Verify exact upstream payloads and confirm no forwarding on deny, failure, or
-  pending approval. Measure latency and resource use for the selected methods.
+  distinct from content checks. Ship a curated built-in catalog with literal
+  and bounded regex rules, explicit identifiers and fixed priorities/actions;
+  allow users to enable or disable built-in rules, but do not expose
+  user-authored rules in the initial scope. Explicit invalid/weak-prompt
+  indicators deny; sensitive-data matches use type-specific redaction markers;
+  injection/safety indicators require submitter approval. Apply redactions
+  before a pending approval is resolved so an approved prompt forwards only its
+  redacted form. Define the exact patterns, marker mapping, supported regex
+  features, and limits before implementation.
+- **Verification:** use bounded synthetic prompts covering each built-in rule,
+  benign lookalikes, typed-marker redaction, approval, timeout, and
+  rule-engine failure, including worst-case regex inputs. Verify exact upstream
+  payloads and confirm no forwarding on deny, failure, pending, expired, or
+  canceled approval.
+  Verify only the submitting user can resolve approval and that changing the
+  message invalidates the approval. Measure false positives/negatives, latency,
+  and resource use without claiming detection beyond the tested rule coverage.
 - **Deferred attachment path:** attachment scanning is not a Phase 1 gate. If
   reconsidered, define its separate consent, temporary storage, scanner methods,
   file limits, deletion, and nonblocking behavior under OD-09 before enablement.
@@ -86,15 +185,18 @@ changes observable behavior, update the requirements as well.
 
 ### PD-03: Database access and durable decision writes
 
-- **Risk:** synchronous decision persistence adds latency. Workers, timeline
-  queries, and execution requests compete for database connections and locks.
-- **Resolve:** transaction boundaries, pool allocation, indexes, query bounds,
-  decision/outbox atomicity, and behavior when authoritative writes fail.
-- **Candidate approach:** short transactions and no database transaction held
-  across a model/tool network call. Keep authoritative writes distinct from
-  asynchronous indexing.
+- **Status: authoritative decision boundaries established; capacity details pending.**
+- **Decision:** for a guard-capable integration, atomically persist the guard
+  decision and its outbox event before allowing prompt forwarding. A failure
+  to commit means no forwarding. Keep the transaction short and never hold it
+  across an agent/model network call. After external execution, a failed event
+  write is surfaced as incomplete/uncertain; it cannot roll back external work
+  or be reported as success.
+- **Still pending:** connection-pool allocation, indexes, query bounds,
+  outbox batch sizing, retry attempt/backoff caps, and overload response.
 - **Verification:** contention and pool-exhaustion tests; database failure
-  injection; no invocation when the required pre-execution write fails.
+  injection before and after dispatch; no invocation on pre-dispatch commit
+  failure; accurate incomplete/uncertain state on post-execution write failure.
 - **Links:** POL-006, OPS-002, OPS-003; OD-05, OD-06, OD-08.
 
 ### PD-04: Upstream model and MCP resource control
@@ -121,7 +223,9 @@ changes observable behavior, update the requirements as well.
 - **Current boundary:** these are prompt-guard decisions; per-tool action and
   output-policy enforcement are deferred.
 - **Verification:** concurrent activation/evaluation, worst-case matching,
-  cache freshness, and deterministic deny precedence/default deny.
+  cache freshness, composed actions, priority-based overlapping redaction
+  selection, tie errors, allow when no rule matches, and fail-closed behavior
+  on evaluation errors.
 - **Links:** POL-001, POL-002, POL-005, POL-006; OD-04.
 
 ### PD-06: Credential retrieval and lifecycle
@@ -138,17 +242,31 @@ changes observable behavior, update the requirements as well.
 
 ### PD-07: Event and ordinary archive pipeline
 
-- **Risk:** serialization, compression, and writes can fall behind ingestion,
-  exhaust queues, or retain sensitive text in unintended intermediate paths.
-- **Resolve:** batching, backpressure, job limits, retry/dead-letter behavior,
-  full-storage handling, archive quotas, compression and retrieval strategy.
-- **Candidate approach:** bounded asynchronous processing where consistent with
-  durability requirements. Filter reasoning fields and credentials before any
-  retained/logged/queued archive path; archives remain opt-in.
+- **Status: event transport and overload policy established; limits pending.
+  Archives are deferred.**
+- **Decision:** use the PostgreSQL transactional outbox for the initial
+  single-node event pipeline; keep indexing, alerts, and timeline materialization
+  asynchronous and bounded. Observation events may be written in bounded
+  batches; never batch a guard decision across requests. Ordinary payload
+  archives are not Phase 1 work.
+- **Overload behavior resolved:** observation-only events must not pause agent
+  execution. Buffer/retry them through a bounded spool; if it is exhausted or
+  unavailable, continue execution and set the affected trace to incomplete with
+  the cause and any known missing count/time range; do not fabricate unknown
+  extent. Do not add a separate gap event. Guard-decision persistence remains
+  a pre-forward hard gate.
+- **Risk:** event bursts or worker/database failures can exhaust bounded queues
+  or leave activity traces incomplete.
+- **Still pending:** queue/spool limits, batch size/flush interval,
+  maximum attempts and backoff cap values,
+  and the exact trace-incomplete cause codes and persistence contract.
+- **Retry policy resolved:** retry outbox publication with capped exponential
+  backoff and jitter; dead-letter after the bounded attempt count. Numeric
+  attempt and delay limits remain OD-08.
 - **Verification:** sustained ingestion, worker failure, queue/storage
-  exhaustion, duplicate delivery, compression round-trip and resource limits,
-  and explicit capture status without silent loss.
-- **Links:** EVT-001 through EVT-003, ARC-001 through ARC-006, OPS-003;
+  exhaustion, duplicate delivery, and resource limits; no silent event loss or
+  success-shaped trace completeness.
+- **Links:** EVT-001 through EVT-005, ARC-001 through ARC-006, OPS-003;
   OD-05, OD-07, OD-08.
 
 ### PD-08: Timeline query and browser rendering

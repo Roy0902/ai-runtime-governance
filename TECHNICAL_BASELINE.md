@@ -2,8 +2,10 @@
 
 This document records candidate framework, infrastructure, and hardware
 choices for AI Runtime Governance, an AI-agent monitor with a prompt guard.
-These choices support the product direction; they do not settle the still-open
-runtime-instrumentation versus gateway boundary.
+The product integrates with existing external agents rather than providing an
+agent framework. OpenCode CLI/TUI and GitHub Copilot agent mode in VS Code are
+candidate targets, not commitments; supported integration surfaces remain open. LangChain
+middleware is a capability reference, not a target runtime.
 
 The choices are deliberately conservative. The first implementation should
 optimize for correctness, stability, and straightforward operations before
@@ -14,6 +16,8 @@ introducing additional distributed infrastructure.
 - The monitor does not host a large local model.
 - Models may be local services, remote services, or cloud APIs.
 - Prompt checks must run before the guarded prompt is forwarded.
+- Initial prompt checks use a built-in deterministic rule catalog; user-authored,
+  model-based, and ML-based rules/detectors are outside the first-release scope.
 - Agent/model/tool activity is observable only through supported integrations.
 - Tool-action and output-content enforcement are outside the first-release
   boundary.
@@ -21,7 +25,8 @@ introducing additional distributed infrastructure.
   deferred.
 - PostgreSQL is available as a concurrent client/server database.
 - The first deployment may run all core components on one machine.
-- The first integration boundary and runtime are not yet selected.
+- The monitor must use interfaces exposed by existing agent products; it must
+  not assume a hook or event surface that the product does not provide.
 
 If a local model is hosted on the same machine, its CPU, memory, and especially
 GPU requirements must be planned separately. The hardware below covers the
@@ -72,10 +77,10 @@ The initial implementation must stay within these boundaries:
 
 These are design gaps, not permission to invent silent defaults:
 
-- **Integration and API contracts:** select runtime instrumentation, a gateway,
-  or both; choose the first supported runtime; and define prompt interception,
-  lifecycle hooks, event versions, ordering, duplicate handling, and capability
-  reporting.
+- **Integration and API contracts:** evaluate OpenCode CLI/TUI and GitHub
+  Copilot agent mode in VS Code; verify supported extension, hook, API, or event interfaces;
+  define prompt interception, lifecycle events, ordering, duplicate handling,
+  authentication, and capability reporting.
 - **Prompt-guard semantics:** define supported content/sensitive-data/
   injection-safety checks, rule precedence, redaction behavior, approval
   authority and expiry, and how approval binds to the prompt being forwarded.
@@ -204,6 +209,8 @@ request
 
 This avoids operating Kafka during the initial single-node deployment while
 preserving a reliable asynchronous boundary.
+Observation events may be written in bounded batches; authoritative guard
+decisions and their outbox records remain atomic per guarded request.
 
 Kafka, Redpanda, or another event broker can be added later if event volume,
 multiple consumers, or multi-node deployment requires it.
@@ -223,34 +230,38 @@ This is the architectural worker inventory, not a Phase 1 feature checklist.
 Offline analysis, recommendations, and external export follow the roadmap.
 
 All worker queues must be bounded and must expose retry, failure, and dead-letter
-behavior. No background failure should be silently discarded.
+behavior. Outbox retries use capped exponential backoff with jitter and bounded
+attempts. Observation-event overflow must not pause agent execution; if the
+bounded spool is exhausted, mark the affected trace incomplete with the cause
+and any known missing count/time range, without fabricating unknown values.
+Authoritative guard-decision persistence remains a pre-forward hard gate.
 
 ## Prompt-guard and monitoring architecture
 
 ```text
-Supported agent integration (boundary TBD)
-          |
-          v
-  Prompt guard and monitor
-          |
-          +-- establish request/trace context
-          +-- validate integration boundary
-          +-- evaluate prompt rules
-          +-- allow, deny, redact, or await approval
-          +-- correlate reported agent/model/tool events
-          +-- persist decision and activity events
-          |
-          +--> model and agent execution
+Existing external agent product --> Supported event interface --> Monitor --> Timeline
+                |
+                +--> Verified guard hook --> Guard API --> Internal guard module
+                                             ^                    |
+                                             +---- decision -------+
+
+No verified guard hook: monitor-only integration; do not expose a standalone
+guard API/service.
 ```
 
-The critical path should contain only the work required to make a safe decision:
+The guard logic is an internal Phase 1 module, testable independently of agent
+adapters. Expose it through an authenticated API only when an enabled agent hook
+can call it before forwarding. The API returns a decision and transformed
+message; the hook must honor the result. Observation-only integrations do not
+invoke the guard, and no separate input-guard service is deployed without a
+compatible hook.
 
 ```text
-establish integration identity and trace
-  -> validate supported request boundary
-  -> run configured prompt checks
-  -> resolve allow, deny, redact, or approval
-  -> forward only when permitted
+validate the newly submitted user message
+  -> run enabled built-in deterministic checks
+  -> apply all sensitive-data redactions
+  -> deny if any deny rule matches; otherwise await approval if required
+  -> return the decision and transformed message to the caller
 ```
 
 The following should normally be asynchronous:
@@ -262,15 +273,12 @@ The following should normally be asynchronous:
 - Offline reasoning analysis
 - Tool recommendation generation
 
-If the governance service is unavailable, the configured policy decides whether a
-critical action fails closed, uses a signed cached policy, or is allowed only for
-an explicitly low-risk operation.
-In Phase 1, unavailable required prompt evaluation blocks forwarding; signed
-cached/offline fallback is not implemented. Approval applies to guarded prompts
-only; per-tool action governance and output enforcement are deferred. The
-activity timeline shows reported tool events as observations, not service
-authorization. Integration-specific transport and resource limits remain open
-until the first boundary is selected.
+For a guarded invocation, unavailable required prompt evaluation blocks
+forwarding; signed cached/offline fallback is not implemented. An observation-
+only adapter does not invoke the guard and must expose that limitation.
+Per-tool action governance and output enforcement are deferred. The activity
+timeline shows reported tool events as observations, not service authorization.
+Product-specific interface, transport, and resource limits remain open.
 
 ### Concurrency model
 

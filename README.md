@@ -16,11 +16,13 @@ Here, the “reasoning loop” means that observable sequence of execution event
 It does not mean private hidden chain-of-thought. Provider/runtime-exposed
 reasoning text is not required for the monitor to show the loop.
 
-The integration boundary is not yet selected. Runtime instrumentation, a
-gateway, or a combination may be evaluated; the project must not claim visibility
-into or enforcement over activity that does not pass through a supported
-integration. Deployment and hosting choices should follow that decision rather
-than define the product.
+AI Runtime Governance monitors and guards existing cloud/developer agents; it
+does not provide a replacement agent framework or host those agents. OpenCode
+CLI/TUI and GitHub Copilot agent mode in VS Code are candidates, not
+first-release commitments. The exact supported integration surfaces and
+ability to intercept prompts and observe activity remain to be verified.
+LangChain is a reference for agent-middleware capabilities, not a target
+runtime.
 
 ## Problem
 
@@ -69,38 +71,70 @@ was checked, what happened next, and where an execution failed.
   private reasoning.
 - Claiming to monitor or govern integrations and execution paths that are not
   instrumented or routed through a supported boundary.
+- Replacing or hosting the external agent products being monitored.
 - Treating observation of a tool call as authorization of that call.
 - Automatically changing guard rules or taking actions based on monitor findings.
 
 ## Scope
 
 Phase 1 centers on prompt guarding and agent-activity visualization. Prompt
-content checks are in scope; their concrete rules, detectors, integration
-boundary, and approval workflow still require design decisions. Tool and output
-events are monitored where the chosen integration can observe them, but
+content checks are in scope; their concrete rules and approval lifecycle remain
+in the requirements. Guard logic is an internal module, tested independently
+of agent adapters. Expose a guard API/service only when an enabled agent hook
+can call it; without a compatible hook, do not deploy a standalone guard
+service and allow a monitoring-only release. Each integration must report
+whether it invokes the guard before model forwarding or is observation-only.
+Monitoring-only integrations must not be presented as guarding prompts. Tool
+and output events are observed where the integration can report them;
 per-action tool governance and output blocking are not implied. See the
-[requirements](./REQUIREMENTS.md) for the release contract and open decisions.
+[requirements](./REQUIREMENTS.md).
 
 ### 1. Pre-processing governance
 
-Before a prompt reaches the model, the guard evaluates configured rules for
-prompt content, sensitive data, and injection/safety indicators. Request
+Before forwarding, the guard evaluates the newly submitted user message using a
+built-in deterministic rule catalog for content rules, sensitive data, and
+injection/safety indicators. Users may enable or disable built-in rules, but
+their outcomes and priorities are fixed; user-authored rules are outside the
+initial scope. All built-in rules are enabled on a fresh installation.
+The first catalog covers common credentials/API tokens, email addresses and
+phone numbers, payment-card/financial identifiers, prompt-injection indicators,
+unsafe-content indicators, and explicit invalid/weak-prompt patterns.
+System/developer instructions, prior conversation history, and separately
+assembled or retrieved context are outside this guard's input scope. Request
 structure, size, destination, and supported-field validation are separate
 reliability and integration-boundary checks; they do not substitute for prompt
-content guarding.
+content guarding. These rules identify configured indicators; they do not
+provide complete semantic safety detection. Model-based and ML-based detectors
+are outside the initial scope. First-release built-in rules support literal
+matching and bounded regular expressions; exact regex features and limits
+remain open. The guard does not require a prompt template or checklist: a
+message with no enabled rule match is allowed, while evaluation failures block
+forwarding. Explicit invalid/weak-prompt patterns deny; sensitive-data matches
+are redacted with typed markers; injection/safety indicators require the
+submitting user's approval. When several rules match, all redactions are
+applied; any deny blocks forwarding; otherwise any approval match pauses
+forwarding; otherwise the message is allowed. Rule priority resolves overlapping
+redactions, with ties failing closed. These patterns do not grade general
+prompt quality.
 
 Possible prompt-guard outcomes are:
 
 ```text
 allow
 deny
-redact
+redact_with_typed_marker
 require_approval
 ```
 
 The guard must identify which rule or check produced an outcome. Detection
 coverage and confidence must not be overstated. The exact rule vocabulary,
-detector approach, redaction behavior, and approval semantics remain open.
+regex features, marker taxonomy, and broader retry behavior remain open. The
+submitting user resolves approval, which is tied to that exact message and
+expires when its originating request ends. Cancellation ends the request
+immediately; resubmission requires a fresh guard decision.
+Sensitive-data matches are replaced with typed markers such as
+`[REDACTED_EMAIL]`; prompt-injection and unsafe-content indicator matches
+require submitter approval. Redaction marker names remain to be defined.
 
 ### 2. Agent activity monitoring
 
@@ -153,19 +187,21 @@ lifecycle decisions before implementation.
 ## Deployment architecture
 
 ```text
-        Supported agent runtime integration
+        Existing agent products
         +-----------------------------+
-        | Runtime hooks and/or gateway|
-        | (integration boundary TBD)  |
+        | Product-specific adapters   |
+        | (interfaces TBD)            |
         +-------------+---------------+
                       |
-       Authenticated events/policy calls
+       Activity events; guard API only
+       when a compatible hook is enabled
                       |
                       v
         +-----------------------------+
-        | Agent monitor + prompt guard|
+        | Agent monitor               |
         |                             |
-        | - prompt checks and decisions|
+        | - internal prompt-guard     |
+        |   engine/API conditionally   |
         | - event collector           |
         | - trace/timeline API and UI  |
         +-------------+---------------+
@@ -188,12 +224,14 @@ Activity monitoring:
   correlated, durable, searchable, explicit about missing telemetry
 ```
 
-The integration boundary is not selected. Runtime instrumentation and gateway
-approaches must be evaluated for their ability to stop a denied, redacted, or
-approval-pending prompt from being forwarded and to report the activity needed
-for the timeline. Do not promise visibility into bypass paths. Deployment may
-be local or hosted; choose its shape after selecting the integration and trust
-boundaries.
+Each integration must use a supported interface exposed by an existing agent
+product, such as an extension, hook, API, or event stream. It must report its
+capabilities accurately: a prompt gate is enforced only where the integration
+can prevent forwarding; otherwise the integration is observation-only.
+LangChain's middleware APIs do not establish another product's capabilities,
+and no integration may claim visibility into bypass paths.
+Deployment may be local or hosted; choose its shape after selecting the runtime
+and trust boundaries.
 
 ## Server-side persistence
 
@@ -292,6 +330,13 @@ model and tool activity appears in the same timeline.
 - Fail closed for critical operations when required policy evaluation is
   unavailable.
 - Use a local durable spool when the collector is temporarily unavailable.
+- Do not pause agent execution for observation-event backlog; if the bounded
+  spool is exhausted, mark the trace incomplete with the cause and any known
+  missing count/time range; do not fabricate unknown values. A guard decision
+  that cannot be durably committed before forwarding still blocks the guarded
+  request.
+- Observation-event writes may use bounded batches; guard-decision writes stay
+  atomic per guarded request.
 - Redact secrets before persistence whenever possible.
 - Separate detailed audit data from ordinary application logs and alerts.
 - Keep read and write permissions separate for trace data.
@@ -307,14 +352,20 @@ activity monitoring; supporting platform features must not displace that core.
 
 ### Phase 1: Prompt guard and agent monitor
 
-- Select and document the first supported agent integration boundary; do not
-  claim universal interception.
+- Prototype OpenCode CLI/TUI and GitHub Copilot agent mode in VS Code in
+  parallel.
+  Report prompt-guard and activity-telemetry capabilities separately;
+  observation-only integrations are allowed and must be labeled. Production
+  support selection remains open.
 - Define the event model needed to correlate prompt decisions with observable
   agent, model, tool, retry, handoff, and completion events.
 - Implement configured prompt checks for content rules, sensitive data, and
   injection/safety indicators, with allow, deny, redact, and approval outcomes.
-- Ensure deny, redaction, or pending approval cannot be bypassed by forwarding
-  the original prompt; surface unavailable or failed checks explicitly.
+- Build and test the prompt-guard engine independently of agent-specific hooks;
+  only claim prompt enforcement for integrations that invoke it before forwarding.
+- Ensure guard-capable integrations cannot bypass deny, redaction, or pending
+  approval by forwarding the original prompt; surface unavailable or failed
+  checks explicitly. Observation-only integrations must be labeled as such.
 - Build a timeline that visualizes the observable execution loop and clearly
   identifies missing or unsupported telemetry.
 - Keep private hidden reasoning out of scope; the timeline must work from
