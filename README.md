@@ -2,29 +2,25 @@
 
 ## Main idea
 
-AI Runtime Governance is a portable control and observability layer for AI agent
-runtimes. It combines two related capabilities:
+AI Runtime Governance is an AI-agent monitoring system with a prompt guard. Its
+first purpose is to:
 
-1. **Governance**: inspect and control the AI workflow before, during, and after
-   model and tool execution.
-2. **Observability**: record and visualize what happened across the complete
-   request lifecycle, including agents, subagents, model calls, tools, MCP
-   servers, policies, approvals, errors, and final responses.
+1. **Guard prompts** before they reach a model, using configured content,
+   sensitive-data, and injection/safety checks. A guard may allow, deny, redact,
+   or request human approval.
+2. **Visualize agent activity** as an ordered trace of the observable execution
+   loop: agent steps, model calls and responses, tool calls and results, retries,
+   handoffs, and failures.
 
-The project is deployment-neutral. It must support local, VPS, private-cloud, and
-managed-cloud deployments through the same service interfaces. A cheap VPS is one
-possible deployment target, not a requirement.
+Here, the “reasoning loop” means that observable sequence of execution events.
+It does not mean private hidden chain-of-thought. Provider/runtime-exposed
+reasoning text is not required for the monitor to show the loop.
 
-Local development remains supported, but local clients should use the same
-service and API model as cloud clients. This keeps the runtime behavior
-consistent and avoids creating a separate single-user implementation.
-
-The service should be suitable for multiple concurrent runtimes, applications,
-and users while remaining deployable as a compact single-node installation.
-
-The system should integrate with existing model runtimes, harnesses, agent
-frameworks, and MCP tools without requiring every tool to implement its own
-logging or policy logic.
+The integration boundary is not yet selected. Runtime instrumentation, a
+gateway, or a combination may be evaluated; the project must not claim visibility
+into or enforcement over activity that does not pass through a supported
+integration. Deployment and hosting choices should follow that decision rather
+than define the product.
 
 ## Problem
 
@@ -44,149 +40,92 @@ User prompt
   -> final response
 ```
 
-Existing observability systems can help show traces, while guardrail systems can
-help validate inputs or outputs. The goal of this project is to connect those
-concerns through one portable lifecycle model while keeping enforcement and
-visualization technically independent.
+Existing observability can show traces without guarding the prompt, while
+guardrails may make decisions without showing the execution that followed. This
+project connects prompt decisions to an activity timeline so users can see what
+was checked, what happened next, and where an execution failed.
 
 ## Goals
 
-- Inspect the AI workflow from prompt intake to final response.
-- Apply safeguards before prompts, context, model calls, tool calls, and outputs
-  are processed.
-- Block dangerous actions or require approval before execution.
-- Record policy decisions, safeguard triggers, errors, retries, and alerts.
-- Visualize a nested timeline of agents, subagents, models, tools, and policies.
-- Offer opt-in archiving and visualization of reasoning artifacts when a model
-  or runtime explicitly exposes them.
-- Support local models, cloud model APIs, and managed runtimes where telemetry
-  hooks are available.
-- Work with MCP, shell commands, function calls, HTTP tools, and custom skills.
-- Keep tool implementations unchanged through adapters at runtime boundaries.
-- Analyze historical traces asynchronously to suggest missing or improved tools.
-- Export or consume portable tracing formats such as OpenTelemetry where useful.
-- Accept authenticated events and policy requests from local or cloud runtimes.
-- Support concurrent writers and readers through a server-side database.
-- Provide a deployable service with a web UI, API, background workers, and alerts.
+- Inspect prompt-guard decisions and the observable agent execution loop.
+- Apply configured content, sensitive-data, and injection/safety checks to
+  prompts before forwarding them.
+- Support allow, deny, redact, and human-approval outcomes for guarded prompts.
+- Record the prompt decision alongside correlated agent, model, and tool events.
+- Visualize event order, hierarchy, duration, status, retries, handoffs, and
+  incomplete or failed activity.
+- Make unsupported or missing telemetry explicit rather than implying that the
+  trace is complete.
+- Support integrations with existing runtimes and tools without claiming
+  universal interception.
+- Keep policy decisions and monitoring evidence distinguishable: an observed
+  tool call is not proof that the service authorized that action.
 
 ## Non-goals
 
 - Capturing or reconstructing private hidden chain-of-thought that a model or
   runtime does not expose; availability cannot be guaranteed across providers.
-- Treating a model-generated explanation as an authoritative policy decision.
-- Automatically creating tools or changing safeguards without review.
-- Replacing every existing observability platform.
-- Coupling the governance engine to one model provider or agent framework.
-- Making critical enforcement depend on a visualization database being available.
-- Using an embedded single-writer database as the primary deployment store.
-
-The project records observable execution evidence, such as prompts and responses
-where permitted, provider/runtime-exposed reasoning artifacts, tool calls, tool
-results, policy decisions, approvals, timing, errors, and final responses.
+- Treating generated explanations or a partial trace as the model's complete
+  private reasoning.
+- Claiming to monitor or govern integrations and execution paths that are not
+  instrumented or routed through a supported boundary.
+- Treating observation of a tool call as authorization of that call.
+- Automatically changing guard rules or taking actions based on monitor findings.
 
 ## Scope
 
-The sections below describe the product direction. The current Phase 1 release
-enforces input request boundaries only. Tool activity and outputs are observed
-for the timeline; secret/PII output findings are advisory, not delivery gates.
-Tool-action enforcement, human approval and output-content enforcement are
-deferred. Built-in agent tools are outside enforcement scope. See the
+Phase 1 centers on prompt guarding and agent-activity visualization. Prompt
+content checks are in scope; their concrete rules, detectors, integration
+boundary, and approval workflow still require design decisions. Tool and output
+events are monitored where the chosen integration can observe them, but
+per-action tool governance and output blocking are not implied. See the
 [requirements](./REQUIREMENTS.md) for the release contract and open decisions.
 
 ### 1. Pre-processing governance
 
-Before a request reaches the model, the system may:
+Before a prompt reaches the model, the guard evaluates configured rules for
+prompt content, sensitive data, and injection/safety indicators. Request
+structure, size, destination, and supported-field validation are separate
+reliability and integration-boundary checks; they do not substitute for prompt
+content guarding.
 
-- Validate the prompt and request structure.
-- Detect or redact secrets and sensitive data.
-- Classify data and apply tenant or project boundaries.
-- Detect prompt-injection indicators.
-- Evaluate the trust level of retrieved documents and other context.
-- Restrict available tools based on identity, environment, or task.
-- Enforce prompt size, content, and destination policies.
-
-Possible decisions are:
+Possible prompt-guard outcomes are:
 
 ```text
 allow
-allow_with_redaction
-allow_with_restrictions
-require_approval
 deny
-quarantine
+redact
+require_approval
 ```
 
-### 2. Model and context observability
+The guard must identify which rule or check produced an outcome. Detection
+coverage and confidence must not be overstated. The exact rule vocabulary,
+detector approach, redaction behavior, and approval semantics remain open.
 
-The system records the observable model lifecycle:
+### 2. Agent activity monitoring
 
-- Model request and response metadata.
-- Model and deployment identity.
-- Prompt and context references, hashes, or redacted payloads.
-- Reasoning artifacts explicitly exposed by the model or runtime, such as
-  summaries, explanations, or structured traces, only when reasoning archiving
-  is enabled. Associate them with the relevant model call and label their source
-  and type.
-- Token usage and payload size where available.
-- Latency, retries, timeouts, and provider errors.
-- Context sources and tool descriptions supplied to the model.
+The system records the observable execution lifecycle where supported:
 
-Raw payload retention must be configurable. Large or sensitive content should be
-stored by reference or omitted according to the deployment profile.
-Reasoning artifacts are optional and provider-dependent. The service must not
-infer hidden reasoning from other outputs or present an exposed summary as the
-model's complete private reasoning. Integrations should report whether this
-telemetry is supported and distinguish unavailable data from an empty artifact.
+- Prompt receipt and guard outcome, including applicable rule identifiers.
+- Agent steps, model requests/responses, tool calls/results, retries, handoffs,
+  errors, and final response, with timestamps and durations where available.
+- Parent/child relationships and trace context where the integration exposes
+  them.
+- Model, tool, and runtime identity and status where available.
 
-Reasoning archiving is **off by default**. Authorized users may enable or disable
-it within tenant policy; user preferences cannot override a tenant prohibition.
-When disabled, retain only reasoning availability and capture-status metadata,
-not reasoning text. Do not capture reasoning text for live visualization or
-persist it in databases, artifact storage, logs, queues, spools, or exports.
-Adapters must filter any reasoning text supplied by an upstream runtime before
-it enters those paths. This setting does not disable model reasoning or ordinary
-trace metadata collection.
+The sequence of these events is the activity loop shown by the monitor. It does
+not require or imply capture of hidden reasoning text. Missing or unsupported
+events must be identified as such.
 
-Enabling archiving permits storage and timeline retrieval subject to tenant
-authorization, redaction, and retention policy. Disabling it stops subsequent
-capture; previously archived artifacts remain subject to their retention and
-deletion policies.
+### 3. Activity timeline
 
-### 3. Action governance
-
-Before a model-generated action is executed, the system evaluates:
-
-- Tool or command identity.
-- Arguments and target resource.
-- User, service, and deployment identity.
-- Environment and data classification.
-- Requested operation and risk level.
-- Previous approvals and trace state.
-
-The action may be allowed, constrained, denied, or paused for human approval.
-MCP servers and tools should continue to enforce their own authorization rules as
-a second line of defense.
-
-### 4. Post-processing governance
-
-After model or tool execution, the system may:
-
-- Validate structured model outputs.
-- Inspect tool results for sensitive information.
-- Scan generated files or artifacts.
-- Redact secrets before returning results.
-- Check output size and content policies.
-- Prevent unsafe final responses from being delivered.
-
-### 5. Activity timeline
-
-Each user request receives a trace. Work within that trace is represented as
-parent and child spans or events:
+Each monitored request receives a trace. Work within that trace is represented
+as ordered parent and child spans or events:
 
 ```text
 Trace: request-123
 |- User prompt
-|- Input policy: allow with redaction
+|- Prompt guard: redact (sensitive-data rule)
 |- Main agent
 |  |- Model request
 |  |- Model response
@@ -194,130 +133,84 @@ Trace: request-123
 |  |  |- Model request
 |  |  |- MCP call: search
 |  |  `- MCP result
-|  |- Tool policy: require approval
 |  `- Tool call completed
-|- Output policy: allow
 `- Final response
 ```
 
-The timeline should show order, hierarchy, duration, status, policy outcomes,
-approvals, retries, available reasoning artifacts with their source/type, and
-links to available redacted payloads. It must not imply that an artifact is
-complete hidden chain-of-thought. Show when reasoning archiving is disabled,
-rather than presenting the absence of archived text as an empty reasoning result.
+The timeline should show order, hierarchy, duration, status, prompt-guard
+outcomes, retries, handoffs, and incomplete telemetry. Approval state is shown
+when the prompt guard invokes the approval workflow. Reasoning-loop
+visualization means this event sequence; provider-exposed reasoning text is not
+needed and is not a Phase 1 deliverable.
 
-### 6. Offline analysis
+### 4. Later capabilities
 
-Reasoning interpretation is not required in the real-time path. Historical traces
-can be analyzed later to find:
-
-- Repeated requests without a suitable tool.
-- Failed or repeated tool-selection attempts.
-- Manual workarounds.
-- Commonly repeated tool chains.
-- Tools with high failure or correction rates.
-- Missing data sources or capabilities.
-
-The analysis produces recommendations for human review, for example:
-
-```json
-{
-  "recommendation_type": "new_tool",
-  "name": "search_build_artifacts",
-  "evidence": {
-    "trace_count": 184,
-    "failed_attempts": 62,
-    "common_request_pattern": "find previous build logs"
-  },
-  "confidence": 0.87,
-  "requires_review": true
-}
-```
+Historical analysis, reasoning-text archives, attachment scanning, output
+content enforcement, per-tool action governance, and enterprise workspace
+features are outside the first-release core. They require separate scope and
+lifecycle decisions before implementation.
 
 ## Deployment architecture
 
 ```text
-        Local or cloud runtime clients
+        Supported agent runtime integration
         +-----------------------------+
-        | Harness adapters            |
-        | Model/MCP/tool integrations |
+        | Runtime hooks and/or gateway|
+        | (integration boundary TBD)  |
         +-------------+---------------+
                       |
-             Authenticated HTTPS/API
+       Authenticated events/policy calls
                       |
                       v
         +-----------------------------+
-        | AI Runtime Governance       |
+        | Agent monitor + prompt guard|
         |                             |
-        | - policy and approval API   |
+        | - prompt checks and decisions|
         | - event collector           |
-        | - timeline/query API        |
-        | - web UI                    |
-        | - alert dispatcher          |
-        | - offline analysis workers  |
+        | - trace/timeline API and UI  |
         +-------------+---------------+
                       |
-          +-----------+------------+
-          v                        v
-   Server database          Artifact storage
-   (concurrent access)      (large payloads)
-          |
-          +----------------------+
-                                 v
-                        Timeline and analysis
+                      v
+               Event storage
+                      |
+                      v
+             Activity timeline
 ```
 
-The governance path and observability path share trace context, but they have
-different reliability requirements:
+Prompt guarding and activity monitoring share trace context, but have different
+reliability requirements:
 
 ```text
-Governance:
-  synchronous, authoritative, fail-safe
+Prompt guard:
+  synchronous, authoritative, prevent forwarding on deny/failure/awaiting approval
 
-Observability:
-  durable, searchable, visual, asynchronously exportable
-
-Offline analysis:
-  asynchronous, advisory, reviewable
+Activity monitoring:
+  correlated, durable, searchable, explicit about missing telemetry
 ```
 
-The service-oriented deployment model is the default architectural model. The
-service may run locally, on a VPS, in a private cloud, or as a managed cloud
-deployment. Runtime integrations may run as a library, middleware layer,
-sidecar, or gateway near the harness. They send trace events to the service and
-request synchronous policy decisions before critical actions.
-
-The model and tool traffic does not always need to pass through the governance
-service. A local or cloud runtime can keep payload traffic in its existing path
-while sending metadata, redacted content, hashes, and policy requests to the
-service. When centralized inspection is required, model and MCP traffic may
-instead be routed through a gateway deployment.
-
-For a critical action, the runtime adapter must not execute until it receives an
-allow or approval decision. If the governance service is unavailable, the
-configured policy determines whether the action fails closed, uses a signed
-cached policy, or is allowed only for explicitly low-risk operations.
+The integration boundary is not selected. Runtime instrumentation and gateway
+approaches must be evaluated for their ability to stop a denied, redacted, or
+approval-pending prompt from being forwarded and to report the activity needed
+for the timeline. Do not promise visibility into bypass paths. Deployment may
+be local or hosted; choose its shape after selecting the integration and trust
+boundaries.
 
 ## Server-side persistence
 
-Every shared or service deployment must use a client/server database that
-supports concurrent writers and readers. PostgreSQL is the initial reference
-choice because it supports transactions, JSON data, indexing, connection
-pooling, and reliable multi-process access. A local installation may run
-PostgreSQL in a container or use another compatible server database, but an
-embedded single-writer database is not the primary storage model.
+PostgreSQL is the current database candidate because it supports transactions,
+JSON, indexing, connection pooling, and multi-process access. The persistence
+choice should be revisited against the selected integration boundary and
+deployment target; it is not the product's defining capability.
 
-For data isolation, a **tenant** is a customer, organization, or workspace
-boundary. An application is a resource within a tenant, not a substitute for
-the tenant identity. Every tenant-owned record, including events, traces,
-policies, approvals, alerts, analysis results, and artifact metadata, must be
-associated with its tenant.
+Every protected event and trace must be scoped to the authorization boundary
+selected for the deployment. The initial account, workspace, and tenant model
+is not yet decided.
 
 The storage design should separate:
 
 - **Trace metadata and event records** in the server database.
-- **Large prompts, responses, tool outputs, and artifacts** in object storage or
-  an equivalent blob store, referenced by durable IDs.
+- **Large payloads and artifacts**, if a later archive feature is approved, in
+  object storage or an equivalent blob store referenced by durable IDs.
 - **Background work state** in durable database-backed jobs or an external queue
   when the deployment grows.
 
@@ -337,7 +230,7 @@ Every event should support a common correlation structure:
 
 ```text
 event_id
-tenant_id
+authorization_scope_id
 trace_id
 span_id
 parent_span_id
@@ -365,6 +258,7 @@ Important event types include:
 trace.started
 prompt.received
 policy.input_decision
+prompt.guard.decision
 context.assembled
 model.request
 model.response
@@ -389,10 +283,11 @@ model and tool activity appears in the same timeline.
 
 - Do not trust model-supplied identity, timestamps, or policy outcomes.
 - Derive identity from authenticated runtime or service credentials.
-- Resolve each request's tenant from its authenticated principal or credential;
-  never trust a tenant identifier supplied only in a request payload.
-- Enforce tenant authorization on every read and write, including trace queries,
-  approvals, policies, and artifact access. Cross-tenant access must be denied.
+- Resolve each request's authorization scope from its authenticated principal
+  or credential; never trust a scope identifier supplied only in a request
+  payload.
+- Enforce the selected authorization scope on every read and write, including
+  trace queries, guard decisions, and event access.
 - Keep critical policy evaluation independent from the timeline UI.
 - Fail closed for critical operations when required policy evaluation is
   unavailable.
@@ -407,76 +302,34 @@ model and tool activity appears in the same timeline.
 ## Initial development plan
 
 The [Phase 1 requirements specification](./REQUIREMENTS.md) defines the initial
-release, confirmed decisions, proposed details, acceptance criteria, and
-remaining release blockers. Phase 1 has been expanded from the original minimal
-vertical slice; later phases below describe capabilities not included in it.
+release and remaining decisions. Phase 1 is centered on prompt guarding and
+activity monitoring; supporting platform features must not displace that core.
 
-### Phase 1: Service vertical slice
+### Phase 1: Prompt guard and agent monitor
 
-- Define the event and trace schema, including `tenant_id` on tenant-owned data.
-- Implement tenant identity binding and tenant-scoped authorization and queries
-  for ingestion, persistence, APIs, and artifact references.
-- Add public OIDC accounts, self-service workspaces, owner/operator/viewer roles,
-  invitations, member management, and safe ownership transfer.
-- Implement authenticated runtime ingestion.
-- Implement one direct model API and one MCP integration through a gateway.
-- Support workspace-owned integration credentials through both encrypted
-  server-side storage and an external secret-manager integration.
-- Add a policy editing UI and deterministic allow/deny input checks, with deny
-  precedence and unmatched input requests denied.
-- Observe tool/output activity without action approvals or output-content gates.
-  Add advisory local non-model secret/PII output findings to the timeline.
-  Resolve delivery mode and scan-storage/resource bounds before implementation;
-  mandatory output-policy buffering is no longer a Phase 1 requirement.
-- Store events in PostgreSQL.
-- Render a basic nested timeline from the server API.
-- Add bounded ordinary payload archives, off by default, with lifecycle controls
-  required before enablement. Reasoning text archiving/viewing remains deferred.
-- Add opt-in asynchronous advisory attachment scans using local non-model
-  scanners, separately consented temporary storage, and timeline findings.
-  Scan results do not hold or block prompts; detection coverage and lifecycle
-  details must be resolved before enablement.
-- Package the service for a single-node deployment that can run locally or in
-  the cloud.
+- Select and document the first supported agent integration boundary; do not
+  claim universal interception.
+- Define the event model needed to correlate prompt decisions with observable
+  agent, model, tool, retry, handoff, and completion events.
+- Implement configured prompt checks for content rules, sensitive data, and
+  injection/safety indicators, with allow, deny, redact, and approval outcomes.
+- Ensure deny, redaction, or pending approval cannot be bypassed by forwarding
+  the original prompt; surface unavailable or failed checks explicitly.
+- Build a timeline that visualizes the observable execution loop and clearly
+  identifies missing or unsupported telemetry.
+- Keep private hidden reasoning out of scope; the timeline must work from
+  activity events alone.
+- Add only the authentication, persistence, and deployment capabilities needed
+  to support the selected integration and initial users.
 
-### Phase 2: Safeguards and reliability
+### Later phases: Platform and extended governance
 
-- Extend payload handling with redaction and additional artifact capabilities.
-- Extend allow/deny with constraint and approval decisions.
-- Design tool-action and output-content enforcement separately; neither is
-  implied by Phase 1 observation or advisory findings.
-- Extend baseline structured errors with richer safeguard and alert events.
-- Extend basic failure handling with durable client spooling and supported
-  retries; do not blindly retry side-effecting tools.
-- Add subagent context propagation.
-- Add optional reasoning archives only after resolving their capture, storage,
-  and visualization lifecycle; keep them off by default.
-
-### Phase 3: Portable integrations and cloud clients
-
-- Add OpenTelemetry-compatible export.
-- Add adapters for shell, HTTP/function tools, and custom skills.
-- Support local and cloud model providers.
-- Make storage and visualization backends replaceable.
-- Support multiple applications and concurrent runtime clients.
-- Add signed policy distribution and configurable offline behavior.
-
-### Phase 4: Offline improvement workflows
-
-- Add trace replay and comparison.
-- Detect recurring tool failures and missing capabilities.
-- Generate reviewed tool recommendations.
-- Add policy tuning suggestions without automatic enforcement changes.
-
-### Phase 5: Scaled and enterprise deployment
-
-- Extend authenticated collection for distributed deployments.
-- Extend baseline workspace roles with enterprise access-management capabilities.
-- Add append-only or tamper-evident storage options.
-- Extend basic archive retention/deletion with classification and compliance
-  controls.
-- Add centralized alert routing and approval workflows.
-- Move high-volume artifacts and events to independently scalable services.
+- Harden durability, failure recovery, and supported runtime integrations.
+- Add workspace management, BYOK, payload archives, attachment scans, and
+  enterprise deployment only when validated as needed by the monitor's users.
+- Consider tool-action governance, output enforcement, offline analysis,
+  OpenTelemetry export, and exposed reasoning artifacts as separately scoped
+  capabilities with their own safeguards and acceptance criteria.
 
 ## Guiding principle
 
@@ -484,14 +337,13 @@ vertical slice; later phases below describe capabilities not included in it.
 > stage through a shared service, and use historical evidence to improve agents,
 > tools, and policies.
 
-The project should be deployable locally or on a cheap VPS from the first useful
-release, compatible with private and managed cloud environments through the same
-interfaces, and capable of growing into a larger multi-client governance service
-later.
+The first useful release should make prompt decisions understandable and agent
+activity visible. Deployment portability and future governance capabilities
+should support that purpose, not substitute for it.
 
 ## Initial technical baseline
 
-The first implementation will use:
+The current technical baseline proposes:
 
 ```text
 Java 25 LTS
@@ -504,11 +356,9 @@ Docker Compose
 Caddy
 ```
 
-The initial target is a portable single-node deployment that can run locally, on
-a VPS, or in a cloud instance. A recommended personal deployment is
-approximately 2 vCPU, 4 GB RAM, and 40-80 GB SSD. A 4 vCPU, 8 GB deployment is
-reserved for heavier analysis or future growth, assuming model inference is
-hosted elsewhere.
+The deployment target remains open pending selection of the integration
+boundary and initial users. Existing hardware estimates are planning references,
+not Phase 1 requirements or measured capacity guarantees.
 
 The high-throughput request path uses Java virtual threads for concurrent
 I/O-bound model, MCP, approval, and database operations. Virtual threads do not

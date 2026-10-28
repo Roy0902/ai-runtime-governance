@@ -1,9 +1,9 @@
 # Technical Baseline
 
-This document records the initial framework, infrastructure, and hardware
-choices for AI Runtime Governance. The baseline is intended for a single-user
-or small-team deployment that can run locally, on a VPS, or in a private or
-managed cloud environment.
+This document records candidate framework, infrastructure, and hardware
+choices for AI Runtime Governance, an AI-agent monitor with a prompt guard.
+These choices support the product direction; they do not settle the still-open
+runtime-instrumentation versus gateway boundary.
 
 The choices are deliberately conservative. The first implementation should
 optimize for correctness, stability, and straightforward operations before
@@ -11,14 +11,17 @@ introducing additional distributed infrastructure.
 
 ## Assumptions
 
-- The governance service does not host a large local model.
+- The monitor does not host a large local model.
 - Models may be local services, remote services, or cloud APIs.
-- The service must proxy or observe model and MCP/tool activity.
-- Required input-policy decisions are synchronous in Phase 1; tool-action and
-  output-content enforcement are future capabilities.
-- Trace persistence and analysis are asynchronous where possible.
+- Prompt checks must run before the guarded prompt is forwarded.
+- Agent/model/tool activity is observable only through supported integrations.
+- Tool-action and output-content enforcement are outside the first-release
+  boundary.
+- Activity persistence is required for the timeline; historical analysis is
+  deferred.
 - PostgreSQL is available as a concurrent client/server database.
 - The first deployment may run all core components on one machine.
+- The first integration boundary and runtime are not yet selected.
 
 If a local model is hosted on the same machine, its CPU, memory, and especially
 GPU requirements must be planned separately. The hardware below covers the
@@ -36,7 +39,7 @@ for the first release.
 
 The initial implementation must stay within these boundaries:
 
-- **Integrate with runtimes, not replace them.** Do not expand the service into
+- **Monitor agents, do not replace them.** Do not expand the service into
   an agent framework, model-training platform, or inference host. Execution
   remains with the integrated runtime and its model and tool services.
 - **Support explicit integrations, not universal interception.** Start with the
@@ -48,9 +51,10 @@ The initial implementation must stay within these boundaries:
 - **Keep analysis advisory.** Do not let trace analysis or model-generated
   reasoning automatically create or execute tools, grant approvals, or change
   active policy. Human review remains required for recommendations.
-- **Keep reasoning archiving optional.** Do not make governance, ordinary
-  timelines, or trace collection depend on reasoning text. Do not infer hidden
-  reasoning or bypass the archive setting to fill missing telemetry.
+- **Visualize the observable loop.** The reasoning loop means the ordered
+  activity events reported by an integration, not private hidden chain-of-
+  thought. Do not make the timeline depend on reasoning text or infer hidden
+  reasoning from other telemetry.
 - **Target one node before distributed operation.** Do not claim high
   availability, automatic failover, regional replication, or horizontal scaling
   from the initial single-node deployment. These need separate designs and
@@ -68,12 +72,14 @@ The initial implementation must stay within these boundaries:
 
 These are design gaps, not permission to invent silent defaults:
 
-- **Integration and API contracts:** select the first model and tool
-  integrations and define supported lifecycle hooks, event versions, ordering,
-  duplicate handling, and capability reporting.
-- **Policy and approval semantics:** define rule precedence, restriction
-  enforcement, approval authority, expiry, and how an approval is bound to the
-  exact action. Do not treat an approval event alone as execution authorization.
+- **Integration and API contracts:** select runtime instrumentation, a gateway,
+  or both; choose the first supported runtime; and define prompt interception,
+  lifecycle hooks, event versions, ordering, duplicate handling, and capability
+  reporting.
+- **Prompt-guard semantics:** define supported content/sensitive-data/
+  injection-safety checks, rule precedence, redaction behavior, approval
+  authority and expiry, and how approval binds to the prompt being forwarded.
+  Do not treat an approval event alone as authorization.
 - **Payload lifecycle:** define retention, deletion, quotas, compression and
   retrieval behavior, and explicit handling of full storage or interrupted
   capture before enabling the affected archive path.
@@ -124,8 +130,9 @@ connections, so resource-specific bounds remain required.
 
 ### Frontend
 
-The Phase 1 UI uses the selected frontend stack for timelines, workspace/account
-management, integration configuration, and policy editing:
+The first UI need is the prompt-guard decision and correlated agent-activity
+timeline. Workspace/account administration, credential management, and their
+specific configuration interfaces are not Phase 1 assumptions:
 
 ```text
 TypeScript
@@ -140,7 +147,7 @@ timeline and query API and must not be required for policy enforcement.
 
 ### Primary database
 
-Use PostgreSQL for:
+PostgreSQL remains the selected initial database candidate for:
 
 - Trace and span metadata
 - Policy definitions and versions
@@ -151,21 +158,21 @@ Use PostgreSQL for:
 - Analysis results
 - Timeline query indexes
 
-Every tenant-owned record must carry or be unambiguously scoped to a `tenant_id`.
-The authenticated principal or runtime credential determines the tenant scope;
-request payloads and model output cannot select or override it. Every database
-query and API operation must enforce that scope, including access to artifact
-metadata and storage references. Application identity is subordinate to tenant
-identity and does not provide cross-tenant authorization.
+Every protected record must be scoped to the authorization boundary selected
+for the deployment. Authenticated identity determines that scope; request
+payloads and model output cannot select or override it. Every database query
+and API operation must enforce the selected scope, including artifact metadata
+and storage references. The initial account/tenant model remains undecided.
 
 Do not use SQLite as the primary deployment database. The system must support
 concurrent writers and readers through a server database.
 
 ### Large payloads
 
-Store large prompts, model responses, tool output, opt-in reasoning artifacts,
-and generated artifacts in S3-compatible object storage or a controlled artifact
-volume. PostgreSQL should store:
+The first release does not require prompt/response archives or reasoning-text
+storage. If a later feature stores large prompts, model responses, tool output,
+or generated artifacts, use S3-compatible object storage or a controlled
+artifact volume. PostgreSQL should store:
 
 ```text
 artifact_id
@@ -177,29 +184,11 @@ redaction_status
 storage_reference
 ```
 
-Reasoning archiving is deferred beyond Phase 1; the following describes its
-future opt-in behavior, not an available first-release path.
-Reasoning artifacts may be stored only when explicitly exposed by a model or
-runtime integration. Associate each with its model call, source, and artifact
-type. Record whether the integration supports this telemetry so unavailable
-data is distinguishable from an empty artifact. Do not infer hidden reasoning
-from other outputs or label a summary as complete private chain-of-thought;
-availability is provider-dependent and is not guaranteed.
-
-Reasoning archiving is off by default. Authorized users may enable or disable it
-only within tenant policy; a tenant prohibition takes precedence over user
-preferences. Enforce the effective setting at the adapter/capture boundary.
-When disabled, keep only availability and capture-status metadata, do not
-capture reasoning text for live viewing, and filter upstream reasoning text
-before persistence, logging, enqueueing, spooling, or export. Model execution and
-ordinary trace metadata collection continue independently of this setting.
-
-When enabled, reasoning artifacts follow tenant authorization, redaction, and
-retention policies and can be retrieved on demand by the timeline UI.
-Disabling archiving stops subsequent capture, not automatic deletion of existing
-artifacts; existing archives remain governed by retention and deletion policies.
-Expose the disabled state in the API and timeline so it cannot be confused with
-unsupported telemetry or an empty artifact.
+Reasoning-text capture, archiving, and display are not first-release
+requirements. The monitor visualizes the observable activity sequence and does
+not infer or reconstruct private reasoning. If a future integration exposes
+reasoning artifacts, handling them requires a separate product, privacy, and
+retention decision; it must not be required for ordinary trace collection.
 
 ### Initial event delivery
 
@@ -236,32 +225,32 @@ Offline analysis, recommendations, and external export follow the roadmap.
 All worker queues must be bounded and must expose retry, failure, and dead-letter
 behavior. No background failure should be silently discarded.
 
-## Request and policy architecture
+## Prompt-guard and monitoring architecture
 
 ```text
-Runtime client or harness
+Supported agent integration (boundary TBD)
           |
           v
-  Governance gateway
+  Prompt guard and monitor
           |
-          +-- authenticate and establish trace context
-          +-- pre-input/context policy
-          +-- model proxy or forwarding
-          +-- output/tool telemetry and advisory findings
-          +-- event/outbox write
+          +-- establish request/trace context
+          +-- validate integration boundary
+          +-- evaluate prompt rules
+          +-- allow, deny, redact, or await approval
+          +-- correlate reported agent/model/tool events
+          +-- persist decision and activity events
           |
-          +--> local or cloud model
-          +--> MCP/tool service
+          +--> model and agent execution
 ```
 
 The critical path should contain only the work required to make a safe decision:
 
 ```text
-authenticate
-  -> validate
-  -> load policy snapshot
-  -> evaluate deterministic rules
-  -> allow or deny input forwarding
+establish integration identity and trace
+  -> validate supported request boundary
+  -> run configured prompt checks
+  -> resolve allow, deny, redact, or approval
+  -> forward only when permitted
 ```
 
 The following should normally be asynchronous:
@@ -276,13 +265,12 @@ The following should normally be asynchronous:
 If the governance service is unavailable, the configured policy decides whether a
 critical action fails closed, uses a signed cached policy, or is allowed only for
 an explicitly low-risk operation.
-In Phase 1, unavailable required input evaluation blocks input forwarding;
-signed cached/offline fallback is not implemented. Tool-action enforcement and
-human approvals are deferred. Outputs serve timeline visualization and advisory
-local non-model secret/PII detection, not a blocking content/schema check.
-Delivery mode and scan-storage/resource limits remain open under OD-10 in the
-requirements. Basic protocol/error handling and workspace authorization remain
-required; built-in agent tool telemetry is observation-only.
+In Phase 1, unavailable required prompt evaluation blocks forwarding; signed
+cached/offline fallback is not implemented. Approval applies to guarded prompts
+only; per-tool action governance and output enforcement are deferred. The
+activity timeline shows reported tool events as observations, not service
+authorization. Integration-specific transport and resource limits remain open
+until the first boundary is selected.
 
 ### Concurrency model
 
@@ -291,10 +279,10 @@ network or database I/O:
 
 ```text
 virtual thread per request
-  -> input policy
-  -> model/MCP I/O
-  -> bounded response transport (delivery mode to be decided)
-  -> compact event enqueue
+  -> prompt guard
+  -> permitted model/agent I/O
+  -> correlated activity-event capture
+  -> bounded event persistence
 ```
 
 Use bounded platform-thread executors or bounded worker pools for CPU-heavy work:
@@ -316,7 +304,7 @@ service must limit:
 - Database connections.
 - Payload-processing jobs.
 - Event queue depth.
-- Per-client and per-tenant request rates.
+- Per-client and per-authorization-scope request rates.
 
 Backpressure, upstream timeouts, cancellation propagation, and bounded buffers
 are required. Future streaming support must preserve enforcement guarantees.
@@ -325,11 +313,10 @@ consume excessive memory if it retains a large prompt, response, or tool result.
 
 ## Security baseline
 
-- OIDC/OAuth2 for human users.
+- Human-user authentication model to be selected; OIDC/OAuth2 remains a candidate.
 - Short-lived service credentials for runtime clients.
-- Public OIDC signup and self-service workspace management with workspace roles.
-- Workspace-owner BYOK configuration through both encrypted credential storage
-  and an external secret-manager integration; no stored secret readback to users.
+- Account/workspace management and BYOK are later product decisions, not
+  first-release assumptions.
 - Optional mTLS for trusted service-to-service deployments.
 - Role and scope checks before trace access or action approval.
 - TLS termination at Caddy or the cloud load balancer.
@@ -337,12 +324,9 @@ consume excessive memory if it retains a large prompt, response, or tool result.
 - Redaction before persistence when possible.
 - Separate operational logs from detailed audit payloads.
 - No model-supplied identity or policy result is trusted.
-- Tenant isolation is a Phase 1 requirement: derive tenant identity from
-  authenticated credentials and enforce it on every read, write, and artifact
-  access. Reject cross-tenant access even when a caller supplies another
-  tenant's resource identifier.
-- Trace and event data is scoped by tenant, with application identity as a
-  subordinate scope.
+- Every read and write must enforce the authorization scope selected for the
+  deployment. Do not assume a workspace/tenant model before product and
+  integration requirements establish it.
 - Critical policy and audit decisions are independently authenticated.
 
 The request context should carry only request-scoped information such as:
@@ -351,8 +335,8 @@ The request context should carry only request-scoped information such as:
 trace_id
 request_id
 authenticated principal
-tenant_id resolved from authenticated credentials
-application identity within that tenant
+authorization scope resolved from authenticated credentials
+application identity within that scope
 authorization scopes
 deadline and cancellation
 ```
@@ -495,7 +479,7 @@ p99 proxy latency on the target workload.
 
 ## Initial decision
 
-The initial development baseline is:
+The initial technology candidate is:
 
 ```text
 Java 25 LTS
@@ -513,10 +497,9 @@ Caddy
 PostgreSQL transactional outbox
 ```
 
-The first target deployment is a single-node local or cloud installation using
-approximately 2 vCPU, 4 GB RAM, and 40-80 GB SSD. A 1-2 vCPU, 2 GB instance may
-work for low-volume use with strict payload and worker limits. A 4 vCPU, 8 GB
-instance is reserved for comfortable growth.
+The deployment target and its workload profile must be selected after the
+integration boundary and initial users are defined. The hardware figures above
+are planning estimates, not Phase 1 acceptance criteria.
 
 This baseline intentionally does not include Kafka, Kubernetes, a managed
 database, or a local inference GPU. Those are later scaling or deployment

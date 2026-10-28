@@ -17,73 +17,46 @@ changes observable behavior, update the requirements as well.
 
 ## Processing concerns
 
-### PD-01: Input safeguards and supported detection
+### PD-01: Prompt guard and supported detection
 
-- **Status: synchronous scope resolved; attachment scanning details pending.** Supported integration schemas and broader
-  operational limits remain dependent on OD-01, OD-04, and OD-08; this is a
-  design decision, not an implemented or benchmarked capability.
-- **Decision:** synchronous boundary checks only. Check body size, request structure,
-  supported fields, authorized model/destination, and permitted request parameters.
-  Individual tool calls are not authorized by these input checks.
-  No new prompt-text content scanning is included; users remain responsible
-  for not supplying PII. The separate attachment path below is advisory, not
-  a blocking check. If prompt text matching is introduced later, the initial
-  preference is literal-only matching, not an approved Phase 1 feature.
-- **Reason:** establish deterministic execution boundaries with bounded
-  processing, without claiming semantic threat detection.
-- **Processing order:** authenticate/authorize and admit the request; enforce
-  body limits during reading; strictly parse and validate the integration
-  schema; check authorized targets and parameters; evaluate input policy;
-  persist the required decision before upstream dispatch.
-- **Approved parsing limits:** maximum body 1 MiB (1,048,576 bytes), UTF-8 JSON,
-  maximum container nesting depth 32 (root container counts as 1). Reject
-  duplicate object keys, unsupported encodings, and compressed request bodies.
-  Reject schema-unsupported fields rather than silently dropping them.
-- **Approved deadline:** 500 ms elapsed time from complete receipt of the
-  bounded body, covering parsing, schema/boundary checks and input-policy
-  evaluation. This is not a CPU-time budget or latency percentile. It excludes
-  upload, prior authentication/admission, decision persistence, and upstream
-  model/tool execution; those need separate deadlines under OD-08.
-- **Failure behavior:** malformed, oversized, uninspectable, or timed-out input
-  produces a structured error and no upstream dispatch. Do not truncate or skip
-  checks. Cancel processing where supported and prevent a late result from
-  authorizing dispatch; timeout is not proof that CPU work has stopped.
-- **Risk:** safeguard cost depends on whether checks inspect metadata, scan
-  large text, or call another model. A deterministic rule engine must not be
-  presented as a general semantic safety detector.
-- **Resolve:** which input checks Phase 1 supports; size/encoding and parser
-  limits; matching complexity; CPU budgets; timeout and malformed-input behavior.
-- **Candidate approach:** validate cheap bounds first, then perform explicitly
-  supported bounded checks. Model-based safeguards are not implied by the
-  current deterministic allow/deny scope.
-- **Verification:** representative and worst-case inputs; latency/CPU
-  measurements; no upstream invocation after denial or evaluation failure.
-- **Boundary tests:** accept a valid permitted request at the byte/depth limits;
-  reject 1,048,577-byte bodies, depth 33, duplicate keys, invalid UTF-8/JSON,
-  compressed bodies, unsupported fields, and unauthorized targets. Inject
-  evaluation delay to test the 500 ms deadline and ensure a late allow never
-  dispatches. Distinguish timeout/validation errors from policy denial.
-- **Attachment decision:** opt-in local, non-model background scanning of
-  attached files only. Do not wait for findings or block prompt dispatch on
-  scan results/failure. Findings may arrive after model disclosure and must
-  appear on the trace without exposing raw sensitive values. Existing
-  structural/authorization/policy checks remain blocking.
-- **Temporary storage:** separate explicit workspace consent permits temporary
-  scan copies independently of ordinary archives. Delete after completion or
-  expiry; surface/retry deletion failure. Without consent, do not create the
-  scan copy/job. Do not silently promote temporary copies to archives.
-- **Dependency restriction:** any model/ML-based scanner must be disclosed and
-  separately approved, even if it runs locally; no external detector submission.
-- **Still pending:** file contracts/formats, scanner packages and rule coverage,
-  safe extraction, file/expanded-size bounds, worker limits, expiry/deletion,
-  encryption and overload handling under OD-09. The synchronous 500 ms deadline
-  and 1 MiB JSON-body bound do not define these attachment limits.
-- **Attachment verification:** delayed scans do not hold permitted execution;
-  late findings appear after trace completion; unsupported/failure states do
-  not imply a clean scan; consent, deletion, isolation and non-model processing
-  are tested before enablement.
-- **Links:** INP-001 through INP-003, FIL-001 through FIL-004,
-  POL-002 through POL-004, GW-004; OD-01, OD-04, OD-08, OD-09.
+- **Status: core behavior established; integration and detection design pending.**
+  Phase 1 guards prompt content, sensitive data, and injection/safety indicators
+  and visualizes the observable agent activity loop. This is product scope, not
+  evidence that a detector or integration has been implemented or benchmarked.
+- **Decision:** a prompt check may allow, deny, redact, or require human approval.
+  Denied, redacted, or approval-pending prompts must not be forwarded unchanged.
+  The monitor's “reasoning loop” is the ordered sequence of observable agent,
+  model, and tool events, not private hidden chain-of-thought.
+- **Processing order:** authenticate and admit through the selected boundary;
+  enforce applicable request-size and structural limits; run configured prompt
+  checks; resolve the decision; persist the authoritative decision as required;
+  then forward only an allowed or correctly redacted prompt, or wait for the
+  resolved approval outcome.
+- **Not selected:** runtime instrumentation versus gateway versus both; rule
+  vocabulary and precedence; detector methods/packages; prompt/context coverage;
+  redaction semantics; approval authority, expiry, and action binding; and
+  latency/resource budgets. Resolve these under OD-01, OD-04, and OD-08.
+- **Failure behavior:** malformed, uninspectable, denied, timed-out, or
+  unevaluated prompts must not be forwarded. Do not truncate or skip required
+  checks. Return structured errors for failures and prevent late results from
+  authorizing dispatch.
+- **Risk:** prompt-injection and safety detection may have false positives and
+  false negatives. The product must document supported checks and limitations
+  rather than claim complete detection. Do not assume a model-based detector or
+  external content submission.
+- **Candidate approach:** keep deterministic request-boundary validation
+  distinct from content checks. Use explicit, attributable rule outcomes and
+  only add detectors after their method, data path, resource use, and coverage
+  are reviewed.
+- **Verification:** use bounded synthetic prompts covering each configured
+  rule, benign lookalikes, redaction, approval, timeout, and detector failure.
+  Verify exact upstream payloads and confirm no forwarding on deny, failure, or
+  pending approval. Measure latency and resource use for the selected methods.
+- **Deferred attachment path:** attachment scanning is not a Phase 1 gate. If
+  reconsidered, define its separate consent, temporary storage, scanner methods,
+  file limits, deletion, and nonblocking behavior under OD-09 before enablement.
+- **Links:** GUARD-001 through GUARD-003, MON-001 through MON-003, INP-001
+  through INP-003, POL-002 through POL-004; OD-01, OD-04, OD-08.
 
 ### PD-02: Output buffering and processing
 
@@ -93,10 +66,10 @@ changes observable behavior, update the requirements as well.
   output-content or response-schema validation, redaction, or approval gate.
   Mandatory pre-delivery buffering is superseded; streaming versus buffering is
   still undecided, not an implicitly approved streaming feature.
-- **Related scope correction:** Phase 1 enforces input boundary rules only.
-  Tool-action policy and human approvals are deferred. Agent built-in tools are
-  outside enforcement; supplied telemetry is observation-only. MCP privileges
-  were an example, not an approved service-side permission/approval design.
+- **Related scope:** prompt guarding is the Phase 1 enforcement path, including
+  prompt-level approval when configured. Per-tool action governance and output
+  enforcement are deferred. Agent built-in tool activity is observation-only;
+  tool telemetry is not authorization.
 - **Retained reliability responsibilities:** protocol parsing, upstream error
   handling, cancellation and bounded resource use are infrastructure, not
   user-facing content safeguards.
@@ -145,7 +118,7 @@ changes observable behavior, update the requirements as well.
 - **Candidate approach:** immutable versioned policy snapshots with explicit
   attribution for every decision; caching is not permission to serve stale
   authorization indefinitely.
-- **Current boundary:** these are input-policy decisions; per-tool action and
+- **Current boundary:** these are prompt-guard decisions; per-tool action and
   output-policy enforcement are deferred.
 - **Verification:** concurrent activation/evaluation, worst-case matching,
   cache freshness, and deterministic deny precedence/default deny.

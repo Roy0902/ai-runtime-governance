@@ -4,20 +4,23 @@
 
 This is a requirements draft for developers and coding agents, not a statement
 of implemented capability or production readiness. It defines the initial
-release of AI Runtime Governance. The
+release of AI Runtime Governance as an AI-agent monitor with a prompt guard. The
 [README](./README.md) describes the product direction; the
 [technical baseline](./TECHNICAL_BASELINE.md) describes the selected architecture.
 
-The Phase 1 scope was explicitly expanded beyond the original vertical slice
-to include public accounts, workspace management, policy editing, both secret
-storage modes, and opt-in ordinary payload archives.
+The release focus is prompt guarding and visualization of the observable agent
+activity loop. The earlier broad service, account/workspace, BYOK, payload
+archive, attachment-scanning, and offline-analysis scope is not a Phase 1
+acceptance gate; those capabilities remain candidates for later product
+decisions.
 
 Requirement IDs are stable references. **Confirmed** requirements express
-approved scope or behavior. **Deferred** IDs preserve references to superseded
-release requirements and are not Phase 1 acceptance gates. **Proposed** requirements and numeric targets need
-review and are not approved defaults. Open decisions identify gaps that block
-the affected implementation or release acceptance. MUST applies to confirmed
-requirements; proposed rows describe candidate behavior only.
+approved behavior; the release boundary identifies which are Phase 1 gates.
+**Deferred** requirements remain outside Phase 1 and are not acceptance gates.
+**Proposed** requirements and numeric targets need review and are not approved
+defaults. Open decisions identify gaps that block the affected implementation
+or release acceptance. MUST applies to confirmed requirements; proposed rows
+describe candidate behavior only.
 
 Each requirement below includes an observable acceptance criterion. Detailed
 test implementations and physical database schemas are outside this document.
@@ -32,9 +35,15 @@ test implementations and physical database schemas are outside this document.
   encryption keys, and secret-manager connection. Tenant-data access for this
   actor remains an open decision; deployment access is not implicitly a UI role.
 - **Runtime client:** a program using workspace-bound service credentials.
-- **Integration:** the selected model API or MCP connection supported by Phase 1.
-- **Governed operation:** an operation whose supported execution boundary is
-  controlled by the gateway. Activity bypassing that boundary is not governed.
+- **Integration:** the supported runtime instrumentation and/or gateway
+  boundary. The first boundary is not yet selected.
+- **Monitored activity:** agent, model, and tool events reported by a supported
+  integration. Activity outside that boundary is not visible to the monitor.
+- **Reasoning loop:** the ordered observable execution sequence, including
+  model calls, tool calls/results, retries, handoffs, and failures. It does not
+  mean private hidden chain-of-thought.
+- **Prompt guard:** configured checks applied to a prompt before it is forwarded
+  to a model.
 - **Ordinary payload:** prompt, model response, or tool input/output, excluding
   identified reasoning fields and integration credentials.
 - **Reasoning artifact:** model/runtime-exposed reasoning telemetry; unavailable
@@ -42,57 +51,57 @@ test implementations and physical database schemas are outside this document.
 
 ## Release boundary
 
-Included: one direct model API integration, one MCP integration, gateway
-input enforcement through deterministic allow/deny checks, event persistence,
-trace timeline, OIDC public accounts, self-service workspaces, team management,
-policy UI, BYOK, two secret-storage modes, bounded opt-in ordinary archives,
-opt-in asynchronous advisory attachment scanning, and advisory secret/PII
-findings on observed model/tool outputs.
+Included: configured prompt-content, sensitive-data, and injection/safety checks;
+allow, deny, redact, and human-approval outcomes; correlation of guard decisions
+with observable agent activity; and a timeline of the reported model/tool
+execution loop.
 
-Deferred: tool-action and output-content policy enforcement, human approvals,
-quarantine and constraint/redaction decisions,
-advanced/model-based content scanning, reasoning archives or live reasoning views,
-subagent propagation, general-purpose adapter coverage,
-offline cached enforcement, offline recommendations, high availability, and
-enterprise compliance certification. No billing/subscription system is specified.
-
-Public accounts do not imply free shared provider credits, unlimited resources,
-or arbitrary network access. Proposals for limits must be reviewed explicitly.
-Output delivery mode (streaming versus buffering) is unresolved, not implicitly
-approved or deferred. Output analysis serves the timeline and does not gate
-delivery. Built-in agent tools are outside enforcement scope; supplied telemetry
-is observation-only. Tool servers retain their own authorization responsibilities.
+The first runtime/gateway integration, detector and rule mechanics, exact
+approval workflow, payload retention, account/workspace model, credential
+management, and deployment shape are not silently selected by this release
+boundary. Workspace administration, BYOK, ordinary archives, attachment
+scanning, output findings, offline analysis, and enterprise features are not
+Phase 1 acceptance gates. No support is claimed for activity that bypasses the
+selected integration. Tool-event observation is not tool-action authorization;
+tool servers retain their own authorization responsibilities.
 
 ## Primary workflows
 
-1. A visitor registers through the configured OIDC provider, signs in, manages
-   the application profile, and creates a workspace.
-2. The owner invites members, assigns roles, and configures a supported model
-   and MCP integration using BYOK or an authorized secret reference.
-3. An authorized policy editor creates and validates a draft, then activates a
-   version that explicitly permits intended input requests.
-4. A runtime authenticates to the workspace gateway. The gateway checks input,
-   permits or denies the input request, and records available tool/output activity.
-   No per-tool action approval or output-content gate is applied in this release.
-5. Members inspect trace metadata and policy results in the timeline. Ordinary
-   payloads are accessible only if archived and authorized. Reasoning text is
-   not archived or displayed in Phase 1.
-6. The owner optionally enables ordinary payload archives after a sensitive-data
-   warning, or disables future capture. Existing archives follow explicit
-   retention/deletion rules, not an implied immediate purge.
+1. A runtime sends a prompt through the selected supported integration.
+2. The prompt guard evaluates configured content, sensitive-data, and
+   injection/safety checks and records the applicable rules and decision.
+3. An allowed prompt is forwarded; a denied prompt is not forwarded; a redacted
+   prompt is forwarded only in its guarded form; a prompt awaiting approval is
+   not forwarded until approval is resolved.
+4. The integration reports observable agent, model, tool, retry, handoff, and
+   error activity associated with the prompt's trace.
+5. A user inspects the ordered activity timeline and can distinguish observed
+   events from unavailable or missing telemetry. The timeline does not require
+   private reasoning text.
 
 ## Functional requirements and acceptance criteria
 
-### Accounts, workspaces, and authorization
+### Prompt guarding and agent-activity monitoring
 
 | ID | Status | Requirement | Acceptance criterion |
 |---|---|---|---|
-| IAM-001 | Confirmed | Public registration/login MUST use an external OIDC provider; the application MUST support account/profile management without implementing native passwords. | A new user can register, log in, inspect/update supported profile fields, and log out; no local password endpoint is required. Recovery is routed to the identity provider. Exact editable fields and deletion workflow are OD-02. |
-| IAM-002 | Confirmed | Authenticated users MUST be able to create and manage multiple workspaces without operator approval. | One account creates two distinct workspaces, renames them, and selects either using authorized membership; no implicit single-workspace restriction appears. |
-| IAM-003 | Confirmed | Workspaces MUST support invitations, member removal, owner/operator/viewer assignments, and safe ownership transfer. | An accepted invitation grants the assigned workspace role; removal revokes access; ownership can be transferred without leaving a workspace ownerless. Identity matching and concurrency rules are OD-02. |
-| IAM-004 | Confirmed | Every workspace-owned read/write MUST authorize authenticated membership or workspace-bound runtime credentials. A caller-supplied workspace ID alone MUST NOT grant access. | A member can select their own workspace but cannot read, mutate, reference, or attach resources from another workspace, including through guessed IDs and artifact links. |
-| IAM-005 | Confirmed | Runtime credentials MUST be workspace-bound, scope-limited, and revocable. | A credential cannot access another workspace or owner-management APIs; revoking it blocks subsequent authenticated operations. Expiry/revocation timing is OD-02. |
-| IAM-006 | Confirmed | Workspace deletion MUST be an explicit authorized workflow covering membership, integrations, credentials, and retained data. | After deletion begins, new governed execution is blocked; data/credential cleanup has an inspectable outcome rather than a success response with inaccessible orphaned records. Completion and backup rules are OD-07. |
+| GUARD-001 | Confirmed | The prompt guard MUST support configured checks for prompt content rules, sensitive data, and injection/safety indicators before model forwarding. Detector mechanisms and coverage must be explicit; the system MUST NOT imply complete detection. | Representative rule fixtures produce attributable findings; unsupported checks and detector failures are surfaced distinctly from a clean result. |
+| GUARD-002 | Confirmed | A prompt decision MUST support allow, deny, redact, and require-approval outcomes. Denied prompts MUST NOT be forwarded; redacted prompts MUST be forwarded only in the redacted form; approval-pending prompts MUST NOT be forwarded. | Tests inspect the exact upstream payload and verify no dispatch for denial or pending approval, and verify redaction is applied before dispatch. |
+| GUARD-003 | Confirmed | Guard evaluation failure, timeout, or unavailable required policy MUST NOT implicitly allow prompt forwarding. | Injected detector/policy failures return structured errors and cause no upstream dispatch; late results cannot authorize a request after its deadline. |
+| MON-001 | Confirmed | The system MUST correlate prompt decisions with observable agent, model, and tool activity, including available retries, handoffs, results, errors, and completion state. | A supported execution yields a trace linking the prompt decision with reported execution events; events that cannot be observed are not fabricated. |
+| MON-002 | Confirmed | The timeline MUST visualize event order, hierarchy, status, and duration where available, and distinguish missing or unsupported telemetry from an empty activity sequence. | Timeline tests show ordered nested events and explicit incomplete/unsupported states without representing absence of telemetry as proof no activity occurred. |
+| MON-003 | Confirmed | “Reasoning loop” in the product MUST refer to the observable execution sequence, not private hidden chain-of-thought. Private reasoning MUST NOT be inferred or reconstructed. | A trace remains useful with reasoning-text capture disabled or unavailable; UI labels activity events without claiming they are complete private reasoning. |
+
+### Accounts, workspaces, and authorization (deferred platform requirements)
+
+| ID | Status | Requirement | Acceptance criterion |
+|---|---|---|---|
+| IAM-001 | Deferred | Public registration/login MUST use an external OIDC provider; the application MUST support account/profile management without implementing native passwords. | A new user can register, log in, inspect/update supported profile fields, and log out; no local password endpoint is required. Recovery is routed to the identity provider. Exact editable fields and deletion workflow are OD-02. |
+| IAM-002 | Deferred | Authenticated users MUST be able to create and manage multiple workspaces without operator approval. | One account creates two distinct workspaces, renames them, and selects either using authorized membership; no implicit single-workspace restriction appears. |
+| IAM-003 | Deferred | Workspaces MUST support invitations, member removal, owner/operator/viewer assignments, and safe ownership transfer. | An accepted invitation grants the assigned workspace role; removal revokes access; ownership can be transferred without leaving a workspace ownerless. Identity matching and concurrency rules are OD-02. |
+| IAM-004 | Deferred | Every workspace-owned read/write MUST authorize authenticated membership or workspace-bound runtime credentials. A caller-supplied workspace ID alone MUST NOT grant access. | A member can select their own workspace but cannot read, mutate, reference, or attach resources from another workspace, including through guessed IDs and artifact links. |
+| IAM-005 | Deferred | Runtime credentials MUST be workspace-bound, scope-limited, and revocable. | A credential cannot access another workspace or owner-management APIs; revoking it blocks subsequent authenticated operations. Expiry/revocation timing is OD-02. |
+| IAM-006 | Deferred | Workspace deletion MUST be an explicit authorized workflow covering membership, integrations, credentials, and retained data. | After deletion begins, new governed execution is blocked; data/credential cleanup has an inspectable outcome rather than a success response with inaccessible orphaned records. Completion and backup rules are OD-07. |
 
 #### Proposed workspace permission matrix
 
@@ -114,37 +123,38 @@ Workspace membership does not automatically grant integration provider secrets.
 
 | ID | Status | Requirement | Acceptance criterion |
 |---|---|---|---|
-| INT-001 | Confirmed | Phase 1 MUST support one selected direct model API and one selected MCP integration with documented input-enforcement and observation boundaries. | A permitted model request produces a response and selected MCP activity appears in its trace; no claim is made of per-tool policy enforcement. Unsupported integration operations return explicit errors. Selection/transport is OD-01. |
-| INT-002 | Confirmed | Workspace owners MUST be able to configure their own supported model/MCP credentials in the UI. | The owner configures an integration and the workspace runtime uses it; another workspace cannot use it, and signup alone provides no shared provider credentials. |
-| INT-003 | Confirmed | Both encrypted server-side credential storage and an external secret-manager integration MUST be supported. | The same supported integration succeeds using each mode; unavailable keys or unauthorized references produce explicit failures with no plaintext fallback. Product/authentication selection is OD-03. |
-| INT-004 | Confirmed | Submitted secrets MUST be write-only in the UI/API and excluded from logs, traces, ordinary archives, and error bodies. Deployment encryption keys MUST NOT be sent to clients. | Credential-read responses expose only non-secret status/identifiers; controlled credential values do not appear in inspected persistence/log/export paths during success and failure tests. |
-| INT-005 | Confirmed | Tenant-configurable destinations and secret references MUST be constrained by deployment-authorized access, not trusted as arbitrary URLs or secret paths. | Attempts to reach disallowed internal destinations or another workspace's secret reference are rejected before use. Exact destination/reference rules are OD-03. |
+| INT-001 | Confirmed | Phase 1 MUST support a selected agent integration boundary that can apply prompt decisions before forwarding and report the supported activity events. The boundary may use runtime instrumentation, a gateway, or both; selection is OD-01. | A prompt denied or awaiting approval is not forwarded, and supported model/tool activity appears in its trace. Unsupported integration operations return explicit errors; bypassed activity is not claimed as monitored. |
+| INT-002 | Deferred | Workspace owners MUST be able to configure their own supported model/MCP credentials in the UI. | The owner configures an integration and the workspace runtime uses it; another workspace cannot use it, and signup alone provides no shared provider credentials. |
+| INT-003 | Deferred | Both encrypted server-side credential storage and an external secret-manager integration MUST be supported. | The same supported integration succeeds using each mode; unavailable keys or unauthorized references produce explicit failures with no plaintext fallback. Product/authentication selection is OD-03. |
+| INT-004 | Deferred | Submitted secrets MUST be write-only in the UI/API and excluded from logs, traces, ordinary archives, and error bodies. Deployment encryption keys MUST NOT be sent to clients. | Credential-read responses expose only non-secret status/identifiers; controlled credential values do not appear in inspected persistence/log/export paths during success and failure tests. |
+| INT-005 | Deferred | Tenant-configurable destinations and secret references MUST be constrained by deployment-authorized access, not trusted as arbitrary URLs or secret paths. | Attempts to reach disallowed internal destinations or another workspace's secret reference are rejected before use. Exact destination/reference rules are OD-03. |
 | INT-006 | Proposed | Credential replacement, revocation, and encryption-key rotation should have explicit versions and failure behavior without exposing old values. | Rotation tests show which subsequent requests use the new credential, and unavailable credentials block invocation; rollback and in-flight behavior are specified before implementation. |
 
 ### Policy management and enforcement
 
 | ID | Status | Requirement | Acceptance criterion |
 |---|---|---|---|
-| POL-001 | Confirmed | Authorized members MUST be able to create, edit, validate, and activate workspace policies through a UI. | A valid draft becomes active; invalid policy is rejected without replacing the active policy. Runtime evaluation reports the policy version actually used. |
-| POL-002 | Confirmed | Input-policy results MUST be allow or deny; deny MUST override matching allows, and unmatched input requests MUST be denied. | Matching deny+allow yields deny, explicit allow without deny permits the input request, and no match prevents its forwarding. Tool/output findings are not evaluated as blocking decisions. |
-| POL-003 | Confirmed | Input forwarding MUST wait for successful required evaluation; unavailable or erroneous evaluation MUST NOT implicitly allow it. | Evaluation timeout, missing policy, and evaluator failure produce structured errors and no forwarding of that input. Signed cached fallback is not used; advisory scan failures are not input-policy failures. |
-| POL-004 | Confirmed | Enforcement MUST apply only at the supported input boundary in Phase 1. Tool/output telemetry and advisory findings MUST NOT be presented as enforced action/output policy. | Denied input is not forwarded; observed tool actions and output findings are labeled as observation/advisory, not approval or denial. Built-in tools are not intercepted for enforcement. |
+| POL-001 | Proposed | The prompt-guard rule configuration mechanism should support validation and activation; a workspace policy-editing UI is not a Phase 1 assumption. | Invalid rules are rejected without replacing the active configuration; runtime decisions identify the configuration version. The interface and activation semantics are OD-04. |
+| POL-002 | Confirmed | Prompt-guard decisions MUST support allow, deny, redact, and require approval. Rule precedence, unmatched behavior, and the exact approval contract are OD-04. | Each decision identifies its matched rules; deny prevents forwarding, redact forwards only the transformed prompt, approval-pending waits, and an approved prompt proceeds only under the resolved approval contract. |
+| POL-003 | Confirmed | Prompt forwarding MUST wait for successful required evaluation; unavailable or erroneous evaluation MUST NOT implicitly allow it. | Evaluation timeout, missing policy, detector failure, and evaluator failure produce structured errors and no forwarding. Signed cached fallback is not used. |
+| POL-004 | Confirmed | Phase 1 enforcement MUST apply to prompts at the supported integration boundary. Tool/output telemetry MUST NOT be presented as enforced action/output policy. | Guard decisions are enforced before prompt forwarding; observed tool actions and output events are labeled as monitoring evidence, not service authorization or output approval. |
 | POL-005 | Proposed | Each governed input request should use an immutable active-policy snapshot. | Concurrent policy activation cannot mix undocumented rule versions; decisions retain version and matched-rule identifiers. Snapshot and revocation semantics are OD-04. |
 | POL-006 | Confirmed | Policy decisions MUST include an explicit outcome, policy identity/version, and machine-readable explanation code without treating model rationale as authority. | The timeline/API identifies why an operation was denied and which version decided it; fabricated model-supplied outcomes cannot authorize execution. |
 
-### Gateway execution and output handling
+### Prompt processing and integration boundaries
 
-Phase 1 synchronous input safeguards validate execution boundaries, not message
-meaning. New prompt-text content scanning is not included; users remain
-responsible for not supplying PII. Attachments have a separate opt-in advisory
-scan path below, not a blocking semantic safety check. See the
-[PD-01 processing decision](./PENDING-DESIGN-DECISIONS.md#pd-01-input-safeguards-and-supported-detection).
+The prompt guard evaluates configured prompt content, sensitive-data, and
+injection/safety checks before forwarding. Structural parsing, request-size
+limits, supported-field validation, and destination checks remain necessary
+boundary controls but are not substitutes for content checks. Detector coverage,
+failure behavior, and approval details are documented explicitly; no check is
+represented as complete safety detection.
 
 | ID | Status | Requirement | Acceptance criterion |
 |---|---|---|---|
-| INP-001 | Confirmed | Input MUST be UTF-8 JSON, at most 1 MiB (1,048,576 bytes), with maximum container depth 32 including the root container. Enforce size during reading; reject duplicate keys, compressed bodies, unsupported encodings and schema-unsupported fields. | Valid schema-conforming requests at byte/depth limits pass validation; limit+1, invalid UTF-8/JSON, duplicate keys, compressed bodies and unsupported fields fail explicitly without dispatch or silent field removal. |
-| INP-002 | Confirmed | Input safeguards MUST validate request structure, supported fields, authorized model/destination and permitted request parameters before forwarding. Malformed or uninspectable input MUST NOT be truncated, forwarded, or accepted by skipping checks. This is not authorization of individual tool calls. | Unsupported/unauthorized model destinations and invalid request parameters are rejected. Validation errors remain distinguishable from policy denies; no semantic threat-detection or per-tool enforcement claim is made. Supported schemas/rules remain OD-01 and OD-04. |
-| INP-003 | Confirmed | Local input processing MUST have a 500 ms elapsed-time deadline starting after full receipt of the bounded body, including parsing, schema/boundary checks and input-policy evaluation. Expiry MUST prevent dispatch and return a structured timeout; late results MUST NOT authorize execution. | Injected processing delay expires at the configured deadline with no upstream invocation even if evaluation later returns allow. Cancel work where supported; no assumption is made that elapsed-time timeout forcibly stops CPU work. Upload, prior authentication/admission, decision persistence and upstream calls require separate deadlines under OD-08. |
+| INP-001 | Proposed | If the selected integration accepts JSON requests, it should define explicit encoding, size, nesting, duplicate-key, and schema limits and reject malformed or unsupported input before dispatch. | Boundary tests cover the selected integration's documented limits. Exact wire format and limits depend on OD-01 and OD-08. |
+| INP-002 | Confirmed | The selected integration MUST validate the request boundary and run configured prompt-guard checks before forwarding. Malformed or uninspectable input MUST NOT be truncated, forwarded, or accepted by skipping required checks. This is not authorization of individual tool calls. | Invalid boundary inputs and triggered guard rules produce explicit outcomes. Validation errors remain distinguishable from guard decisions. Supported boundary, rules, and detectors are OD-01 and OD-04. |
+| INP-003 | Proposed | Prompt-guard evaluation should have a bounded deadline appropriate to the selected integration; expiry must prevent dispatch and late results must not authorize execution. | Injected processing delay causes a structured timeout and no upstream invocation. Exact deadline and measurement boundary are OD-01 and OD-08. |
 
 | ID | Status | Requirement | Acceptance criterion |
 |---|---|---|---|
@@ -157,8 +167,8 @@ scan path below, not a blocking semantic safety check. See the
 
 | ID | Status | Requirement | Acceptance criterion |
 |---|---|---|---|
-| OUT-001 | Confirmed | Observed model responses and tool results MUST support advisory secret/credential and PII findings using explicitly supported local non-model rules. Findings MUST NOT block, redact, or hold output awaiting analysis, or trigger action approval. | A finding is associated with its trace/span in the timeline without changing delivery into a policy denial. Coverage is documented, not represented as complete detection. Packages/rules remain OD-10. |
-| OUT-002 | Confirmed | Output scan status and findings MUST remain workspace-scoped and MUST NOT expose detected secret/PII values in finding metadata. Unsupported, failed, skipped or incomplete inspection MUST NOT imply a clean scan. | Timeline tests distinguish scan completion from execution success and show safe finding descriptions without synthetic sensitive values. |
+| OUT-001 | Deferred | Advisory secret/credential and PII findings on model responses and tool results are not a Phase 1 requirement. If added later, findings must not block, redact, or hold output. | Not a Phase 1 release gate. Scope and processing behavior require a separate decision under OD-10. |
+| OUT-002 | Deferred | Output scan status and findings are not a Phase 1 requirement. Any future findings must be authorization-scoped and must not expose sensitive values. | Not a Phase 1 release gate. |
 
 This feature is for timeline visualization and advisory detection, not response
 schema/content enforcement. Ordinary protocol parsing, upstream error reporting
@@ -166,7 +176,7 @@ and resource limits remain necessary for service reliability. Scan access,
 retention/consent, scheduling and overload behavior are unresolved: enabling
 analysis must not silently enable output archives or temporary storage.
 
-### Asynchronous advisory attachment scanning
+### Asynchronous advisory attachment scanning (deferred)
 
 This path does not hold a prompt for scanning, redact its contents, or undo
 disclosure. An attachment may reach the model before a finding exists.
@@ -176,10 +186,10 @@ not include background scanning.
 
 | ID | Status | Requirement | Acceptance criterion |
 |---|---|---|---|
-| FIL-001 | Confirmed | When enabled, attached-file scanning MUST run asynchronously and be advisory only. Pending scans, findings and scan failures MUST NOT independently block or delay prompt dispatch awaiting a scan result. | A deliberately delayed or failed scan does not hold an otherwise permitted prompt; a later finding appears on its trace without retroactively marking execution denied. Ordinary authorization/limit violations can still reject the request. |
-| FIL-002 | Confirmed | Scan storage MUST require explicit workspace opt-in separate from ordinary archive consent, and MUST be temporary, workspace-authorized, and deleted after scan completion or expiry. | With archives disabled, consenting to scanning permits only the temporary scan copy; without scan consent no such copy/job is created. Completion and expiry trigger deletion, with deletion failures surfaced and retried. No temporary copy silently becomes an archive. |
-| FIL-003 | Confirmed | The timeline MUST associate scan status/findings with the correct trace and attachment, including disabled, pending, completed, failed, skipped/unsupported and expired states as applicable. Findings MUST NOT expose raw PII, secret values or file excerpts containing them. | A late finding remains visible after trace completion; unsupported or failed scans are not displayed as clean results. Cross-workspace reads are denied and synthetic sensitive values do not appear in findings. |
-| FIL-004 | Confirmed | Scanners MUST run locally without model inference or external content submission. Dependencies that use ML/model inference, including locally hosted models, MUST be disclosed and separately approved before adoption. | Dependency review documents each scanner's processing method; the approved path neither loads an inference model nor sends file contents to an external detector. |
+| FIL-001 | Deferred | Attached-file scanning is not a Phase 1 requirement. If introduced later, it must be advisory and must not delay prompt dispatch while awaiting scan results. | Not a Phase 1 release gate. |
+| FIL-002 | Deferred | Attachment scan storage and consent are not a Phase 1 requirement. Any later scan copy must have an explicit lifecycle and must not silently become an archive. | Not a Phase 1 release gate. |
+| FIL-003 | Deferred | Attachment scan findings and statuses are not a Phase 1 requirement. Any future findings must be linked to the correct trace and must not expose raw sensitive data. | Not a Phase 1 release gate. |
+| FIL-004 | Deferred | Attachment scanner dependencies and processing restrictions are not a Phase 1 requirement. Any later scanner selection requires review of local processing, model use, and external data submission. | Not a Phase 1 release gate. |
 
 Supported file types, extractors, detection rules and scan-storage/worker bounds
 are OD-09. No claim is made to inspect every format or detect every sensitive
@@ -192,29 +202,29 @@ attachment-file size limit or approval for arbitrary file retrieval.
 
 | ID | Status | Requirement | Acceptance criterion |
 |---|---|---|---|
-| EVT-001 | Confirmed | Authenticated ingestion MUST persist workspace-scoped events and correlate model/tool/policy activity by trace and span. | A supported execution produces a reconstructable nested timeline, while forged workspace identity or policy authority is rejected. |
-| EVT-002 | Proposed | Events should be versioned and include event ID, workspace ID, trace/span/parent IDs, type, source time when available, server receipt time, producer identity, status, and applicable policy/error/payload references. | Unknown required versions fail explicitly; missing applicable fields are rejected; absent optional telemetry is not fabricated. Detailed optionality is OD-05. |
-| EVT-003 | Proposed | Duplicate event IDs with identical content should be idempotent within a workspace; conflicting duplicates should be rejected. Out-of-order and missing-parent events should remain inspectable. | Retrying an identical event does not duplicate the timeline; conflicting content raises an error; late parents can restore hierarchy without pretending timestamps are globally ordered. |
-| UI-001 | Confirmed | The UI MUST provide a workspace-scoped trace list and nested timeline showing order, duration, status, policy outcomes, and explicit missing/incomplete telemetry. | Users locate a trace and expand its model/tool/policy spans; an interrupted trace is distinguishable from a successful completed trace. |
+| EVT-001 | Confirmed | Authenticated ingestion MUST persist events within the configured authorization scope and correlate prompt decisions with reported agent/model/tool activity by trace and span. | A supported execution produces a reconstructable activity timeline; forged identity or policy authority is rejected. |
+| EVT-002 | Proposed | Events should be versioned and include event ID, authorization-scope ID where applicable, trace/span/parent IDs, type, source time when available, server receipt time, producer identity, status, and applicable guard/error/payload references. | Unknown required versions fail explicitly; missing applicable fields are rejected; absent optional telemetry is not fabricated. Detailed optionality is OD-05. |
+| EVT-003 | Proposed | Duplicate event IDs with identical content should be idempotent within the authorization scope; conflicting duplicates should be rejected. Out-of-order and missing-parent events should remain inspectable. | Retrying an identical event does not duplicate the timeline; conflicting content raises an error; late parents can restore hierarchy without pretending timestamps are globally ordered. |
+| UI-001 | Confirmed | The UI MUST provide an authorized trace list and nested activity timeline showing prompt-guard outcomes, event order, duration, status, and explicit missing/incomplete telemetry. | Users locate a trace and expand its guard, agent, model, and tool events; an interrupted trace is distinguishable from a successful completed trace. |
 | UI-002 | Proposed | Trace listing should support bounded pagination and filters for time range, application, status, and trace ID; running traces should be refreshable without live token streaming. | Pagination has deterministic continuation; applying filters excludes nonmatching traces; refreshing reveals newly persisted events. Query contract is OD-05. |
 | API-001 | Confirmed | API errors MUST be structured and distinguish authentication, authorization, validation, policy denial, limits, dependency failure, and execution uncertainty without leaking secrets. | Each failure class has an inspectable machine code and correlation identifier; no failure returns a success-shaped payload. HTTP mappings are OD-05. |
 
-### Ordinary archives and reasoning exclusion
+### Payload archives and reasoning exclusion
 
 | ID | Status | Requirement | Acceptance criterion |
 |---|---|---|---|
-| ARC-001 | Confirmed | Ordinary payload archives MUST be off by default and explicitly enabled by an authorized owner within tenant policy after a sensitive-data warning. | A fresh workspace execution retains metadata but no archived prompt/response/tool bodies; enabling it records eligible bounded artifacts. Warning does not claim redaction is implemented. |
+| ARC-001 | Deferred | Ordinary prompt/response/tool payload archives are not a Phase 1 requirement. | Not a Phase 1 release gate; future archive behavior requires explicit consent and lifecycle decisions. |
 | ARC-002 | Confirmed | Reasoning text MUST NOT be archived or displayed in Phase 1, including reasoning embedded in generic model-response objects. | Supported reasoning fields are filtered before logs, queues, spools, exports, or ordinary archives; only availability/capture status is recorded. No claim is made to detect every unstructured explanation. |
-| ARC-003 | Confirmed | Disabling ordinary archives MUST stop subsequent capture; prior artifacts MUST follow explicit retention/deletion policy. Transient governance inspection MUST remain independent of archive settings. | Turning archiving off stops new eligible archive records but does not stop policy inspection; prior artifacts show their retained/deleted state according to the agreed lifecycle. In-flight cutoff is OD-07. |
-| ARC-004 | Confirmed | Archive size, workspace quota, retention, deletion, and storage-failure behavior MUST be defined before this path is enabled. | Boundary tests do not exceed approved quotas silently; expired/deleted artifacts cannot be retrieved; full/unavailable storage produces explicit capture status. Values and backup handling are OD-07. |
+| ARC-003 | Deferred | Archive toggle and retention behavior are not a Phase 1 requirement. | Not a Phase 1 release gate. |
+| ARC-004 | Deferred | Archive size, quota, retention, deletion, and storage-failure behavior are not a Phase 1 requirement. | These decisions are required before any later archive path is enabled. |
 | ARC-005 | Proposed | Retained text artifacts should use lossless compression where beneficial, with encoding/version, stored and original byte counts, and integrity metadata; sensitive data requires separate protection. | A compressed artifact round-trips exactly, size savings are measured on representative data, and corrupt/oversized decoded data fails explicitly. Codec is OD-07; no fixed compression ratio is promised. |
-| ARC-006 | Confirmed | Large archived bodies MUST be referenced separately from timeline metadata and retrieved only on demand under workspace authorization. | Initial trace listing does not transfer full bodies; authorized expansion fetches the selected artifact; expired, unavailable, and disabled capture states are distinct. |
+| ARC-006 | Deferred | On-demand retrieval of archived bodies is not a Phase 1 requirement. | Not a Phase 1 release gate. |
 
 ## Reliability and operational requirements
 
 | ID | Status | Requirement | Acceptance criterion |
 |---|---|---|---|
-| OPS-001 | Confirmed | The release MUST support the same authenticated API model on local and remote single-node installations using the selected baseline stack. | A documented installation completes the governed model/tool and timeline workflow through the same interfaces; no single-user authorization bypass is needed. |
+| OPS-001 | Proposed | The release should provide a documented deployment for the selected integration and initial users. | A clean installation completes the prompt-guard and activity-timeline workflow; deployment targets and authentication model are selected before acceptance. |
 | OPS-002 | Confirmed | Authoritative policy/decision storage MUST be distinguished from asynchronous indexing/UI/export. Failures MUST not silently erase decisions or authorize execution. | UI/indexing outage does not become an allow decision; decision transaction/outbox failure prevents the associated new governed invocation. Post-execution write failure is surfaced as incomplete/uncertain, never a rollback of external side effects. |
 | OPS-003 | Confirmed | Background processing MUST be bounded and expose retries, exhausted attempts, and dead-letter/failure state. | A failed job is observable, retries respect configured limits, and exhaustion remains inspectable instead of being silently dropped. |
 | OPS-004 | Proposed | Operational metrics should expose policy latency, gateway failures, queue depth, archive bytes/ratio, rejected requests, and worker failures without sensitive payload labels. | Representative requests increment expected metrics; provider secrets and message text do not appear in metric labels. |
@@ -251,16 +261,11 @@ after approval.
 
 | Scenario | Requirements exercised | Expected evidence |
 |---|---|---|
-| AT-01 Account and workspace lifecycle | IAM-001, IAM-002, IAM-003, IAM-006 | Registration, two workspaces, invitation, transfer, deletion state |
-| AT-02 Cross-workspace and role isolation | IAM-004, IAM-005, INT-002, INT-005, ARC-006 | Denials across direct IDs, credentials, references, and artifact reads |
-| AT-03 BYOK in both storage modes | INT-001, INT-003, INT-004, INT-006 | Successful authorized calls; unavailable/rotated secret failure tests |
-| AT-04 Policy activation and precedence | POL-001, POL-002, POL-005, POL-006 | Invalid-draft rejection, default deny, deny override, version attribution |
-| AT-05 Input enforcement and execution observation | INP-001, INP-002, INP-003, POL-003, POL-004, GW-003, GW-004 | Input boundaries, 500 ms deadline and late-result rejection, no denied input forwarding, observation-only tool/output labels, explicit failures |
-| AT-06 Event ingestion and timeline | EVT-001, EVT-002, EVT-003, UI-001, UI-002, API-001 | Nested trace, duplicates/conflicts, late parent, pagination, typed errors |
-| AT-07 Archives and reasoning exclusion | ARC-001, ARC-002, ARC-003, ARC-004, ARC-005, ARC-006 | Defaults, toggle cutoff, quota/expiry, round-trip, no retained reasoning fields |
-| AT-08 Dependency failure and recovery | OPS-001, OPS-002, OPS-003, OPS-004, OPS-005 | Portable deployment, failure injection, worker exhaustion, restore evidence |
-| AT-09 Advisory attachment scanning | FIL-001, FIL-002, FIL-003, FIL-004 | Nonblocking dispatch, independent consent, temporary-copy deletion, late findings, explicit unsupported/failure states and non-model dependency evidence |
-| AT-10 Advisory output findings | OUT-001, OUT-002 | Secret/PII findings without delivery gating, safe metadata, workspace isolation and explicit scan status |
+| AT-01 Prompt guard outcomes | GUARD-001, GUARD-002, GUARD-003, POL-002, POL-003, INP-002 | Configured checks, attributable outcomes, exact forwarded payload, no dispatch on deny/failure/pending approval |
+| AT-02 Observable agent activity loop | MON-001, MON-002, MON-003, EVT-001, UI-001 | Correlated prompt decision and ordered model/tool/agent events; missing telemetry is explicit; no private reasoning required |
+| AT-03 Integration and trace reliability | INT-001, EVT-002, EVT-003, GW-003, API-001 | Selected-boundary behavior, duplicate/out-of-order events, typed errors, cancellation and uncertain outcomes |
+| AT-04 Guard policy lifecycle | POL-001, POL-005, POL-006 | Rule validation, activation, attribution, and safe behavior across policy changes |
+| AT-05 Deployment and recovery | OPS-001, OPS-002, OPS-003, OPS-005 | Documented selected deployment, failure injection, no implicit allow, recovery evidence |
 
 ## Open decisions and release gates
 
@@ -270,16 +275,16 @@ be accepted until its required paths have resolved decisions and passing tests.
 
 | ID | Decision needed | Affected gate |
 |---|---|---|
-| OD-01 | Model provider/API, MCP server/tool, transport/authentication, compatibility and tool-call ownership contract | Integration and governed end-to-end execution |
+| OD-01 | First integration boundary (runtime instrumentation, gateway, or both), first supported runtime, event hooks, prompt interception/forwarding contract, compatibility, authentication, and bypass limitations | Prompt enforcement and activity monitoring end to end |
 | OD-02 | OIDC provider, profile/account deletion, verified invitation matching, role matrix, owner cardinality/transfer, session and runtime credential expiry/revocation | Accounts, workspace lifecycle, authorization |
 | OD-03 | External secret manager, service identity and permitted references, encryption key lifecycle, rotation, allowed destinations/redirect behavior | Both credential modes and safe BYOK invocation |
-| OD-04 | Input-policy rule vocabulary and supported request attributes, validation, snapshot/activation/revocation semantics | Policy UI and input-only enforcement |
+| OD-04 | Prompt-rule vocabulary and precedence; supported content, sensitive-data, and injection/safety checks; detector approach and limits; redaction behavior; allow/deny/approval semantics; policy snapshot/activation/revocation | Prompt-guard decisions and safe forwarding |
 | OD-05 | Versioned API/event shapes, field optionality, timestamps/sequence, duplication/conflicts, status transitions, filtering, pagination and HTTP error mapping | Ingestion, gateway clients, timeline |
-| OD-06 | Audit behavior when policy/decision storage is unavailable; exact transaction, dispatch, retry, and uncertain-result boundaries | Durable enforcement and side-effect reliability |
-| OD-07 | Archive consent granularity, in-flight cutoff, encryption, codec/chunking, quotas, expiry/deletion and backups, storage failure behavior | Opt-in archive enablement and workspace deletion |
+| OD-06 | Behavior when guard decisions or required activity events cannot be durably recorded; exact decision, dispatch, retry, and uncertain-result boundaries | Reliable prompt enforcement and trace integrity |
+| OD-07 | Archive consent granularity, in-flight cutoff, encryption, codec/chunking, quotas, expiry/deletion and backups, storage failure behavior | Deferred archive enablement |
 | OD-08 | Review proposed numeric limits; define workload, admission fairness, timeouts, abuse controls, capacity and backup/recovery targets | Performance and production acceptance |
-| OD-09 | Attachment upload/reference contract and authorization, supported formats/extractors, non-model packages and detection rules, safe parsing/isolation, file/expanded-size limits, scan concurrency/time limits, temporary storage encryption/expiry/deletion and backup exclusion, overload handling without waiting for scans | Attachment scanning enablement; no detector coverage or lifecycle implementation is implied yet |
-| OD-10 | Output delivery mode, protocol/resource bounds, local non-model secret/PII packages and rules, scan access/consent/retention, scheduling and overload behavior independent of archives | Advisory output analysis; no mandatory buffering or scan-storage choice is implied |
+| OD-09 | Attachment upload/reference contract and authorization, supported formats/extractors, scanner methods, safe parsing/isolation, file/expanded-size limits, scan concurrency/time limits, temporary storage lifecycle and overload handling | Deferred attachment-scanning enablement |
+| OD-10 | Output delivery mode and protocol/resource bounds; any future output scanner's methods, consent/retention, scheduling, and overload behavior independent of archives | Deferred advisory output analysis; no mandatory buffering or scan-storage choice is implied |
 
 ## Consistency rules for future work
 
