@@ -17,43 +17,92 @@ changes observable behavior, update the requirements as well.
 
 ## Processing concerns
 
+### Confirmed review direction: 2026-10-29
+
+- Evaluate OpenCode and VS Code Copilot, initially on Windows with WSL; require
+  at least one fully verified guarded integration for release. A candidate may
+  remain monitoring-only, but that does not satisfy the guarded-release gate.
+  WSL setup is planned, not installed or verified by this confirmation.
+- Phase 1 includes public self-service application-managed accounts and mandatory
+  password plus authenticator-based 2FA. The initial usage is personal, with
+  authenticated HTTPS Internet access. Google Authenticator or Microsoft
+  Authenticator compatibility, offline single-use recovery codes with the password
+  and controlled host-admin recovery are selected.
+- Purpose-separated gateway/event/provider credentials may reside on the same demo
+  host. No external identity or credential-storage service is required. Passwords
+  are stored as secure salted verifier hashes; secret protection still applies.
+- Confirmed follow-up: email/password registration, once-at-signup email
+  verification and 2FA enrollment before protected access; private account scope
+  and explicit deployment-operator grant before model-gateway use.
+- Low-friction sessions survive browser restart, with 30-day absolute and 7-day
+  inactivity limits. Ordinary browsing/prompt approvals need no extra factor
+  while the session is valid. Sensitive password/authenticator/recovery-code
+  changes use full authentication at most 10 minutes old and reuse it within
+  that window. Allow password-manager autofill/paste; no routine password expiry.
+- These confirmations do not approve exact email delivery/token lifecycle, scope
+  provisioning, operator-grant mechanism, enrollment/recovery, session activity/
+  revocation, runtime credential lifecycles, provider protocols or other numeric
+  limits. Resolve
+  OD-01/OD-05/OD-11 before accepting those paths. Workspace administration and the
+  broader OIDC platform stay deferred.
+- Authority: explicit user confirmations recorded in the
+  [Phase 1 confirmation record](./spec-to-test-workflow/phase-1/05-decision-record.md).
+
+### Confirmed client-independent first slice
+
+- Defer WSL setup while preparing the guard decision core. WSL is required only
+  for its selected live integration path, not all domain/design or Java work.
+- Compose trusted findings and catalog revision for one identified message; do
+  not claim detector coverage, human approval, durability or model dispatch.
+- Core-specific choices are approved: connected-overlap union redaction using
+  the highest-priority marker; connected-group top ties fail; six typed markers;
+  at most 65,536 UTF-8 message bytes and 1,024 findings; explicit failures for
+  missing policy, unknown/inconsistent rules and invalid spans.
+- This narrows PD-01/PD-05 for the first slice only. Exact detector patterns,
+  active-policy lifecycle, integrated approval/dispatch and other proposed
+  runtime limits remain open. See DR-011/DR-012 and the scoped requirements.
+
 ### PD-01: Prompt guard and supported detection
 
-- **Status: prompt-guard behavior established; external-agent integration
-  selection and rule-design details pending.**
+The confirmed first frontend increment is metadata-only timeline inspection.
+Approval history is read-only. Receipt-ordered siblings, unresolved-parent
+visibility, separate execution/telemetry status, 50-trace/200-event response
+bounds, explicit continuation/manual refresh and scoped duplicate handling are
+selected in the requirements under DR-015/DR-016. Full event schemas, query
+continuation, UI copy and authentication/test setup still require review.
+This does not approve actionable approval, payload archives, automatic polling
+or all proposed event/query requirements.
+
+- **Status: Java gateway plus installed client integration selected;
+  install-once behavior approved; capability/protocol verification pending.**
   Phase 1 guards the newly submitted user message for prompt content, sensitive
   data, and injection/safety indicators and visualizes the observable agent
   activity loop. This is product scope, not evidence that a detector or
   integration has been implemented or benchmarked.
 - **Decision:** a prompt check may allow, deny, redact, or require human approval.
-  The product monitors and guards existing agents; it does not host or replace
-  them. OpenCode CLI/TUI and GitHub Copilot agent mode in VS Code are
-  candidates only.
-  The integration mechanism and feasibility of intercepting prompts and
-  receiving activity events must be verified for each product before it is
-  selected. The prompt-guard engine remains Phase 1 scope independently of
-  adapter feasibility. Observation-only integrations may ship; they must
-  explicitly report that prompt enforcement is unavailable and must not imply
-  that the monitor guarded their prompts. The guard logic is an internal module
-  tested independently. Expose a guard API/service only when an enabled agent
-  hook can invoke it; without a compatible hook, do not deploy a standalone
-  guard service and allow a monitoring-only release.
-- **Initial feasibility evidence:** VS Code's Copilot hook documentation lists
-  `userPromptSubmitted` for observing a prompt, but says command-hook output is
-  ignored for that event; `preToolUse` can make a tool-call decision, not a
-  prompt-forwarding decision. The Chat Participant API is deprecated and not
-  supported by the Copilot harness. OpenCode's plugin docs list message/session
-  events and `tool.execute.before`, which can modify or reject a tool call, but
-  do not document a general pre-model user-prompt gate. These interfaces may
-  support observation or tool controls, but the reviewed documentation does
-  not establish prompt deny/redact/approval behavior for OpenCode CLI/TUI or
-  Copilot in VS Code. Treat both surfaces as monitoring candidates; verify guard capability
-  separately and label an integration observation-only if it cannot block or
-  transform a prompt before model forwarding. Prototype both candidates in
-  parallel; production support selection remains open.
-  Sources: [VS Code agent hooks](https://code.visualstudio.com/docs/agent-customization/hooks),
+  The Java service is a provider-compatible model gateway for existing agents;
+  it does not replace or host their agent harnesses. Route model requests to the
+  gateway through a custom endpoint/base URL and gateway API key. The gateway
+  uses a separate server-managed upstream provider key; the client key is not
+  the model-provider credential. An install-once client extension/plugin
+  manages consented setup and automatic activation for eligible sessions;
+  users do not configure hooks per session. Use supported agent hooks/events
+  internally for tool-call/result and other lifecycle events. OpenCode
+  CLI/TUI custom providers and GitHub Copilot agent mode's BYOK custom endpoint
+  are the initial candidates. Requests using the native provider path bypass
+  the gateway and are not guarded.
+- **Initial feasibility evidence:** VS Code documents BYOK custom endpoints for
+  Chat Completions, Responses, and Anthropic Messages; BYOK in Copilot agent
+  sessions is experimental and requires user configuration. OpenCode supports
+  custom provider base URLs. Its plugins and Copilot hooks can supplement model
+  proxy traffic with tool and lifecycle events. Copilot's `userPromptSubmitted`
+  hook remains observational and does not replace gateway interception.
+  Prototype both routes in parallel; supported protocols, authentication, and
+  tool-call/streaming compatibility remain to be verified.
+  Sources: [VS Code BYOK/custom endpoints](https://code.visualstudio.com/docs/agent-customization/language-models),
+  [VS Code agent hooks](https://code.visualstudio.com/docs/agent-customization/hooks),
   [Copilot hooks reference](https://docs.github.com/en/copilot/reference/hooks-reference),
-  [VS Code AI extensibility](https://code.visualstudio.com/api/extension-guides/ai/ai-extensibility-overview),
+  [OpenCode custom providers](https://opencode.ai/docs/providers/),
   [OpenCode plugins](https://opencode.ai/docs/plugins/).
   Denied, redacted, or approval-pending prompts must not be forwarded unchanged.
   Initial detection uses a built-in deterministic rule catalog only; user-
@@ -97,33 +146,30 @@ changes observable behavior, update the requirements as well.
   retrieved context are outside this guard's input scope.
   The monitor's “reasoning loop” is the ordered sequence of observable agent,
   model, and tool events, not private hidden chain-of-thought.
-- **LangChain reference comparison:** official Python and JavaScript middleware
-  docs describe parallel lifecycle hooks (`before_agent`/`beforeAgent`,
-  `before_model`/`beforeModel`, after hooks) and wrappers around model and tool
-  calls. Both wrappers can short-circuit by not invoking the underlying handler,
-  which provides a useful reference for the desired guard/monitor capabilities.
-  LangChain is not a target runtime, and its middleware APIs do not prove that
-  OpenCode or GitHub Copilot expose equivalent hooks. Verify each product's
-  supported interface directly.
-  Sources: [Python middleware](https://docs.langchain.com/oss/python/langchain/middleware/custom),
-  [JavaScript middleware](https://docs.langchain.com/oss/javascript/langchain/middleware/custom).
-- **Processing order:** the independent guard validates the newly submitted
-  message, runs enabled built-in checks, applies redactions, and returns a
-  decision; a guard-capable integration persists the decision as required and
-  forwards only the permitted redacted message, or waits for approval.
-  Observation-only integrations do not invoke this enforcement path.
-- **Not selected:** first supported external agent product and its supported
-  integration surface; exact patterns and coverage within the selected
-  categories, including the
-  definition of invalid/weak-prompt indicators; regex syntax/features and
-  matching limits; exact marker identifiers and rule-to-marker mapping;
-  conditional hook-to-guard API request/response and authentication contract;
-  broader request retry behavior;
+- **Java model integration:** LangChain4j is selected as a Java-side library
+  for provider/model integration, not as the external agent runtime. The gateway
+  still needs explicit inbound protocol adapters; LangChain4j alone does not
+  establish API compatibility with every client protocol.
+  Source: [LangChain4j introduction](https://docs.langchain4j.dev/intro).
+- **Processing order:** authenticate the client and parse the provider request;
+  validate the integration's new-human-message mapping and correlation;
+  inspect that submission; run enabled built-in checks; apply
+  redactions; deny or await approval when required; forward only permitted
+  requests upstream; return and monitor the model response; ingest supplemental
+  hook events.
+- **Not selected:** exact provider protocols and supported client versions,
+  including streaming/tool-call compatibility; gateway-key issuance/rotation
+  and deployment-managed upstream key provisioning/rotation; exact patterns and coverage within
+  selected categories, including the definition of invalid/weak-prompt
+  indicators; regex syntax/features and matching limits; exact marker
+  identifiers and mapping; supplemental hook event contract; broader request
+  retry behavior;
   and latency/resource budgets. Resolve these under OD-01, OD-04, and OD-08.
 - **Failure behavior:** malformed, uninspectable, denied, timed-out, or
   unevaluated prompts must not be forwarded. Do not truncate or skip required
   checks. Return structured errors for failures and prevent late results from
-  authorizing dispatch.
+  authorizing dispatch. Missing/ambiguous human-message mapping also blocks
+  guarded forwarding. No silent fallback to a direct model provider is allowed.
 - **Risk:** prompt-injection and safety detection may have false positives and
   false negatives. The product must document supported checks and limitations
   rather than claim complete detection. Do not assume a model-based detector or
@@ -171,7 +217,9 @@ changes observable behavior, update the requirements as well.
   tool telemetry is not authorization.
 - **Retained reliability responsibilities:** protocol parsing, upstream error
   handling, cancellation and bounded resource use are infrastructure, not
-  user-facing content safeguards.
+  user-facing content safeguards. Response delivery and required streaming/
+  tool-call compatibility are Phase 1 gates; deferred advisory scanning does
+  not defer the gateway's response transport.
 - **Risk:** parsing/copying and advisory scans may consume substantial memory or
   lag behind execution. Finding records can themselves leak sensitive data.
 - **Still pending:** delivery mode, byte/decoded-size bounds, scan packages/rules,
@@ -312,10 +360,58 @@ changes observable behavior, update the requirements as well.
   no unsupported exactly-once claim, and no blind side-effect retry.
 - **Links:** POL-003, POL-004, GW-003, OPS-002; OD-01, OD-06.
 
+### PD-11: Install-once activation and integration coverage
+
+- **Status: product contract approved; client feasibility and wire contracts
+  pending.** This supersedes manual per-session hook setup as a user workflow;
+  it does not remove supported hooks as an internal integration mechanism.
+- **Approved setup:** install/connect once per supported environment/profile,
+  then activate automatically for eligible new sessions. Disclose and obtain
+  consent for endpoint, model, and hook changes; use supported configuration
+  APIs, not silent configuration edits. Remote environments/separate profiles
+  may require separate installation.
+- **Existing sessions:** attach only through supported APIs or show a
+  reconnect/restart requirement. Do not imply earlier activity was captured.
+- **Coverage:** report input enforcement, model-response observation, and
+  tool/lifecycle visibility separately. Unknown, bypassed, unsupported, and
+  degraded states are explicit. Do not claim to enumerate sessions the client
+  does not expose. Explicitly labeled monitoring-only operation is approved;
+  it must never be presented as guarded.
+- **Message identity:** require a verified mapping from the exact new human
+  submission to provider traffic, scoped to authenticated integration identity.
+  Distinguish session, turn, request, and attempt, plus subagent/parent links
+  where exposed. Do not guess from the last user-role message. Missing or
+  ambiguous required mapping blocks guarded forwarding.
+- **Approval:** provide a supported submitter-only integration UI, bound to the
+  exact evaluated message and redacted forwarding payload. No UI, timeout,
+  cancellation, or invalid/replayed approval means no authorization to forward.
+- **Credentials:** event-ingestion tokens are separate from gateway and
+  upstream provider keys. Define secure provisioning/storage, scope, and
+  revocation. A callback token authenticates reporting, not session access.
+- **Failure boundary:** never silently fall back from guarded routing to a
+  direct provider. Observation-only telemetry failures remain nonblocking
+  with degraded/incomplete status and the existing bounded recovery contract.
+- **Still pending:** installation/package APIs; supported versions and
+  profile/remote scope; consent/change lifecycle, disable/uninstall behavior
+  and ownership-safe configuration cleanup; supported activation/discovery and
+  coverage freshness signals; authenticated correlation/content mapping;
+  approval channel and bounded human wait versus guard-evaluation deadline
+  within client request limits; credential lifecycle. These require prototypes, not
+  assumptions about extension or hook permissions.
+- **Verification:** onboard once, open multiple sessions without hook editing,
+  test supported attach versus reconnect, and exercise concurrent turns,
+  retries, tool results, summarization, subagents, and reconnects. Verify exact
+  upstream content, isolation, credential rejection, unavailable approval UI,
+  disabled hooks, route changes, collector/gateway outages, honest unknown
+  coverage, and no silent direct-provider fallback.
+- **Links:** GUARD-005, GUARD-006, INT-007 through INT-011, MON-004, AT-06;
+  OD-01, OD-05, OD-06, OD-08.
+
 ## Suggested discussion order
 
-1. **Governed execution:** PD-01 through PD-06 and PD-10. Establish enforcement
-   and failure semantics before optimizing throughput.
+1. **Integration and governed execution:** PD-11, PD-01 through PD-06, and
+   PD-10. Verify install-once coverage and establish enforcement/failure
+   semantics before optimizing throughput.
 2. **Data pipeline:** PD-03 and PD-07. Define durability, optional archive
    processing, and overload behavior together.
 3. **Read path:** PD-08. Design timeline queries and on-demand retrieval.

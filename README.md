@@ -16,13 +16,99 @@ Here, the “reasoning loop” means that observable sequence of execution event
 It does not mean private hidden chain-of-thought. Provider/runtime-exposed
 reasoning text is not required for the monitor to show the loop.
 
-AI Runtime Governance monitors and guards existing cloud/developer agents; it
-does not provide a replacement agent framework or host those agents. OpenCode
-CLI/TUI and GitHub Copilot agent mode in VS Code are candidates, not
-first-release commitments. The exact supported integration surfaces and
-ability to intercept prompts and observe activity remain to be verified.
-LangChain is a reference for agent-middleware capabilities, not a target
-runtime.
+AI Runtime Governance is a Java model-gateway and monitoring service for
+existing agents; it does not replace their agent harnesses. Users install a
+supported client extension/plugin and connect it once per environment/profile.
+It automatically activates for eligible sessions without per-session hook
+editing. Any endpoint, model, or hook changes require disclosed user consent;
+automatic setup remains subject to supported client APIs. The intended model
+path uses the governance gateway's custom endpoint. The client API key
+authenticates to the gateway; the Java
+service uses a separate upstream provider key. OpenCode supports custom
+provider endpoints; VS Code Copilot agent mode can use BYOK custom endpoints,
+currently an experimental capability. The installed integration manages
+supported hooks/events alongside the gateway to capture tool calls and other
+lifecycle events that model traffic alone cannot show.
+
+OpenCode CLI/TUI and GitHub Copilot agent mode in VS Code are initial
+integration candidates, not yet verified production targets. The Java service
+uses LangChain4j for its model/provider integration; it does not run or replace
+those agents. A custom endpoint URL is required in addition to an API key, and
+direct use of an agent's native provider path does not pass through the gateway.
+
+### Install-once integration contract
+
+- Activation is automatic for eligible new sessions after onboarding. Separate
+  profiles and remote environments may need their own installation.
+- Existing sessions attach only through a supported API; otherwise show a
+  reconnect/restart requirement. Earlier activity is not retroactively captured.
+- Report input enforcement, model-response observation, and tool/lifecycle
+  visibility separately. Unknown, unsupported, or bypassed coverage is explicit;
+  do not claim to discover sessions the client does not expose.
+- Monitoring-only operation is permitted with explicit labeling. Guard/gateway
+  failures never silently switch a guarded request to a direct provider.
+- A verified client contract must identify the newly submitted human message
+  and correlate it with gateway traffic. Guessing from the last user-role
+  message is insufficient. Missing required mapping blocks guarded forwarding.
+- The integration must provide a supported submitter-only approval UI before
+  approval-capable guarding is enabled. No UI, timeout, or cancellation means
+  no forwarding of an approval-required request.
+- Event-ingestion tokens, gateway keys, and upstream provider keys are separate.
+  Tokens authenticate reports; they do not expose or grant control of a session.
+
+These are approved product requirements, not verified capabilities of either
+candidate client. Protocol support, automatic setup, prompt correlation, and
+approval delivery still require end-to-end feasibility tests.
+
+### Confirmed initial account and environment scope
+
+Evaluate both candidate clients; at least one fully verified guarded integration
+is required for release. Monitoring-only support is explicitly labeled and does
+not satisfy that gate. The first target is Windows with WSL, with any missing WSL
+setup planned and verified before integration claims.
+
+WSL setup is deferred and is not a prerequisite for all development. The first
+client-independent slice is the guard decision core: compose trusted rule findings
+into an attributable allow/deny/redact/require-approval decision and transformed
+message. Approved core-specific overlap, marker and input-bound semantics are in
+the [requirements](./REQUIREMENTS.md#client-independent-guard-decision-core-confirmed-first-slice).
+Actual detectors, authorization/dispatch and verified client integration remain
+separate work; this slice does not replace their release gates.
+
+The initial user is one person, but Phase 1 includes public self-service native
+registration and authenticated HTTPS Internet access. The governance application
+manages passwords and mandatory authenticator-based 2FA, compatible with Google
+Authenticator or Microsoft Authenticator. Store password verifier hashes, not
+plaintext passwords. Provide offline single-use recovery codes with the password
+and controlled host-administrator recovery.
+
+The first frontend-acceptance increment is now the metadata-only incident/activity
+timeline: inspect prompt/guard events, approval history and reported execution
+activity, without approve/reject controls or stored prompt bodies. It uses
+receipt-ordered siblings, truthful hierarchy/unknown telemetry and bounded
+load-more/manual refresh. This frontend journey supersedes library-only work as
+the first delivery priority; it does not remove guard-core or client release gates.
+See the [confirmed timeline scope](./REQUIREMENTS.md#metadata-only-activity-timeline-confirmed-first-frontend-slice).
+
+Registration uses email/password, with signup email verification and 2FA enrollment
+before protected access. Each account owns private traces, approvals and client
+credentials; an explicit deployment-operator grant is required before gateway use
+can consume the server's model-provider budget.
+
+Login is intentionally low-friction: stay signed in across browser restarts for
+at most 30 days, expiring after 7 days of inactivity. A valid session browses traces
+and approves its own prompts without repeated authenticator challenges. Password
+changes, authenticator replacement and recovery-code generation require full
+authentication no more than 10 minutes old; reuse that confirmation within the
+window. Support password-manager autofill/paste and no routine periodic password
+changes. Logout, revocation and expiry still end the affected session.
+
+Separate gateway, event-reporting and server-only upstream-provider credentials
+may be stored on the same demo host. No separate identity or credential-storage
+server is required. Exact verification delivery/token lifecycle, scope provisioning,
+operator grants, enrollment/recovery, session activity/revocation and credential
+lifecycle details remain open; workspaces, public workspace
+creation and the broader OIDC platform remain deferred.
 
 ## Problem
 
@@ -77,17 +163,16 @@ was checked, what happened next, and where an execution failed.
 
 ## Scope
 
-Phase 1 centers on prompt guarding and agent-activity visualization. Prompt
-content checks are in scope; their concrete rules and approval lifecycle remain
-in the requirements. Guard logic is an internal module, tested independently
-of agent adapters. Expose a guard API/service only when an enabled agent hook
-can call it; without a compatible hook, do not deploy a standalone guard
-service and allow a monitoring-only release. Each integration must report
-whether it invokes the guard before model forwarding or is observation-only.
-Monitoring-only integrations must not be presented as guarding prompts. Tool
-and output events are observed where the integration can report them;
-per-action tool governance and output blocking are not implied. See the
-[requirements](./REQUIREMENTS.md).
+Phase 1 centers on prompt guarding and agent-activity visualization. The
+gateway applies the guard to model-bound prompts and monitors model responses.
+Agent hooks supplement this with tool-call/result and lifecycle events. Hook
+coverage is product-specific; a session that uses the agent's native provider
+path rather than the gateway is observation-only and must not be presented as
+guarded. Exact rules, provider protocols, credential flow, and approval
+lifecycle remain in the requirements. All configured supported agents should
+be usable concurrently within documented capacity limits, with isolated traces
+per session. Per-tool action governance and output blocking are not implied.
+See the [requirements](./REQUIREMENTS.md).
 
 ### 1. Pre-processing governance
 
@@ -189,19 +274,19 @@ lifecycle decisions before implementation.
 ```text
         Existing agent products
         +-----------------------------+
-        | Product-specific adapters   |
-        | (interfaces TBD)            |
+        | Custom model endpoint + key |
+        | Agent hook/plugin events    |
         +-------------+---------------+
                       |
-       Activity events; guard API only
-       when a compatible hook is enabled
+       Model requests/responses and
+       supplemental agent activity
                       |
                       v
         +-----------------------------+
         | Agent monitor               |
         |                             |
-        | - internal prompt-guard     |
-        |   engine/API conditionally   |
+        | - Java provider-compatible  |
+        |   gateway and prompt guard  |
         | - event collector           |
         | - trace/timeline API and UI  |
         +-------------+---------------+
@@ -224,12 +309,13 @@ Activity monitoring:
   correlated, durable, searchable, explicit about missing telemetry
 ```
 
-Each integration must use a supported interface exposed by an existing agent
-product, such as an extension, hook, API, or event stream. It must report its
-capabilities accurately: a prompt gate is enforced only where the integration
-can prevent forwarding; otherwise the integration is observation-only.
-LangChain's middleware APIs do not establish another product's capabilities,
-and no integration may claim visibility into bypass paths.
+The install-once client integration manages supported activation and setup;
+it must not silently edit client configuration or substitute models/providers.
+Each gateway integration must implement the selected model-provider protocol,
+including the streaming and tool-call features needed by the agent. Hook/plugin
+events supplement model traffic with tool and lifecycle activity. Sessions
+using an agent's native provider instead of the configured gateway bypass prompt
+enforcement; no integration may claim visibility into such bypass paths.
 Deployment may be local or hosted; choose its shape after selecting the runtime
 and trust boundaries.
 
@@ -241,8 +327,9 @@ choice should be revisited against the selected integration boundary and
 deployment target; it is not the product's defining capability.
 
 Every protected event and trace must be scoped to the authorization boundary
-selected for the deployment. The initial account, workspace, and tenant model
-is not yet decided.
+selected for the deployment. Native public accounts and mandatory 2FA are selected;
+the account-to-authorization-scope representation remains open. Workspaces and the
+broader tenant platform remain deferred.
 
 The storage design should separate:
 
@@ -352,11 +439,13 @@ activity monitoring; supporting platform features must not displace that core.
 
 ### Phase 1: Prompt guard and agent monitor
 
-- Prototype OpenCode CLI/TUI and GitHub Copilot agent mode in VS Code in
-  parallel.
-  Report prompt-guard and activity-telemetry capabilities separately;
-  observation-only integrations are allowed and must be labeled. Production
-  support selection remains open.
+- Prototype install-once OpenCode and VS Code Copilot integrations, including
+  consented custom-provider/BYOK routing and automatic supplemental event setup.
+  Verify new/existing session activation, coverage reporting, exact human-message
+  mapping, approval UI, credential separation, model protocols, streaming/tool
+  calls, cancellation, and bounded resource use. Exercise concurrent sessions,
+  exposed subagents, retries, reconnects, and coverage loss. VS Code BYOK agent
+  support is experimental; production support selection remains open.
 - Define the event model needed to correlate prompt decisions with observable
   agent, model, tool, retry, handoff, and completion events.
 - Implement configured prompt checks for content rules, sensitive data, and
@@ -400,6 +489,7 @@ The current technical baseline proposes:
 Java 25 LTS
 Spring Boot
 Spring MVC with virtual threads
+LangChain4j
 PostgreSQL
 OpenTelemetry and Micrometer
 PostgreSQL transactional outbox
@@ -407,12 +497,13 @@ Docker Compose
 Caddy
 ```
 
-The deployment target remains open pending selection of the integration
-boundary and initial users. Existing hardware estimates are planning references,
+The deployment target remains open pending provider protocol, credential-flow,
+and initial-user decisions. Existing hardware estimates are planning references,
 not Phase 1 requirements or measured capacity guarantees.
 
 The high-throughput request path uses Java virtual threads for concurrent
-I/O-bound model, MCP, approval, and database operations. Virtual threads do not
+I/O-bound gateway, upstream-model, hook-event, approval, and database
+operations. Virtual threads do not
 replace backpressure or resource limits: CPU-heavy scanning uses bounded worker
 pools, while model requests, tool calls, database connections, payload sizes, and
 event queues remain explicitly bounded.

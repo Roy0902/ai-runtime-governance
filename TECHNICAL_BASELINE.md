@@ -1,11 +1,11 @@
 # Technical Baseline
 
 This document records candidate framework, infrastructure, and hardware
-choices for AI Runtime Governance, an AI-agent monitor with a prompt guard.
-The product integrates with existing external agents rather than providing an
-agent framework. OpenCode CLI/TUI and GitHub Copilot agent mode in VS Code are
-candidate targets, not commitments; supported integration surfaces remain open. LangChain
-middleware is a capability reference, not a target runtime.
+choices for AI Runtime Governance, a Java model gateway and agent monitor. The
+product does not replace existing agent harnesses. OpenCode custom providers
+and GitHub Copilot BYOK custom endpoints in VS Code are candidate clients.
+LangChain4j is selected for Java-side model/provider integration; supported
+inbound protocols and upstream credential flow remain open.
 
 The choices are deliberately conservative. The first implementation should
 optimize for correctness, stability, and straightforward operations before
@@ -15,18 +15,21 @@ introducing additional distributed infrastructure.
 
 - The monitor does not host a large local model.
 - Models may be local services, remote services, or cloud APIs.
-- Prompt checks must run before the guarded prompt is forwarded.
+- Agents must route model requests through the configured custom endpoint for
+  prompt guarding and model-request/response monitoring to apply.
+- Prompt checks run in the gateway before upstream forwarding.
 - Initial prompt checks use a built-in deterministic rule catalog; user-authored,
   model-based, and ML-based rules/detectors are outside the first-release scope.
-- Agent/model/tool activity is observable only through supported integrations.
+- Agent/model/tool activity is observable through gateway traffic plus
+  supplemental supported hooks/events.
 - Tool-action and output-content enforcement are outside the first-release
   boundary.
 - Activity persistence is required for the timeline; historical analysis is
   deferred.
 - PostgreSQL is available as a concurrent client/server database.
 - The first deployment may run all core components on one machine.
-- The monitor must use interfaces exposed by existing agent products; it must
-  not assume a hook or event surface that the product does not provide.
+- Native-provider paths that bypass the custom endpoint are not guarded; hooks
+  may provide observation there but must not imply enforcement.
 
 If a local model is hosted on the same machine, its CPU, memory, and especially
 GPU requirements must be planned separately. The hardware below covers the
@@ -77,10 +80,11 @@ The initial implementation must stay within these boundaries:
 
 These are design gaps, not permission to invent silent defaults:
 
-- **Integration and API contracts:** evaluate OpenCode CLI/TUI and GitHub
-  Copilot agent mode in VS Code; verify supported extension, hook, API, or event interfaces;
-  define prompt interception, lifecycle events, ordering, duplicate handling,
-  authentication, and capability reporting.
+- **Integration and API contracts:** evaluate OpenCode custom providers and
+  GitHub Copilot BYOK custom endpoints in VS Code; select provider protocols,
+  model/tool-call/streaming behavior, custom endpoint and client credential
+  setup, upstream provider-key flow, and supplemental hook/event interfaces.
+  BYOK in VS Code's Copilot harness is experimental.
 - **Prompt-guard semantics:** define supported content/sensitive-data/
   injection-safety checks, rule precedence, redaction behavior, approval
   authority and expiry, and how approval binds to the prompt being forwarded.
@@ -108,10 +112,11 @@ appear complete.
 | Build | Maven |
 | Main framework | Spring Boot, using the current supported release compatible with Java 25 |
 | HTTP server | Spring MVC with virtual threads initially |
+| Model/provider integration | LangChain4j for Java-side upstream provider calls; explicit inbound protocol adapters remain required |
 | Response handling | Delivery mode unresolved; bounded transport and advisory output analysis, not pre-delivery content-policy buffering |
 | Database access | Spring JDBC or jOOQ for explicit SQL |
 | Database migrations | Flyway |
-| Authentication | Spring Security with OIDC/OAuth2 and service credentials |
+| Authentication | Spring Security with application-managed password/authenticator 2FA and separate purpose-bound runtime credentials; external OIDC not required |
 | Validation | Jakarta Bean Validation plus explicit policy validation |
 | Tracing | OpenTelemetry |
 | Metrics | Micrometer with Prometheus-compatible export |
@@ -135,9 +140,10 @@ connections, so resource-specific bounds remain required.
 
 ### Frontend
 
-The first UI need is the prompt-guard decision and correlated agent-activity
-timeline. Workspace/account administration, credential management, and their
-specific configuration interfaces are not Phase 1 assumptions:
+The first UI needs are the prompt-guard decision, correlated activity timeline,
+public native registration, mandatory authenticator enrollment/login and recovery.
+Workspace administration and workspace-managed credential interfaces remain
+deferred:
 
 ```text
 TypeScript
@@ -167,7 +173,9 @@ Every protected record must be scoped to the authorization boundary selected
 for the deployment. Authenticated identity determines that scope; request
 payloads and model output cannot select or override it. Every database query
 and API operation must enforce the selected scope, including artifact metadata
-and storage references. The initial account/tenant model remains undecided.
+and storage references. Native public accounts are selected; their exact
+authorization-scope representation remains undecided. The workspace/tenant
+platform remains deferred.
 
 Do not use SQLite as the primary deployment database. The system must support
 concurrent writers and readers through a server database.
@@ -239,29 +247,66 @@ Authoritative guard-decision persistence remains a pre-forward hard gate.
 ## Prompt-guard and monitoring architecture
 
 ```text
-Existing external agent product --> Supported event interface --> Monitor --> Timeline
-                |
-                +--> Verified guard hook --> Guard API --> Internal guard module
-                                             ^                    |
-                                             +---- decision -------+
+OpenCode / VS Code Copilot
+       |
+       | custom model endpoint + client credential
+       v
+Java provider-compatible gateway
+       |
+       +--> prompt guard --> selected upstream model API
+       |                    (LangChain4j client where compatible)
+       |
+       +--> model request/response monitoring
 
-No verified guard hook: monitor-only integration; do not expose a standalone
-guard API/service.
+Agent hook/plugin events --> event collector --> trace/timeline
+       (tool calls/results, subagents, lifecycle where exposed)
 ```
 
-The guard logic is an internal Phase 1 module, testable independently of agent
-adapters. Expose it through an authenticated API only when an enabled agent hook
-can call it before forwarding. The API returns a decision and transformed
-message; the hook must honor the result. Observation-only integrations do not
-invoke the guard, and no separate input-guard service is deployed without a
-compatible hook.
+An install-once client extension/plugin manages automatic activation for
+eligible sessions and consented endpoint/model/hook setup through supported
+APIs. No per-session hook editing is required. Separate profiles and remote
+environments may need separate installation. Existing sessions attach only via
+supported APIs or display a reconnect/restart requirement; past capture is not
+implied. These are required integration capabilities, not verified client APIs.
+
+The model gateway is the prompt-enforcement boundary; it is configured as the
+agent's custom provider endpoint, not as a replacement agent runtime. Hooks add
+tool and lifecycle visibility that the provider protocol does not carry. A
+session using the native provider endpoint bypasses prompt enforcement and is
+not described as guarded. The client API key authenticates the gateway request;
+the gateway uses a separate deployment-managed upstream provider key.
+Provisioning and rotation remain open; client provider-key forwarding is not
+the selected credential model.
+
+Before guarding, a verified client contract must correlate authenticated
+integration identity with session, human submission/turn, model request, and
+attempt, plus parent/subagent links where exposed. It must map the exact new
+human submission into the provider request without treating history, tool
+results, or summarization as a new submission. Missing or ambiguous required
+mapping blocks guarded forwarding; the last user-role message is not sufficient
+evidence. Exact contracts, replay handling, and reconnect semantics remain open.
+
+Approval-capable integration requires a supported submitter-only UI and a
+binding to both the exact evaluated message and redacted forwarding payload.
+Timeout, cancellation, unavailable UI, or invalid approval cannot authorize
+dispatch. The transport and authentication mechanism remain to be verified.
+
+Report input enforcement, model-response observation, and tool/lifecycle
+visibility independently. Unknown, unsupported, bypassed, and degraded states
+must remain explicit, including when a client cannot enumerate other sessions.
+Monitoring-only operation is permitted with explicit labeling. Guard/gateway
+failure never silently falls back to a direct provider; observation-only
+telemetry failure remains nonblocking with bounded recovery and incomplete
+status. Coverage freshness/detection contracts remain open.
 
 ```text
-validate the newly submitted user message
+authenticate client and parse the provider request
+  -> identify the newly submitted user message
   -> run enabled built-in deterministic checks
   -> apply all sensitive-data redactions
   -> deny if any deny rule matches; otherwise await approval if required
-  -> return the decision and transformed message to the caller
+  -> forward only permitted, transformed requests to the selected model API
+  -> monitor the model response
 ```
 
 The following should normally be asynchronous:
@@ -273,12 +318,12 @@ The following should normally be asynchronous:
 - Offline reasoning analysis
 - Tool recommendation generation
 
-For a guarded invocation, unavailable required prompt evaluation blocks
-forwarding; signed cached/offline fallback is not implemented. An observation-
-only adapter does not invoke the guard and must expose that limitation.
-Per-tool action governance and output enforcement are deferred. The activity
-timeline shows reported tool events as observations, not service authorization.
-Product-specific interface, transport, and resource limits remain open.
+Unavailable required prompt evaluation blocks gateway forwarding; signed
+cached/offline fallback is not implemented. Native-provider bypasses are not
+guarded. Per-tool action governance and output enforcement are deferred. The
+activity timeline shows reported tool events as observations, not service
+authorization. Provider protocol, credential, and transport/resource limits
+remain open.
 
 ### Concurrency model
 
@@ -315,20 +360,53 @@ service must limit:
 - Per-client and per-authorization-scope request rates.
 
 Backpressure, upstream timeouts, cancellation propagation, and bounded buffers
-are required. Future streaming support must preserve enforcement guarantees.
+are required. Response delivery and any streaming/tool-call features required
+by the selected clients are Phase 1 compatibility gates, not deferred advisory
+scanning work. They must preserve enforcement guarantees.
 A virtual thread can still
 consume excessive memory if it retains a large prompt, response, or tool result.
 
 ## Security baseline
 
-- Human-user authentication model to be selected; OIDC/OAuth2 remains a candidate.
+- Application-managed native accounts with public self-service registration and
+  mandatory password/authenticator 2FA; Google Authenticator or Microsoft
+  Authenticator compatibility is required. Store passwords as secure salted
+  verifier hashes, not plaintext. External OIDC is not required for Phase 1.
+- Offline single-use recovery codes with the password and a controlled
+  host-administrator recovery procedure; enrollment, reset and abuse
+  contracts remain OD-11 decisions.
+- Email/password public registration requires once-at-signup email verification
+  and 2FA enrollment before protected access. Each account owns a private scope;
+  no automatic model-gateway access is granted by signup. An explicit deployment-
+  operator grant is required; this does not create shared workspaces or implicitly
+  grant operators trace-data access.
+- Low-friction human sessions persist across browser restarts for at most 30 days
+  from creation and expire after 7 days of inactivity. Ordinary trace browsing and
+  prompt approvals do not repeat authentication while the session is valid.
+  Logout, revocation and expiry still terminate access. Activity measurement,
+  session transport and revocation details remain OD-11.
+- Password changes, authenticator replacement and recovery-code generation require
+  full authentication no more than 10 minutes old, reusable during that window.
+  Password-manager autofill/paste is supported; no routine periodic password
+  change is required. Fresh logins still require both factors.
 - Short-lived service credentials for runtime clients.
-- Account/workspace management and BYOK are later product decisions, not
-  first-release assumptions.
+- Gateway client keys and deployment-managed upstream provider keys are
+  separate credentials; neither may be logged or exposed in model/event data.
+- Event-ingestion credentials are a third, separate credential purpose, scoped
+  to the authenticated integration. Define secure onboarding, client storage,
+  expiry/revocation, and rejection of cross-purpose use before release.
+  Event tokens authenticate reports; they do not grant session access/control.
+- The initial demo may store purpose-separated credentials on the same host;
+  no separate secret-storage or identity server is required. Protect authenticator
+  seeds and provider secrets; same-host storage does not permit source-control,
+  log or model/event exposure.
+- Workspace management, OIDC platform accounts and workspace-managed BYOK remain
+  deferred. Native registration/2FA is an explicit Phase 1 scope addition.
 - Optional mTLS for trusted service-to-service deployments.
 - Role and scope checks before trace access or action approval.
 - TLS termination at Caddy or the cloud load balancer.
-- Secrets supplied through deployment secret management, not source control.
+- Secrets supplied through protected deployment-local storage/configuration,
+  not source control; an external vault is not a Phase 1 requirement.
 - Redaction before persistence when possible.
 - Separate operational logs from detailed audit payloads.
 - No model-supplied identity or policy result is trusted.
@@ -493,6 +571,7 @@ The initial technology candidate is:
 Java 25 LTS
 Spring Boot
 Spring MVC with virtual threads
+LangChain4j
 PostgreSQL
 Flyway
 Spring Security
