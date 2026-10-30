@@ -17,8 +17,10 @@ supersede the original OIDC proposal.
 AMB-002 now concerns remaining OD-11 delivery/token, normalization/duplicate,
 scope-provisioning/grant, enrollment/recovery, session activity/revocation and
 runtime-lifecycle contracts, not selection of OIDC or those session values.
+DR-019 partially resolves signup normalization/duplicate/token behavior.
+DR-020 partially resolves password minimum/usability and password reset.
 It additionally affects REQ-runtime-governance-068 through
-REQ-runtime-governance-072. AMB-014 also covers these public authentication
+REQ-runtime-governance-073. AMB-014 also covers these public authentication
 surfaces. Neither ambiguity is closed by choosing the overall direction.
 
 **Scoped guard-core update:** DR-012 approves overlap/marker/validation semantics

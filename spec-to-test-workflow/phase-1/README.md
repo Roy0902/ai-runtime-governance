@@ -1,10 +1,30 @@
 # Phase 1 development materials
 
-Version: 0.3. Prepared: 2026-10-29. Feature key: `runtime-governance`.
+Version: 0.6. Prepared: 2026-10-30. Feature key: `runtime-governance`.
 Status: **Phase 0 prepared; guided confirmation in progress; exit gate blocked.
 Only explicitly recorded choices are approved. Nothing is frozen.**
 
-**Latest direction (DR-014/DR-015):** prepare the
+**Review outcome, 2026-10-30:** timeline requires changes before freeze; see the
+[Phase 6 review](./timeline/08-review.md). DR-018 selects a separately planned
+and frontend-acceptance-tested native-auth prerequisite before timeline delivery.
+Public registration/2FA and approved low-friction session rules are unchanged.
+No application implementation or tool installation was authorized.
+
+The requested native-auth prerequisite has scoped ingestion, decision
+recommendations and a frontend-acceptance coverage plan. DR-019 approved signup
+email identity/verification, DR-020 password minimum/usability/reset, DR-021
+TOTP/recovery behavior, and DR-022/023 host-operator/public-auth-abuse boundaries;
+confirmed requirements are in the source register.
+Remaining recommendations are proposals. No native-auth intent, SCNs,
+dependencies, application code or freeze manifest have been created. Detailed
+setup remains unrun.
+
+The current global requirement inventory is 75 rows (43 confirmed, 10 proposed,
+22 deferred). AUTH-007–009 cover password reset, TOTP/recovery lifecycle and
+account-enumeration/temporary-throttle behavior; existing requirement IDs remain
+unchanged.
+
+**Timeline direction (DR-014/DR-015/DR-016/DR-017):** prepare the
 [incident activity timeline](./09-timeline-first-slice.md) as the first real
 frontend-acceptance journey. Prompt logs are metadata-only, with no prompt body.
 The library subprocess acceptance proposal was not approved. Guard-core materials
@@ -15,7 +35,7 @@ scope/domain/intent/contracts must be prepared before browser-test freeze.
 
 1. [Source inventory](./00-source-inventory.md): exact input revisions, precedence,
    discovery evidence, and scope.
-2. [Requirement register](./01-requirement-register.md): all 72 source requirements,
+2. [Requirement register](./01-requirement-register.md): all 74 source requirements,
    stable workflow IDs, status, testability, and blocking references.
 3. [Ambiguity register](./02-ambiguity-register.md): decisions required before
    affected development can proceed; deferrals remain deferred.
@@ -53,8 +73,17 @@ scope/domain/intent/contracts must be prepared before browser-test freeze.
     [frontend tasks](./timeline/06-frontend-tasks.md) and
     [backend/acceptance tasks](./timeline/07-backend-tasks.md):
     review drafts, not frozen or implementation-ready.
+15. [Phase 6 timeline review](./timeline/08-review.md): findings, corrections and
+    unresolved decisions. Verdict: not ready to freeze or implement.
+16. [Native-auth scoped ingestion](./native-auth/00-ingestion.md) and
+    [decision recommendations](./native-auth/01-decision-proposals.md): DR-018
+    prerequisite materials; no new recommendation is approved yet.
+    The [frontend acceptance coverage plan](./native-auth/02-acceptance-plan.md)
+    records real-browser/backend prerequisites without treating its candidates
+    as scenarios or tests.
+    See the [native-auth status](./native-auth/README.md).
 
-**Current direction (DR-011/DR-012):** WSL remains pending for its own live
+**Earlier guard-core direction (DR-011/DR-012), superseded by DR-015:** WSL remains pending for its own live
 integration tests. The guard-core first slice and its overlap/marker/input-bound
 package are approved. Its [scoped ingestion](./guard-core/00-ingestion.md) is ready
 for the prepared domain model; intent v0.1 is approved and scenarios are drafted.
@@ -124,9 +153,9 @@ resolved. Changes to observable behavior require corresponding source-spec updat
 
 ## Preparation checks
 
-- Requirement reconciliation: 72 source rows = 40 confirmed + 10 proposed +
+- Requirement reconciliation: 75 source rows = 43 confirmed + 10 proposed +
   22 deferred; one unique workflow ID per row.
-- Complete active acceptance is blocked for all 40 confirmed rows; deterministic
+- Complete active acceptance is blocked for all 43 confirmed rows; deterministic
   subassertions are identified in the coverage plan, not reported as passing tests.
 - No scenarios, approved diagrams, frozen manifests, locked tests, application code,
   staging, or commits were produced.
@@ -158,9 +187,9 @@ and six current source/workflow fingerprints match. The source now includes
 AT-09 and OD-11 for the confirmed public native-account scope. These are document
 integrity checks, not executed registration, MFA, client or recovery tests.
 
-Current validation after DR-007/DR-008: **passed**. All 72 requirements reconcile
-with source status (40 confirmed, 10 proposed, 22 deferred); the original 70
-workflow IDs are unchanged. All 40 confirmed rows have traceability entries,
+Historical validation before DR-019/DR-020: **passed**. At that checkpoint, 72
+requirements reconciled with source status (40 confirmed, 10 proposed, 22 deferred);
+the original 70 workflow IDs were unchanged. All 40 confirmed rows had traceability entries,
 14 ambiguity definitions and eight decision records are consistent, 101 local
 links/fragments resolve, 13 Markdown tables are structurally valid, and all six
 current input fingerprints match. Explicit source checks confirmed the
@@ -170,25 +199,28 @@ requirements. No authentication, email delivery or client integration was run.
 ## Current timeline checkpoint
 
 DR-016 confirms the read-only package and DR-017 approves timeline intent v0.1.
-Scoped domain, 28 browser business scenarios, shared contract/checklist, design
+Scoped domain, 30 browser business scenarios, shared contract/checklist, design
 and separate frontend/backend tasks are prepared as review drafts. New API/UI
 choices and candidate scenarios still require confirmation/reconciliation;
 native-auth prerequisites and actual JDK/Maven/frontend/browser/DB setup remain
-explicit blockers. No freeze, red browser evidence or application implementation
-has been performed. WSL remains deferred.
+explicit blockers. Native-auth decision materials now cover DR-019/DR-020,
+including the reset requirement, but further account decisions and all auth
+design/acceptance materials remain outstanding. No freeze, red browser evidence
+or application implementation has been performed. WSL remains deferred.
 
 Preparation checks passed: eleven scoped requirements, fourteen pure-domain
 invariants, two diagrams with 34 labeled edges and complete binary decision
 branches; six global/two timeline input fingerprints matched and 140 checked
-local links/fragments resolved. Global requirement rows remain 72. These checks
+local links/fragments resolved at that checkpoint. The global requirement count
+has since increased with AUTH-007. These checks
 did not render Mermaid or execute frontend acceptance or application code.
 
-### Timeline design/task preparation validation
+### Historical timeline design/task preparation validation
 
 The subsequent Phase 3–5 review drafts passed document/traceability checks:
-28 sequential scenario IDs cover all eleven scoped requirements; the shared
-checklist and both task lists cover all 28 scenarios and nine checklist items.
-There are six frontend tasks and nine backend/acceptance tasks, with native-auth
+Before review corrections, 28 scenario IDs covered all eleven scoped requirements;
+the shared checklist and both task lists covered those scenarios and nine checklist items.
+There were six frontend tasks and nine backend/acceptance tasks, with native-auth
 and toolchain prerequisites explicitly blocked. Checked 169 local links/fragments,
 42 Markdown tables, source fingerprints and unchanged approved intent.
 

@@ -82,6 +82,27 @@ Authenticator or Microsoft Authenticator. Store password verifier hashes, not
 plaintext passwords. Provide offline single-use recovery codes with the password
 and controlled host-administrator recovery.
 
+Authenticator setup must be verified before protected access. Use six-digit,
+30-second TOTP codes, accepting at most one adjacent time step for clock drift
+and never accepting the same step twice per account. Incomplete enrollment expires
+after 24 hours and must be restarted. Issue exactly 10 random recovery codes once;
+store only verifiers and invalidate the prior set when rotating. An unused
+recovery code with the password can sign in once without disabling MFA; factor
+replacement requires fresh authentication or an unused recovery code.
+
+Host-OS-only recovery may reset the MFA state for one named account, revoke its
+sessions/factors and require re-enrollment; there is no public recovery endpoint.
+Only a local host administrator can grant/revoke gateway use for an already
+verified and MFA-enrolled account. Host-administrator access does not imply
+permission to read private traces, prompts or provider secrets. Exact bootstrap
+and audit details remain open. These boundaries were confirmed on 2026-10-30.
+
+Sign-in, password-reset and verification/reset-resend responses do not reveal
+registration status. Repeated authentication failures use bounded temporary
+progressive throttling, never permanent account lockout; resends are throttled
+per normalized address and source. Numeric thresholds, proxy/source identity and
+recovery windows remain under OD-11.
+
 The first frontend-acceptance increment is now the metadata-only incident/activity
 timeline: inspect prompt/guard events, approval history and reported execution
 activity, without approve/reject controls or stored prompt bodies. It uses
@@ -90,10 +111,14 @@ load-more/manual refresh. This frontend journey supersedes library-only work as
 the first delivery priority; it does not remove guard-core or client release gates.
 See the [confirmed timeline scope](./REQUIREMENTS.md#metadata-only-activity-timeline-confirmed-first-frontend-slice).
 
-Registration uses email/password, with signup email verification and 2FA enrollment
-before protected access. Each account owns private traces, approvals and client
-credentials; an explicit deployment-operator grant is required before gateway use
-can consume the server's model-provider budget.
+Registration uses email/password, with signup email verification and verified
+2FA enrollment before protected access. Trim and case-normalize the full email identity; use one
+generic confirmation for new, pending and verified addresses. Verification links
+are single-use, expire after 24 hours and are invalidated on resend. Send through
+a configured production SMTP relay; capture mail locally in acceptance tests.
+Each account owns private traces, approvals and client credentials; an explicit
+deployment-operator grant is required before gateway use can consume the server's
+model-provider budget.
 
 Login is intentionally low-friction: stay signed in across browser restarts for
 at most 30 days, expiring after 7 days of inactivity. A valid session browses traces
@@ -101,11 +126,15 @@ and approves its own prompts without repeated authenticator challenges. Password
 changes, authenticator replacement and recovery-code generation require full
 authentication no more than 10 minutes old; reuse that confirmation within the
 window. Support password-manager autofill/paste and no routine periodic password
-changes. Logout, revocation and expiry still end the affected session.
+changes. Passwords require at least 12 characters; passphrases are allowed, with
+no composition rules. A single-use reset link sent to the verified email expires
+after 30 minutes, preserves MFA and revokes existing sessions. Logout, revocation
+and expiry still end the affected session.
 
 Separate gateway, event-reporting and server-only upstream-provider credentials
 may be stored on the same demo host. No separate identity or credential-storage
-server is required. Exact verification delivery/token lifecycle, scope provisioning,
+server is required. Exact verification copy/send eligibility/rate limits, password
+maximum/hash parameters, reset-response privacy/abuse limits, scope provisioning,
 operator grants, enrollment/recovery, session activity/revocation and credential
 lifecycle details remain open; workspaces, public workspace
 creation and the broader OIDC platform remain deferred.

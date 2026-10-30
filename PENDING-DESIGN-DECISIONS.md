@@ -34,14 +34,47 @@ changes observable behavior, update the requirements as well.
 - Confirmed follow-up: email/password registration, once-at-signup email
   verification and 2FA enrollment before protected access; private account scope
   and explicit deployment-operator grant before model-gateway use.
+- Confirmed email details: trim/case-normalize the full signup email identity;
+  same generic confirmation for new/pending/verified addresses; single-use
+  24-hour verification links invalidated on resend; configurable outbound SMTP
+  relay in production and locally captured mail in acceptance tests. Exact copy,
+  resend/rate limits and relay-failure behavior remain unresolved.
+- Confirmed password follow-up: minimum 12 characters, passphrases and
+  password-manager paste/autofill; no composition rules or periodic expiry.
+  Verified-email password-reset link is single-use, expires after 30 minutes,
+  preserves 2FA and revokes existing sessions. Maximum length, character counting,
+  hash parameters, reset enumeration/rate behavior and failed-login limits remain
+  unresolved under OD-11.
+- Confirmed authenticator/recovery follow-up: six-digit TOTP with 30-second
+  interval, current step ±1 for clock drift, single acceptance per account/step;
+  enrollment requires one valid code and expires after 24 hours if interrupted.
+  Exactly 10 random recovery codes are shown once and stored as verifiers;
+  rotating invalidates the previous set. A valid unused recovery code plus
+  password establishes the ordinary session without disabling MFA; factor
+  replacement requires fresh authentication or an unused recovery code. Exact
+  TOTP enrollment/secret-handling, code format/entropy, recovery redaction/
+  acknowledgment and host recovery procedure remain OD-11 decisions.
+- Confirmed DR-022 authority: host-OS administrator runs offline recovery for one
+  named account, revoking its sessions/factors and requiring new MFA enrollment.
+  Host-admin command grants/revokes gateway entitlement only for email-verified,
+  MFA-enrolled accounts. Operators gain no automatic trace, prompt or
+  provider-secret read permission. Exact host-authority proof/audit, one-time
+  bootstrap, in-flight grant revocation and database-outage recovery remain OD-11.
+- Confirmed DR-023 abuse/privacy behavior: sign-in, password-reset and verification/
+  reset-resend responses do not disclose whether an email is registered; repeated
+  authentication failures use bounded temporary progressive throttling, never
+  permanent account lockout; resends are throttled per normalized address/source.
+  Numeric limits, source identity under proxies, recovery windows and dependency
+  failure messages remain OD-11 decisions.
 - Low-friction sessions survive browser restart, with 30-day absolute and 7-day
   inactivity limits. Ordinary browsing/prompt approvals need no extra factor
   while the session is valid. Sensitive password/authenticator/recovery-code
   changes use full authentication at most 10 minutes old and reuse it within
   that window. Allow password-manager autofill/paste; no routine password expiry.
 - These confirmations do not approve exact email delivery/token lifecycle, scope
-  provisioning, operator-grant mechanism, enrollment/recovery, session activity/
-  revocation, runtime credential lifecycles, provider protocols or other numeric
+  provisioning, operator-grant bootstrap/proof/revocation propagation,
+  enrollment/recovery secret protection, session activity/revocation, runtime
+  credential lifecycles, provider protocols or other numeric
   limits. Resolve
   OD-01/OD-05/OD-11 before accepting those paths. Workspace administration and the
   broader OIDC platform stay deferred.

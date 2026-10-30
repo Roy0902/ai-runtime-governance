@@ -303,6 +303,27 @@ Feature: Inspect private metadata-only activity traces
     When Human A inspects their fixture trace through the real frontend and retained backend activity
     Then the authorized fixture history is inspectable and B's private activity is absent
     And the evidence is classified as timeline inspection, not verified agent capture or live approval enforcement
+
+  @REQ-activity-timeline-005 @SCN-activity-timeline-029 @reg
+  Scenario Outline: An available duration is preserved including a real zero
+    Given Human A has retained event E1 with reported duration <duration> milliseconds
+    When Human A inspects E1
+    Then its available duration is exactly <duration> milliseconds
+    And that duration is not identified as unavailable
+    Examples:
+      | duration |
+      | 0        |
+      | 1250     |
+
+  @REQ-activity-timeline-002 @REQ-activity-timeline-005 @REQ-activity-timeline-006 @SCN-activity-timeline-030 @reg
+  Scenario: A retained but unloaded parent is not missing telemetry
+    Given Human A has retained child E2 with validated retained parent E1 in the same trace and scope
+    And E2 is loaded while E1 belongs to a later continuation response
+    When Human A inspects the currently loaded activity
+    Then E2 remains inspectable without being classified as genuinely unresolved activity
+    And unloaded E1 is not described as telemetry loss
+    When Human A continues inspection until E1 is loaded
+    Then E2 is nested under E1 without duplicating E2
 ```
 
 For SCN-014's complete case, the fixture includes trusted positive completeness
@@ -316,11 +337,11 @@ execution-status value.
 | Requirement | Primary scenario suffixes |
 |---|---|
 | REQ-activity-timeline-001 | 001, 002, 003, 011, 027 |
-| REQ-activity-timeline-002 | 001, 004, 020, 021, 025 |
+| REQ-activity-timeline-002 | 001, 004, 020, 021, 025, 030 |
 | REQ-activity-timeline-003 | 005 |
 | REQ-activity-timeline-004 | 006, 007, 022 |
-| REQ-activity-timeline-005 | 004, 008, 009, 010, 011, 012, 023, 024, 025 |
-| REQ-activity-timeline-006 | 007, 010, 013, 014, 015, 023, 024 |
+| REQ-activity-timeline-005 | 004, 008, 009, 010, 011, 012, 023, 024, 025, 029, 030 |
+| REQ-activity-timeline-006 | 007, 010, 013, 014, 015, 023, 024, 030 |
 | REQ-activity-timeline-007 | 012, 016, 017 |
 | REQ-activity-timeline-008 | 018 |
 | REQ-activity-timeline-009 | 005, 019, 022 |
@@ -330,9 +351,9 @@ execution-status value.
 Invariant coverage by suffix:
 
 - 001: SCN-002/003/027; 002: SCN-005/019; 003: SCN-004/010/011.
-- 004: SCN-008/009; 005: SCN-010/011; 006: SCN-012/016/017.
+- 004: SCN-008/009; 005: SCN-010/011/030; 006: SCN-012/016/017/029.
 - 007: SCN-013/014/015; 008: SCN-006/007/022; 009: SCN-018.
-- 010: SCN-020/021; 011: SCN-023/024; 012: SCN-026.
+- 010: SCN-020/021; 011: SCN-023/024/030; 012: SCN-026.
 - 013: SCN-005/019/022; 014: SCN-028.
 
 Cases still blocked before freeze:
@@ -350,11 +371,16 @@ No scenario file, red run, browser pass, lock or frozen manifest exists yet.
 
 ## Phase 4 handoff
 
-28 business scenario IDs cover the eleven scoped requirements and fourteen
+30 business scenario IDs cover the eleven scoped requirements and fourteen
 invariants. Browser acceptance must prove the inspection outcomes; native tests
 and controlled setup supplement checks of persistence exclusions, duplicate/
 authority rejection and missing-parent integrity. Do not claim browser rendering
 alone proves those storage/authorization properties.
+
+Review additions SCN-029/030 derive from the already-approved available-duration
+and loading-versus-loss rules. Existing SCN-001 through SCN-028 and the approved
+intent are unchanged. Exact loading presentation and duration formatting still
+require UI-contract approval.
 
 Next prepare one shared read/event/UI contract matrix and native setup baseline,
 then implementation design plus separate frontend/backend tasks. Tests must be

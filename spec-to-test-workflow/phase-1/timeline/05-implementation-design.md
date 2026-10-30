@@ -9,12 +9,18 @@ intent and later frozen scenarios. No production files or tools were created.
 - [Requirements/register](./00-ingestion.md), eleven scoped REQs.
 - [Domain](./01-domain-model.md), fourteen invariants.
 - [Intent v0.1](./02-intent-v0.1.md), approved DR-017.
-- [28 draft scenarios](./03-scenarios.md).
+- [30 draft scenarios](./03-scenarios.md), including two approved-rule coverage
+  additions from the review.
 - [Single shared checklist/contract matrix](./04-shared-checklist.md).
 - No target AGENTS.md or existing application conventions established.
 - Open decisions: AMB-activity-timeline-004/005/006/007. Contract/UI proposals,
   native authentication prerequisites and actual tool versions remain blockers,
   not private implementation details this design can approve.
+
+**Review update:** DR-018 sequences a separately planned and acceptance-tested
+native-auth milestone before timeline delivery. Do not treat authentication as
+an available dependency until that milestone's gates pass. Other review findings
+and contract/setup blockers remain in [the review report](./08-review.md).
 
 ## 2. Files and patterns studied
 
@@ -37,6 +43,7 @@ conventions. Prefer a single backend application, not microservices.
 | Path / module | Owner / responsibility | Allowed dependencies / reason |
 |---|---|---|
 | `pom.xml`, `.mvn/`, `mvnw.cmd` | Backend build and JDK 25/native test tooling | Local reviewed wrapper; no global Maven requirement |
+| `src/main/java/dev/governance/GovernanceApplication.java`, `src/main/resources/application.yml` | Runnable backend bootstrap and reviewed configuration | No fake login, public fixture route or automatically enabled production test profile |
 | `src/main/java/dev/governance/timeline/ActivityTrace.java` | Immutable trace/event metadata and validated domain value types | Java only; no controller, DB or frontend dependency |
 | `src/main/java/dev/governance/timeline/TimelineReadService.java` | Scoped read orchestration, bounded traversal and truthful projection | Domain + repository contract; never trusts request scope |
 | `src/main/java/dev/governance/timeline/ActivityMetadataService.java` | Safe metadata validation, producer authority, duplicate/parent integrity | Domain + transaction/repository; cannot grant human approval |
@@ -51,6 +58,7 @@ conventions. Prefer a single backend application, not microservices.
 | `web/src/features/timeline/ActivityTimeline.tsx` | Detail composition, event expansion and independent evidence dimensions | Hook + presentational event/evidence components |
 | `web/src/features/timeline/ActivityEventItem.tsx` | Semantic event metadata/children/approval-history rendering | Pure props; never accepts body HTML or offers approval actions |
 | `web/src/app/routes.tsx`, `web/src/features/timeline/timeline.css` | Routing and scoped minimal styling | No new arbitrary UI library necessary; semantic controls first |
+| `web/index.html`, `web/src/main.tsx`, `web/src/app/App.tsx`, `web/vite.config.ts` | Runnable frontend entry/application composition and reviewed development proxy | Target React app, not a static test-only screen; same-origin production deployment strategy still reviewed |
 | `tests/specs/activity-timeline.spec.ts` | Protected browser acceptance for frozen SCNs | Real browser/backend/persisted fixtures; not mocked successful API |
 | `test-support/timeline/` | Nonproduction deterministic fixture provisioning/cleanup | Separate build/test entry; never a public production seed endpoint |
 
@@ -80,6 +88,9 @@ requires it; this table is representative, not a mandatory file-count target.
   stale requests on navigation and prevent parallel duplicate continuation.
 - Native auth, event write durability/recovery and cursor concurrency semantics
   must be reviewed before claiming full first-increment implementation readiness.
+- The receipt-key-only traversal cutoff is withdrawn (R-TL-001). Follow the
+  replacement proposal only after its membership/expiry/cap/deletion semantics
+  are confirmed in the shared checklist; do not silently implement the old cutoff.
 
 ## 4. Naming examples
 

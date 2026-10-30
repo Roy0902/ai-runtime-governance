@@ -28,14 +28,15 @@ SCN suffixes denote `SCN-activity-timeline-###`; checklist suffixes denote
 | ID | Checklist | Target / action | Shared-design responsibility / change | Scenarios |
 |---|---|---|---|---|
 | BE-TL-001 | 001, 009 | Verify reviewed native account/session prerequisite; target `src/main/java/dev/governance/auth/` only after its own approved design | Establish real principal/private scope from approved native password/2FA/session flow; never stub production auth. This is a dependency gate, not a complete auth implementation task | 001–003, 027, 028 |
-| BE-TL-002 | 002, 003, 004, 005, 006 | Add `timeline/ActivityTrace.java`, `ActivityMetadataService.java` under proposed Java package | Domain-owned safe metadata, trusted producer classification, duplicate semantics and parent integrity; independent execution/completeness/coverage/loss | 004–022 |
-| BE-TL-003 | 001–007 | Add `TimelineRepository.java`, `JdbcTimelineRepository.java`, reviewed Flyway metadata migration | Scope-bound SQL, atomic uniqueness/conflict rejection, relationships and stable indexed receipt traversal; metadata allowlist, no payload blob fields | 001, 003–025 |
-| BE-TL-004 | 001, 002, 005, 007, 008 | Add `TimelineReadService.java`, reviewed cursor helper only if needed | Authorize every read, enforce 50/200 response bounds, signed scoped continuation, safe projection and explicit dependency errors; no external model side effects | 001–003, 010, 012–018, 023–028 |
+| BE-TL-002 | 002, 003, 004, 005, 006 | Add `timeline/ActivityTrace.java`, `ActivityMetadataService.java` under proposed Java package | Domain-owned safe metadata, trusted producer classification, duplicate semantics and parent integrity; independent execution/completeness/coverage/loss | 004–022, 029, 030 |
+| BE-TL-003 | 001–007 | Add `TimelineRepository.java`, `JdbcTimelineRepository.java`, reviewed Flyway metadata migration | Scope-bound SQL, atomic uniqueness/conflict rejection, relationships and stable indexed traversal after cursor review; metadata allowlist, no payload blob fields | 001, 003–025, 029, 030 |
+| BE-TL-004 | 001, 002, 005, 007, 008 | Add `TimelineReadService.java`, reviewed cursor helper only if needed | Authorize every read, enforce 50/200 response bounds and approved traversal membership/cursors; safe projection and explicit errors; no old receipt-only snapshot assumption | 001–003, 010, 012–018, 023–030 |
 | BE-TL-005 | 001, 007, 008 | Add `TimelineController.java`, reviewed API error mapping | Implement proposed READ-1/2/3 after contract approval; derive scope from auth, never request body; no SQL/business logic in controller | 001–003, 023–028 |
-| BE-TL-006 | 001–009 | Add native `src/test/java/dev/governance/timeline/*Test.java` and `*IT.java` | JUnit/PostgreSQL test isolation; negative authority, metadata exclusion, hierarchy races and cursor scope; no replacement for browser acceptance | Supporting 001–028 |
-| BE-TL-007 | 009 | Prepare `test-support/timeline/` and guarded test lifecycle config | Controlled persisted A/B metadata through isolated nonproduction setup; real auth enrollment/login setup, no public seed endpoint, deterministic cleanup | 001–028 fixture prerequisites |
-| BE-TL-008 | 009 | After review/freeze, author `tests/specs/activity-timeline.spec.ts`, reviewed protected baselines if any | Genuine frontend browser acceptance for each frozen SCN; real frontend/backend/DB, feature-missing red, then lock. Do not claim setup/compile failure as red behavior evidence | All frozen 001–028 and added reviewed cases |
+| BE-TL-006 | 001–009 | Add native `src/test/java/dev/governance/timeline/*Test.java` and `*IT.java` | JUnit/PostgreSQL test isolation; negative authority, metadata exclusion, hierarchy races and cursor scope; no replacement for browser acceptance | Supporting 001–030 |
+| BE-TL-007 | 009 | Prepare `test-support/timeline/` and guarded test lifecycle config | Controlled persisted A/B metadata through isolated nonproduction setup; real auth enrollment/login setup, no public seed endpoint, deterministic cleanup; define how real metadata-service rejection reaches test assertions without a public write route | 001–030 fixture prerequisites |
+| BE-TL-008 | 009 | After review/freeze, author `tests/specs/activity-timeline.spec.ts`, reviewed protected baselines if any | Genuine frontend browser acceptance for each frozen SCN; real frontend/backend/DB, feature-missing red, then lock. Do not claim setup/compile failure as red behavior evidence | All frozen 001–030 and added reviewed cases |
 | BE-TL-009 | 009 | Prepare root `pom.xml`, Maven Wrapper, root acceptance manifest/config and CI adoption | Pin compatible JDK 25/test/static tooling and Playwright helpers/projects after setup approval; record true baseline, wire guard checks; no automatic install authorization | All executable gates |
+| BE-TL-010 | 001, 008, 009 | Add `src/main/java/dev/governance/GovernanceApplication.java`, `src/main/resources/application.yml` | Shared-design runnable backend bootstrap and reviewed profile/configuration boundaries; no automatically enabled fixture endpoint, public test profile or authentication bypass | 001–030 execution prerequisite |
 
 `timeline/` in Java target rows means
 `src/main/java/dev/governance/timeline/`. Migration numbering must respect any
@@ -81,9 +82,11 @@ gateway grant authority must not become implicit trace-read authority.
 
 Native account/authentication design and implementation remain unresolved
 dependencies; BE-TL-001 is not a claim that the first slice is independently
-ready for a protected browser run. Review whether auth is a preceding milestone
-or a fully planned prerequisite within the same increment. Never silently replace
-approved authentication with a fake demo login.
+ready for a protected browser run. DR-018 selects a separately planned and
+acceptance-tested native-auth milestone before timeline delivery. BE-TL-001
+verifies that dependency after its own gates pass, not an implicit authorization
+to implement it outside the workflow. Never silently replace approved
+authentication with a fake demo login.
 
 Finalize shared wire/UI choices and new boundary scenarios, pin setup versions,
 resolve test DB/browser/helper paths, record baselines, then approve design/tasks.
@@ -92,7 +95,7 @@ guard dispatch/client support remain outside the inspection acceptance claim.
 
 ## 7. Coverage
 
-Nine backend checklist responsibilities have tasks. All 28 business scenarios
+Nine backend checklist responsibilities have tasks. All 30 business scenarios
 have backend/read/fixture/acceptance ownership, without claiming their exact
 contract candidates are resolved. Existing global source requirements remain
 partially included, not wholly implemented by this slice.

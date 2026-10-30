@@ -1,6 +1,6 @@
 # Phase 0: Requirement register
 
-Version: 0.3. Feature: `runtime-governance`.
+Version: 0.6. Feature: `runtime-governance`.
 Source revision: [inventory](./00-source-inventory.md).
 
 ## Reading this register
@@ -16,7 +16,7 @@ available runners. `Both` means UI/client plus service acceptance; isolated guar
 logic also needs supporting unit tests. Operational rows need failure/load/recovery
 evidence in addition to API acceptance.
 
-**Testability:** all 40 confirmed rows are `blocked` for complete executable
+**Testability:** all 43 confirmed rows are `blocked` for complete executable
 acceptance because at least one referenced contract, value, or integration is
 unresolved. This does not mean every subassertion is ambiguous: no-dispatch,
 composition, submitter-only authority and honest coverage are confirmed.
@@ -95,16 +95,21 @@ not release blockers. AMB suffixes refer to the [ambiguity register](./02-ambigu
 | REQ-runtime-governance-065 | [OPS-003](../../REQUIREMENTS.md#reliability-and-operational-requirements) | Confirmed | Bounded jobs, capped exponential-backoff/jitter retries, bounded attempts, inspectable exhausted/dead-letter state. | Flow | API | blocked: 007, 008, 010 |
 | REQ-runtime-governance-066 | [OPS-004](../../REQUIREMENTS.md#reliability-and-operational-requirements) | Proposed | Operational latency/failure/queue/storage/rejection/worker metrics without sensitive labels. | Data | API | blocked: approval; 010 |
 | REQ-runtime-governance-067 | [OPS-005](../../REQUIREMENTS.md#reliability-and-operational-requirements) | Confirmed | Production acceptance needs documented backup/restore and failure evidence for consistent selected-scope policy/trace data with explicit artifact/key/deletion treatment. | Flow | API | blocked: 008, 010, 011 |
-| REQ-runtime-governance-068 | [AUTH-002](../../REQUIREMENTS.md#integrations-and-secrets) | Confirmed | Public email/password signup, once-at-signup email verification and 2FA enrollment before protected access; detailed delivery/token, normalization/duplicate and setup/abuse contracts remain open. | Flow | Both | blocked: 002, 010, 014 |
-| REQ-runtime-governance-069 | [AUTH-003](../../REQUIREMENTS.md#integrations-and-secrets) | Confirmed | Password/authenticator 2FA for fresh login, recovery alternative and secure salted verifiers; allow autofill/paste, no routine password expiry; valid sessions do not restart login per visit. | Rule | Both | blocked: 002, 006, 014 |
+| REQ-runtime-governance-068 | [AUTH-002](../../REQUIREMENTS.md#integrations-and-secrets) | Confirmed | Public email/password signup; trim/case-normalize full address; same generic response for new/pending/verified; 2FA before protected access; one-use 24-hour verification link invalidated by resend, SMTP relay and local test capture. Copy/send eligibility/rate/delivery failures remain open. | Flow | Both | blocked: 002, 010, 014 |
+| REQ-runtime-governance-069 | [AUTH-003](../../REQUIREMENTS.md#integrations-and-secrets) | Confirmed | Password/authenticator 2FA at fresh login, recovery alternative and secure salted verifiers; minimum 12 characters, passphrases/paste/autofill, no composition or routine expiry; maximum/counting/hash parameters remain open. | Rule | Both | blocked: 002, 006, 014 |
 | REQ-runtime-governance-070 | [AUTH-004](../../REQUIREMENTS.md#integrations-and-secrets) | Confirmed | Offline single-use recovery code with password, plus controlled host-admin recovery; no unauthenticated public bypass. | Flow | Both | blocked: 002, 006, 014 |
 | REQ-runtime-governance-071 | [AUTH-005](../../REQUIREMENTS.md#integrations-and-secrets) | Confirmed | Persistent human sessions: 30-day absolute/7-day inactivity expiry, survive browser restart; no extra factor for routine browsing/prompt approval; logout/revocation/expiry end access. | Flow | Both | blocked: 002, 006, 014 |
 | REQ-runtime-governance-072 | [AUTH-006](../../REQUIREMENTS.md#integrations-and-secrets) | Confirmed | Password/authenticator/recovery-code changes require full authentication at most 10 minutes old; reuse confirmation within window without OTP replay; ordinary prompt approval has no extra step-up. | Rule | Both | blocked: 002, 006, 014 |
+| REQ-runtime-governance-073 | [AUTH-007](../../REQUIREMENTS.md#integrations-and-secrets) | Confirmed | Single-use password-reset link to verified email, expires at 30 minutes; reset preserves MFA and revokes existing sessions. Reset-response privacy, rate limits and delivery failure remain open. | Flow | Both | blocked: 002, 006, 014 |
+| REQ-runtime-governance-074 | [AUTH-008](../../REQUIREMENTS.md#integrations-and-secrets) | Confirmed | TOTP six digits/30s, accept current ±1 step and one acceptance/account/step; enrollment needs one valid code and expires after 24h; exactly 10 random recovery-code verifiers displayed once, rotation invalidates old set, recovery login preserves MFA. Secret/QR safety and factor replacement remain open. | Rule | Both | blocked: 002, 006, 014 |
+| REQ-runtime-governance-075 | [AUTH-009](../../REQUIREMENTS.md#integrations-and-secrets) | Confirmed | Generic sign-in/reset/email-resend responses don't reveal account status; repeated failures use temporary progressive throttling, never permanent account lock; resends throttled per normalized address/source. Numeric thresholds/recovery windows remain OD-11. | Rule | Both | blocked: 002, 006, 014 |
 
 AUTH-002 through AUTH-004 were added by explicit confirmation on 2026-10-29.
 AUTH-005/AUTH-006 and related verification/ownership refinements were confirmed
-later the same day. The original 70 workflow IDs remain unchanged; new IDs are appended rather
-than renumbering rows to match their position in the source.
+later the same day. AUTH-007 was added by explicit confirmation on 2026-10-30.
+AUTH-008/AUTH-009 were added by later explicit confirmations. The original 72
+workflow IDs remain unchanged; AUTH-007 through AUTH-009 are appended rather
+than renumbering any existing row to match its location in the source.
 
 ## Supplementary normative statements
 

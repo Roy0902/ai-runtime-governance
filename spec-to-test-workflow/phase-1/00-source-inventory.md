@@ -1,6 +1,6 @@
 # Phase 0: Source inventory
 
-Version: 0.4. Captured: 2026-10-29. Feature: `runtime-governance`.
+Version: 0.6. Captured: 2026-10-30. Feature: `runtime-governance`.
 
 ## 1. Artifact inventory
 
@@ -10,10 +10,10 @@ from their repositories' HEAD commits.
 
 | Artifact | SHA-256 | Sections used / authority |
 |---|---|---|
-| [REQUIREMENTS.md](../../REQUIREMENTS.md) | `00E9CCDAD6277625F68B586CE6832C6E793598D6BCF929D1CB44EEEB53C3AF1D` | 72 global rows remain stable. Includes DR-015/DR-016's metadata-only read-only timeline refinements, preserved guard-core choices and native account/session behavior. Other release contracts remain open. |
-| [README.md](../../README.md) | `BDAF339E9C81143FF82C99EB433D69155FAF5F02E64344CCFE859B65A3CA1A3A` | Product context with confirmed timeline-first frontend delivery; core/client gates preserved and WSL deferred. |
-| [TECHNICAL_BASELINE.md](../../TECHNICAL_BASELINE.md) | `23F9F4035E35490C6585740C8E9D70A5647AF7ECD74F648B1E05F4FD72CBAA15` | Architecture direction with selected native 2FA, same-host credential storage, persistent session limits, signup verification and private scope/gateway admission; other choices retain their status. |
-| [PENDING-DESIGN-DECISIONS.md](../../PENDING-DESIGN-DECISIONS.md) | `F39A448A4D74CE0F51BC99B2538A6D73FFF0060A7C9088CB8BD8CE8FC29669F0` | PD-01 through PD-11 and confirmed timeline read package; exact query/UI/auth setup and full detector/client lifecycle remain open. |
+| [REQUIREMENTS.md](../../REQUIREMENTS.md) | `355909532B11C55826152DFA3A1C72E24346E96EFE27D700E11A668B007332C3` | 75 global rows: 43 confirmed, 10 proposed, 22 deferred. Includes DR-024/025 enrollment/session refinements alongside AUTH-007–009 and confirmed timeline scope. |
+| [README.md](../../README.md) | `4A301785F27DE7FD05C7887AFF5ABA72A422A23B8914127E6BA28F102B95C6E3` | Product context with confirmed timeline, native auth, TOTP/recovery, password reset and host-operator boundaries; client gates preserved. |
+| [TECHNICAL_BASELINE.md](../../TECHNICAL_BASELINE.md) | `CFAD34925669F6BD14626A9EB2F44F794C9D90B9C0CE4AB53F8E6A07A33E55FE` | Native TOTP/recovery, password/reset, host-only recovery/operator grant boundary, sessions, same-host credentials and SMTP test boundary. |
+| [PENDING-DESIGN-DECISIONS.md](../../PENDING-DESIGN-DECISIONS.md) | `F00814DDEECD9FB3B43B2CDE9E3BA51EBF635A8BF3939E9657B0794AA6EBCA4D` | PD-01–11 and confirmed auth/timeline behavior including DR-023 throttling; numeric abuse/source rules, secret handling, grant propagation, query/UI and client lifecycle remain open. |
 | [Canonical workflow](../../../spec-to-test-workflow/.github/skills/spec-to-test-workflow/SKILL.md) | `6A0D84DC14A6CF9EEC068863354AD9FDE327BC2BD0F5071BB9F929685DCC916A` | Phase order, gates, hard rules, progressive context, adoption and freeze boundaries. Process authority, not product behavior. |
 | [Spec-ingestion skill](../../../spec-to-test-workflow/.github/skills/spec-ingestion/SKILL.md) | `E9D14F318823B7DE550314BB0E76CC42849D621A7ED8EECBEBC2BE145332EF76` | Inventory, precedence, oracle separation, register format, coverage obligations and exit criteria. |
 | Reviewed intent diagrams | Missing | README text diagrams are explanatory, not an approved versioned Phase 2 Mermaid artifact. AMB-runtime-governance-012. |
@@ -73,6 +73,35 @@ source fingerprints were:
 - TECHNICAL_BASELINE.md: `23F9F4035E35490C6585740C8E9D70A5647AF7ECD74F648B1E05F4FD72CBAA15`
 - PENDING-DESIGN-DECISIONS.md: `5BA93D9E313195D713F3429424F875B70FF4C22F9219929F0A0CBAF0C8363332`
 
+### Previous confirmation snapshot (version 0.4, superseded)
+
+Before DR-020 added AUTH-007, there were 72 global requirements (40 confirmed,
+10 proposed and 22 deferred). Requirements fingerprint:
+`00E9CCDAD6277625F68B586CE6832C6E793598D6BCF929D1CB44EEEB53C3AF1D`.
+README fingerprint: `BDAF339E9C81143FF82C99EB433D69155FAF5F02E64344CCFE859B65A3CA1A3A`.
+DR-020 appends AUTH-007 without renumbering existing requirement identifiers.
+
+### Previous confirmation snapshot (version 0.5, superseded)
+
+Before DR-021/022 there were 73 global rows (41 confirmed, 10 proposed and 22
+deferred). REQUIREMENTS fingerprint:
+`E146D52C5FE5786E65ADFFA4037C76E0A57F65398711A76431AD3E55733FF488`.
+DR-021 appended AUTH-008; DR-022 refined AUTH-001/AUTH-004 without adding a row.
+
+### Previous confirmation snapshot (version 0.5, superseded)
+
+Before DR-021, the requirements had 73 rows (41 confirmed, 10 proposed and 22
+deferred). REQUIREMENTS fingerprint:
+`E146D52C5FE5786E65ADFFA4037C76E0A57F65398711A76431AD3E55733FF488`.
+DR-021 appended AUTH-008 without changing earlier identifiers.
+
+### Previous confirmation snapshot (version 0.6, superseded)
+
+Before DR-023, requirements had 74 rows (42 confirmed, 10 proposed and 22
+deferred). REQUIREMENTS fingerprint:
+`C8C559C41C9A920CF3574F350EE45C28F023032E4D3D4886FE9688973AFC8D63`.
+DR-023 appended AUTH-009 without changing prior requirement IDs.
+
 Eight scoped guard-core refinements have their own
 [ingestion register](./guard-core/00-ingestion.md). They are not eight new global
 requirement rows or a claim that full parent requirements have passed.
@@ -130,7 +159,7 @@ later approval or freeze.
 
 | Classification | Count | Treatment |
 |---|---|---|
-| Confirmed source requirements | 40 | Phase 1 obligations; includes confirmed native-account/session requirements; complete executable acceptance still blocked |
+| Confirmed source requirements | 43 | Phase 1 obligations; includes AUTH-007–009 password reset, TOTP/recovery and public-auth throttling; complete executable acceptance still blocked |
 | Proposed source requirements | 10 | Retained for review; not approved acceptance gates |
 | Deferred source requirements | 22 | Retained for traceability; excluded from Phase 1 acceptance |
 | Source acceptance review groups | 9 | AT-01 through AT-09 are review groupings, not authored workflow scenarios |

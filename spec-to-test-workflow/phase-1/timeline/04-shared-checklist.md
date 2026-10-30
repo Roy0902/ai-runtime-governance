@@ -36,16 +36,16 @@ integrity tests supplement authority/persistence assertions.
 | Checklist | Responsibility | SCN suffixes | Surface / test level |
 |---|---|---|---|
 | CHK-TL-001 | Private trace reads and session checks | 001, 002, 003, 027, 028 | Both / browser E2E + supporting backend |
-| CHK-TL-002 | Nested/unlinked metadata and available time | 004, 008, 009, 010, 011, 012 | Both / browser E2E + hierarchy integrity |
+| CHK-TL-002 | Nested/unlinked metadata and available time | 004, 008, 009, 010, 011, 012, 029, 030 | Both / browser E2E + hierarchy integrity |
 | CHK-TL-003 | Metadata-only prompt and safe evidence | 005, 019 | Both / browser E2E + persisted exclusion |
 | CHK-TL-004 | Read-only trusted approval history | 006, 007, 022 | Both / browser E2E + authority integrity |
 | CHK-TL-005 | Execution/completeness/loss and coverage dimensions | 013, 014, 015, 016, 017, 018 | Both / browser E2E |
 | CHK-TL-006 | Idempotent accepted history/conflict rejection | 020, 021 | Both / browser E2E + backend integrity |
-| CHK-TL-007 | Bounded continuation and manual refresh | 023, 024, 025 | Both / browser E2E + query integration |
+| CHK-TL-007 | Bounded continuation and manual refresh | 023, 024, 025, 030 | Both / browser E2E + query integration |
 | CHK-TL-008 | Explicit failures, loading/navigation/accessibility | 026; other UI edge candidates below | Both / browser E2E |
 | CHK-TL-009 | Real auth, isolated persisted fixtures, freeze/red workflow | 028; all scenarios' setup | Both / acceptance setup, never mock replacement |
 
-Every SCN 001 through 028 occurs above. No completed task reference or executed
+Every SCN 001 through 030 occurs above. No completed task reference or executed
 test is implied; Phase 5 assigns responsibilities.
 
 ## 3. Proposed API contract matrix
@@ -101,9 +101,13 @@ display values and safe producer permission matrix must be reviewed.
   events and uses that order among siblings.
 - Signed opaque cursors bind authenticated scope, selected trace and traversal
   cutoff/key. Every request reauthenticates and authorizes independently.
-- Proposed traversal cutoff: maximum accepted receipt key at first read. Later
-  events appear on manual refresh, not unpredictably injected into the same
-  traversal. This is not a historical snapshot of mutable trace status/hierarchy.
+- The original receipt-key-only cutoff proposal is withdrawn by review R-TL-001:
+  a late/concurrently committed event can sort below that cutoff. Do not implement
+  it as a stable-membership guarantee. The proposed replacement is bounded,
+  server-side traversal membership fixed from committed IDs at the first read,
+  with each continuation reauthorized; expiry/caps and behavior during deletion/
+  status/relinking need explicit contract approval. No long-lived database
+  transaction or unbounded in-memory result set is implied.
 - A linked parent not loaded yet is distinguished from a genuinely unresolved
   parent by backend `relationship` metadata. Do not infer missing parent from
   one response's contents. Load-more eventually makes the retained parent

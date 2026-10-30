@@ -1,15 +1,19 @@
 # Incident activity timeline: scoped ingestion
 
 Version: 0.2. Prepared: 2026-10-29. Feature key: `activity-timeline`.
-Status: **Journey and package confirmed under DR-015/DR-016. Scoped domain gate
-ready; diagram approval, exact contracts and implementation remain gated.**
+Status: **Journey/package and intent v0.1 approved under DR-015/DR-016/DR-017.
+Domain/scenario/design drafts prepared; Phase 6 review is in progress.
+Exact contracts, setup, freeze and implementation remain gated.**
 
 **Progress update:** the domain model is prepared and intent v0.1 is approved
-under DR-017. The [28 scenario draft](./03-scenarios.md),
+under DR-017. The [30 scenario draft](./03-scenarios.md),
 [shared checklist](./04-shared-checklist.md), [design](./05-implementation-design.md)
 and separate [frontend](./06-frontend-tasks.md)/[backend](./07-backend-tasks.md)
 tasks are prepared for review. Exact contract/UI choices, authentication
 prerequisites and actual toolchain/fixture setup remain blockers before freeze.
+
+The [Phase 6 review](./08-review.md) records current findings and corrections;
+the presence of draft contracts/tasks is not approval of unresolved choices.
 
 ## 1. Source inventory
 
@@ -19,8 +23,8 @@ prerequisites and actual toolchain/fixture setup remain blockers before freeze.
 | [Timeline scope](../09-timeline-first-slice.md) | SHA-256 `2193E3C1C11E5FDA657C1B5799EBC8FBA57954B39991E1826B8E6D536D41986D` | Confirmed frontend journey, metadata-only prompt log and read-only bounded inspection package |
 | [Confirmation record](../05-decision-record.md) | DR-014/DR-015/DR-016 | Frontend acceptance mandatory; no library-subprocess replacement; no prompt bodies; confirmed behavior package |
 | [Decision proposals](../04-decision-proposals.md) | DP-07/DP-14, unapproved where not expressly confirmed | Event/order/query suggestions, discovery only until approval |
-| Versioned intent | Not yet produced | Requires settled domain behavior then explicit user approval |
-| Implementation/tasks/tests | Not present for this slice | Later workflow outputs, not behavioral oracles |
+| [Versioned intent v0.1](./02-intent-v0.1.md) | Approved DR-017; SHA-256 `5EF1378360CFC7A5F282568AB3EBEDDD058A487EDA1953A0E64960F7B836248C` | Read-only journey and metadata boundaries; not an approved wire/UI contract |
+| [Design](./05-implementation-design.md), [frontend tasks](./06-frontend-tasks.md), [backend tasks](./07-backend-tasks.md) | Review drafts present | Implementation context only; no application or executed acceptance tests exist |
 
 No live agent, browser, API response or existing test was used to choose expected
 behavior. Root graph generation `2026-10-27T05:00:43Z` is stale/not-tracked for
@@ -42,9 +46,9 @@ passes when this inspection slice works.
 | REQ-activity-timeline-001 | An authenticated human can locate and inspect traces only within their private account scope | AUTH-001, UI-001 | Browser + backend | Blocked: exact read/auth contract |
 | REQ-activity-timeline-002 | Expand reported prompt/guard, agent, model and tool activity as a correlated nested timeline | MON-001, UI-001, EVT-001 | Browser + backend | Blocked: event/read contract |
 | REQ-activity-timeline-003 | Prompt log contains event/time/identity/guard outcome/rule metadata, never original or redacted prompt bodies | DR-015, MON-001, UI-001 | Browser + backend/storage | Testable at confirmed boundary |
-| REQ-activity-timeline-004 | Show reported approval lifecycle without fabricating a granted approval or treating an observation as authority | GUARD-002/006, DR-015 | Browser + backend | Blocked: inspection/action boundary |
-| REQ-activity-timeline-005 | Distinguish event ordering, hierarchy and available duration from unavailable facts | MON-002 | Browser + backend | Blocked: ordering/time contract |
-| REQ-activity-timeline-006 | Distinguish empty recorded activity from missing/unsupported telemetry and interrupted execution | MON-002, UI-001 | Browser + backend | Blocked: completeness states |
+| REQ-activity-timeline-004 | Show reported approval lifecycle without fabricating a granted approval or treating an observation as authority | GUARD-002/006, DR-015/016 | Browser + backend | Business boundary confirmed: inspection-only; exact record/UI contract pending |
+| REQ-activity-timeline-005 | Distinguish event ordering, hierarchy and available duration from unavailable facts | MON-002, DR-016 | Browser + backend | Business ordering confirmed; exact wire/time/cursor contract pending |
+| REQ-activity-timeline-006 | Distinguish empty recorded activity from missing/unsupported telemetry and interrupted execution | MON-002, UI-001, DR-016 | Browser + backend | Business states confirmed; exact UI/read contract pending |
 | REQ-activity-timeline-007 | Incomplete trace metadata exposes the known cause/extent without inventing unknown counts or time ranges | EVT-004 | Browser + backend | Testable business rule; wire/copy pending |
 | REQ-activity-timeline-008 | Separate input enforcement, response observation and tool/lifecycle coverage; never claim unexposed capture | INT-008, MON-003 | Browser + backend | Blocked: coverage contract |
 | REQ-activity-timeline-009 | No reasoning text, model output bodies, tool arguments/results, credentials or arbitrary payload bodies enter this metadata-only timeline | ARC-002, INT-009, DR-015 boundary | Browser + backend/storage | Testable exclusion; metadata allowlist pending |
@@ -107,8 +111,8 @@ Later contract/setup gaps are not a reason to wait for Linux.
 ## 5. Coverage plan and traceability skeleton
 
 Each scoped REQ will receive at least one browser acceptance scenario, plus
-applicable negative/boundary coverage. SCN and test file references are pending
-intent approval; they are not passing, frozen or executable tests yet.
+applicable negative/boundary coverage. SCN references are now in the scenario draft; test file creation and execution
+remain pending contract/setup review and freeze. They are not passing or frozen.
 
 | REQ suffix | Positive coverage | Negative / boundary coverage |
 |---|---|---|

@@ -457,3 +457,225 @@ repository relocation or client configuration changes.
 - Approval covers this read-only journey and metadata boundaries, not exact
   API/UI copy, login/test setup, a frozen plan or implementation. Phase 3 may
   proceed; later shared contracts and Phase 6 review remain required.
+
+## DR-018: Native authentication prerequisite before timeline delivery
+
+- **Date / decision owner:** 2026-10-30 / user.
+- **Explicit choice:** plan and acceptance-test native authentication as a
+  prerequisite milestone, then the timeline.
+- **Reason presented:** timeline frontend acceptance requires real authenticated
+  human sessions and private scope, but no such application module exists yet.
+  A fake login/forged cookie would not meet the approved requirements.
+- **Preserved behavior:** public email registration and signup verification,
+  mandatory authenticator 2FA with approved recovery, private accounts, explicit
+  gateway grants and the approved 30-day/7-day/10-minute low-friction policies.
+  This sequencing choice does not reduce their requirements.
+- **Next preparation:** scoped native-auth requirements/domain/intent, frontend
+  scenarios and shared contracts/design/tasks, reviewed and tested through the
+  same workflow. Timeline materials remain valid work-in-progress, not discarded.
+- **Review effect:** resolves R-TL-002's sequencing question; native-auth delivery
+  is still a dependency and is not implemented or accepted. Other timeline review
+  findings remain open, particularly traversal membership and exact contracts.
+- **Not authorized:** tool installations, system configuration, application
+  implementation, freeze, bypass authentication or alteration of approved intent.
+
+## DR-019: Signup email identity and verification contract
+
+- **Date / decision owner:** 2026-10-30 / user.
+- **Proposal / ambiguities:** native-auth DP package / AMB-native-auth-001/002,
+  011.
+- **Approved identity:** trim surrounding whitespace and case-normalize the full
+  email address for one unique account identity.
+- **Approved duplicate privacy:** use the same generic confirmation for new,
+  pending and already-verified addresses; do not reveal registration status.
+- **Approved verification:** single-use link valid for 24 hours; resend invalidates
+  the previous link.
+- **Approved delivery/testing direction:** configurable outbound SMTP relay for
+  production; use captured local mail for acceptance tests. No email vendor
+  selected. Acceptance tests do not send real messages.
+- **Trade-off presented:** whole-address case normalization is simple and avoids
+  duplicate-looking accounts but can merge rare case-sensitive mailbox names;
+  generic responses reduce enumeration but require clear generic instructions.
+- **Still open:** exact generic copy, which existing-address case sends a message,
+  resend/rate limits, SMTP failure/retry behavior, pending-account cleanup, and
+  verification link path/state transition details.
+- **Source changes:** AUTH-002 and OD-11 refined in REQUIREMENTS; README, technical
+  baseline and pending-design register updated. Existing AUTH IDs/global row count
+  unchanged. Current source fingerprints are refreshed in the scoped inventory.
+- **Verification:** variants differing only in trim/case map to the approved
+  identity rule; new/pending/verified addresses return the same approved response;
+  valid link works once before 24h; expiry/replay/superseded links do not verify;
+  local test messages are captured rather than externally delivered.
+- **Evidence:** user selected the recommended email identity, duplicate response,
+  verification lifetime/resend behavior and relay/test delivery options through
+  the guided form. No registration or email test has run.
+
+## DR-020: Password usability and verified-email reset
+
+- **Date / decision owner:** 2026-10-30 / user.
+- **Proposal / ambiguities:** native-auth DP package / AMB-native-auth-003.
+- **Approved password policy:** at least 12 characters; allow passphrases,
+  password-manager paste and autofill; no composition rules or forced expiry.
+  Existing secure salted verifier-hash requirement remains.
+- **Approved reset:** a single-use link to the verified email with 30-minute
+  expiry. A successful reset preserves mandatory authenticator 2FA and revokes
+  all existing account sessions; recovery codes remain governed separately.
+- **Trade-offs presented:** an easier-to-use passphrase policy supports the user's
+  low-friction goal while mandatory MFA remains; reset restores a forgotten
+  password without becoming a TOTP bypass. Session revocation requires the human
+  to sign in again with password and MFA.
+- **Not selected:** maximum length/Unicode counting, hash algorithm and parameters,
+  reset link single-use delivery/rate limits beyond the expiry, generic response
+  behavior, and response to delivery failures.
+- **Source changes:** AUTH-003 refined, AUTH-007 added and OD-11 updated in
+  REQUIREMENTS; technical baseline and pending-design register reconciled.
+  Existing global AUTH IDs remain stable; one new global requirement ID is appended.
+- **Verification criteria:** 11-character versus 12-character input; accepted
+  passphrase containing spaces; paste/autofill; no periodic expiry; reset before
+  and after 30 minutes and replay; 2FA still required after reset; every existing
+  session revoked after successful reset.
+- **Evidence:** user selected both recommended password-policy and reset options
+  in the guided confirmation. No password/reset implementation or test exists.
+
+## DR-021: Authenticator and recovery-code lifecycle
+
+- **Date / decision owner:** 2026-10-30 / user.
+- **Proposal / ambiguities:** native-auth decision package /
+  AMB-native-auth-004/005.
+- **Approved TOTP:** six digits, 30-second step, accept the current step or one
+  adjacent step on either side for clock drift, and accept a given time step
+  at most once per account.
+- **Approved enrollment:** show authenticator setup once for a pending enrollment;
+  require one valid code to complete. Interrupted pending enrollment expires
+  after 24 hours and must be restarted.
+- **Approved recovery codes:** exactly 10 random one-use codes, display once,
+  store only verifiers; rotation revokes every code in the old set.
+- **Approved recovery login:** password plus an unused recovery code creates the
+  ordinary low-friction session and keeps MFA enabled. Factor replacement
+  requires fresh authentication or an unused recovery code.
+- **Trade-offs presented:** small clock-skew tolerance avoids unnecessary login
+  failures; replay protection prevents reuse; expiring incomplete enrollment
+  bounds abandoned setup; recovery remains usable without silently turning MFA off.
+- **Still open:** TOTP seed/QR generation, display and protection; exact recovery
+  code format/entropy and one-time display acknowledgment; factor replacement
+  UX, host-admin procedure and other account-abuse controls. These were not
+  selected as hidden defaults.
+- **Source changes:** AUTH-004 acceptance criteria refined and AUTH-008 added;
+  AT-09/OD-11, technical baseline and pending-design register updated. Existing
+  requirement IDs remain stable; AUTH-008 is appended.
+- **Verification criteria:** protected access denied until a valid enrollment
+  code; current and adjacent TOTP windows work; replay of the same step fails;
+  setup expires after 24h; exactly 10 codes displayed once and stored only as
+  verifiers; rotation revokes the old set; recovery login preserves MFA; factor
+  replacement cannot bypass the reauthentication/recovery boundary.
+- **Evidence:** user selected all four recommended TOTP/enrollment/recovery
+  options in the guided confirmation form. No implementation or test has run.
+
+## DR-022: Offline account recovery and operator gateway authority
+
+- **Date / decision owner:** 2026-10-30 / user.
+- **Proposal / ambiguities:** native-auth DP package / AMB-native-auth-006/010.
+- **Approved host recovery:** a host-OS administrator can run a local offline
+  recovery procedure for one named account after the human loses normal MFA and
+  recovery options. Revoke that account's sessions/factors and require
+  authenticator enrollment again. No public host-recovery endpoint.
+- **Approved gateway admission:** a local host-admin command grants/revokes
+  model-gateway access for one already email-verified and MFA-enrolled account.
+  Public registration alone never authorizes provider-budget use; no public
+  administrator UI is selected.
+- **Approved operator boundary:** host operator can recover accounts and manage
+  gateway entitlement, but receives no automatic trace, prompt or provider-secret
+  read permission.
+- **Trade-off presented:** local host access permits recovery without a separate
+  identity/vault product but depends on trusted host administration. Public
+  registration remains available without exposing model spend. Grant authority
+  is separate from trace visibility.
+- **Still open:** command syntax and proof of host authority; bootstrap and
+  prevention of repeat/guessed grants; safe audit record; revocation propagation/
+  in-flight calls; exact reset effect when an account is disabled/deleted; recovery
+  behavior for an unavailable database. These are not defaults.
+- **Source changes:** AUTH-001/AUTH-004 acceptance criteria and OD-11 refined;
+  no new requirement ID. Existing requirement IDs/global count are preserved.
+- **Verification criteria:** public routes cannot perform host recovery or
+  operator grants; local recovery changes only the named account, revokes sessions/
+  factors and requires new enrollment; grant requires verified email plus enrolled
+  MFA; revoked grant blocks later gateway access; host operator cannot read traces,
+  prompts or provider secrets by virtue of the operator mechanism.
+- **Evidence:** user selected host-OS recovery, local host-admin grant/revocation
+  and restricted operator authority in the guided confirmation form. No command,
+  account, grant or recovery operation exists.
+
+## DR-023: Generic authentication responses and bounded abuse throttling
+
+- **Date / decision owner:** 2026-10-30 / user.
+- **Proposal / ambiguity:** native-auth recommendations / AMB-native-auth-011.
+- **Approved responses:** sign-in and password-reset responses do not reveal
+  whether an email address is registered. Verification/reset resend responses
+  are generic as already selected under DR-019.
+- **Approved failure handling:** apply bounded temporary throttling with
+  progressive delay to repeated failed authentication; never permanently lock
+  the account.
+- **Approved email throttling:** rate-limit verification/reset resends per
+  normalized email address and request source; exact numeric thresholds deferred.
+- **Trade-offs presented:** reducing account enumeration may make sign-in/reset
+  errors less specific; temporary progressive delay protects a public endpoint
+  while avoiding irreversible attacker-triggered lockout. Numerical thresholds
+  require measurement rather than an invented arbitrary default.
+- **Still open:** exact response copy/status equivalence, numerical login/reset/
+  resend rates, delay progression/recovery window, source identity under proxies,
+  SMTP failure behavior and interaction among account/address/IP limits.
+- **Source changes:** AUTH-009 and its OD-11 coverage, plus AT-09 membership,
+  added to REQUIREMENTS. Existing requirement IDs/global count are preserved;
+  AUTH-009 is appended.
+- **Verification criteria:** unknown email and wrong password have equivalent
+  public responses; password reset does not disclose account status; rate
+  throttling is temporary and recovers; no permanent account lock; resend
+  throttling is per approved identities without email-status disclosure; all
+  numeric bounds remain explicitly reviewed before freezing.
+- **Evidence:** user selected all three recommended response/throttle options.
+  No auth endpoint, email sender, failure counter or throttle has been implemented
+  or tested.
+
+## DR-024: Protected authenticator setup and recovery acknowledgement
+
+- **Date / decision owner:** 2026-10-30 / user.
+- **Approved seed protection:** encrypt pending and active TOTP seeds at rest with
+  a deployment-local key kept outside source, database and logs. No separate
+  vault server is required. This protects a database-only disclosure, not a fully
+  compromised host.
+- **Approved setup display:** show QR and manual-entry key once for the pending
+  enrollment; require one valid code and provide no later seed readback.
+- **Approved recovery acknowledgement:** require a simple acknowledgement that
+  the ten recovery codes were saved before enrollment completes.
+- **Source reconciliation:** AUTH-004/AUTH-008 already contain these confirmed
+  rules from the interrupted run. No new requirement ID is necessary.
+- **Still open:** encryption algorithm/key lifecycle, interrupted one-time-display
+  recovery, code entropy/format, and exact enrollment UI/transport contracts.
+- **Evidence:** user selected all three recommended seed/display/acknowledgement
+  options before cancellation. This records that prior confirmation; it does not
+  infer a new approval from the request to resume.
+- **Status:** documentation only; no secrets, application code, tool installation,
+  test execution or frozen acceptance artifacts created.
+
+## DR-025: Session activity, cookie storage and settings-change revocation
+
+- **Date / decision owner:** 2026-10-30 / user.
+- **Approved activity:** successful deliberate protected actions reset inactivity;
+  background polling/static assets do not. The 30-day absolute/7-day inactive
+  limits and ten-minute recent-authentication rule are unchanged.
+- **Approved session transport:** server-side sessions and Secure, HttpOnly,
+  SameSite cookie with CSRF protection; no login token in localStorage.
+- **Approved signed-in settings changes:** after recent-authenticated password
+  change or authenticator replacement, revoke other sessions, rotate/retain the
+  current session and preserve its original 30-day absolute deadline.
+- **Preserved exceptions:** forgot-password reset and host recovery revoke every
+  affected account session as previously approved.
+- **Still open:** exact action classification and cookie/CSRF contract, concurrent
+  revocation handling, and interrupted factor-replacement behavior.
+- **Source reconciliation:** session refinements added under OD-11; these refine
+  existing AUTH-005/006 rather than add or renumber global requirement rows.
+- **Verification:** background-only requests cannot keep a session alive; deliberate
+  activity affects only the idle deadline; cookie flags and absent localStorage
+  token; settings change invalidates other sessions and rotates the current token;
+  current absolute deadline is preserved; forgot-password/host recovery invalidate
+  all sessions. No implementation or test execution is claimed.

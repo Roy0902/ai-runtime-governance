@@ -1,11 +1,11 @@
 # Phase 0: Traceability skeleton and coverage plan
 
-Version: 0.3. Feature: `runtime-governance`. Status: planning only.
+Version: 0.6. Feature: `runtime-governance`. Status: planning only.
 
 ## 1. Coverage totals and quotas
 
-- Source requirement rows: 72. Confirmed Phase 1: 40. Proposed: 10. Deferred: 22.
-- Complete active acceptance: 0 testable, 0 testable-with-assumption, 40 blocked.
+- Source requirement rows: 75. Confirmed Phase 1: 43. Proposed: 10. Deferred: 22.
+- Complete active acceptance: 0 testable, 0 testable-with-assumption, 43 blocked.
   Proposed/deferred rows are not counted as approved Phase 1 acceptance obligations.
 - Authored `SCN-*`: 0. Authored/locked acceptance tests: 0. Approved diagrams: 0.
 - Every active REQ must eventually have a positive scenario plus a negative or
@@ -69,6 +69,9 @@ this table. Suffixes refer to the [requirement register](./01-requirement-regist
 | 070 | AUTH-004 | AT-09 | Both | Pending / Pending | Blocked |
 | 071 | AUTH-005 | AT-09 | Both | Pending / Pending | Blocked |
 | 072 | AUTH-006 | AT-09 | Both | Pending / Pending | Blocked |
+| 073 | AUTH-007 | AT-09 | Both | Pending / Pending | Blocked |
+| 074 | AUTH-008 | AT-09 | Both | Pending / Pending | Blocked |
+| 075 | AUTH-009 | AT-09 | Both | Pending / Pending | Blocked |
 
 AT group names/numbers come from the source. `Supplemental` identifies an explicit
 coverage addition for a confirmed requirement missing from the source AT group

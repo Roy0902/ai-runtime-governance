@@ -23,11 +23,12 @@ SCN suffixes denote `SCN-activity-timeline-###`; checklist suffixes denote
 | ID | Checklist | Action / target files | Pattern / responsibility and change | Scenarios |
 |---|---|---|---|---|
 | FE-TL-001 | 001, 007, 008 | Add `web/src/api/activityTimeline.ts` and shared read types | Design API-client owner; consume READ-1/2/3 verbatim; preserve explicit auth/not-found/dependency errors and cursor boundaries; no body/scope override or empty-success catch | 001–003, 023–028 |
-| FE-TL-002 | 002, 003, 004, 005, 006 | Add `web/src/features/timeline/activityHierarchy.ts` | Pure derived metadata model; stable receipt sibling order, loaded/unlinked distinction, ID deduplication, separate evidence states; never infer authority/completeness or change backend conflict decisions | 004–022 |
+| FE-TL-002 | 002, 003, 004, 005, 006 | Add `web/src/features/timeline/activityHierarchy.ts` | Pure derived metadata model; stable receipt sibling order, loaded/unlinked distinction, ID deduplication, separate evidence states; never infer authority/completeness or change backend conflict decisions | 004–022, 029, 030 |
 | FE-TL-003 | 001, 007, 008 | Add `web/src/features/timeline/useActivityTimeline.ts` | Hook owner for initial reads/continuation/manual refresh/abort and stale response ownership; no auto-polling; contract-approved state retention only | 001–003, 010, 023–028 |
 | FE-TL-004 | 001, 007, 008 | Add `web/src/features/timeline/TraceList.tsx`, `web/src/app/routes.tsx` | Accessible summary list/direct detail routing; loading/empty/error/auth states, explicit continuation and manual refresh; authorization remains backend-owned | 001–003, 023, 025–028 |
-| FE-TL-005 | 002, 003, 004, 005, 006, 007, 008 | Add `ActivityTimeline.tsx`, `ActivityEventItem.tsx`, `timeline.css` under `web/src/features/timeline` | Semantic rendering from hook/model; expandable nested/unlinked records, safe metadata definition lists, read-only approval history, execution/completeness/coverage/loss display; no bodies, unsafe HTML or approval actions | 001, 004–022, 024–028 |
-| FE-TL-006 | 009 | Add native frontend supporting tests beside the above modules; establish reviewed `web/package.json`/TS/Vite configs | Design test owner; hook races, hierarchy, safe render, role/keyboard behavior; resolve exact tooling first, never substitute mocks for E2E or edit locked acceptance | Supporting coverage for 001–028 |
+| FE-TL-005 | 002, 003, 004, 005, 006, 007, 008 | Add `ActivityTimeline.tsx`, `ActivityEventItem.tsx`, `timeline.css` under `web/src/features/timeline` | Semantic rendering from hook/model; expandable nested/unlinked records, safe metadata definition lists, read-only approval history, execution/completeness/coverage/loss display; no bodies, unsafe HTML or approval actions | 001, 004–022, 024–030 |
+| FE-TL-006 | 009 | Add native frontend supporting tests beside the above modules; establish reviewed `web/package.json`/TS/Vite configs | Design test owner; hook races, hierarchy, safe render, role/keyboard behavior; resolve exact tooling first, never substitute mocks for E2E or edit locked acceptance | Supporting coverage for 001–030 |
+| FE-TL-007 | 001, 008, 009 | Add `web/index.html`, `web/src/main.tsx`, `web/src/app/App.tsx`, `web/vite.config.ts` | Shared-design bootstrap owner; runnable React app and approved router/providers/proxy, with actual auth integration and no fake timeline replacement | 001–030 execution prerequisite |
 
 `FE-TL-006` is supporting-test/setup responsibility, not permission to install
 dependencies or modify locked browser acceptance. Protected tests are authored
@@ -70,7 +71,7 @@ unresolved cases.
 ## 5. Coverage
 
 All nine frontend checklist responsibilities have at least one task.
-All 28 scenarios have a frontend task or browser assertion owner. Backend integrity
+All 30 scenarios have a frontend task or browser assertion owner. Backend integrity
 checks remain supplemental for cases where browser appearance alone cannot prove
 safe persistence/authority. No task or acceptance scenario is executed.
 
@@ -81,6 +82,7 @@ FE-TL-002 -> pure hierarchy owner; example `buildActivityHierarchy`.
 FE-TL-003 -> request lifecycle owner; example `useActivityTimeline`.
 FE-TL-004/005 -> presentation/routing only; no SQL/auth decisions in components.
 FE-TL-006 -> supporting tests outside protected acceptance.
+FE-TL-007 -> runnable frontend entry/configuration, not an acceptance-only mock.
 
 After approved tooling/manifests, proposed validation from `web` is
 `npm run typecheck`, `npm run lint`, `npm test -- --run`, `npm run build`.

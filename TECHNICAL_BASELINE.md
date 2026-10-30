@@ -375,11 +375,29 @@ consume excessive memory if it retains a large prompt, response, or tool result.
 - Offline single-use recovery codes with the password and a controlled
   host-administrator recovery procedure; enrollment, reset and abuse
   contracts remain OD-11 decisions.
+- Require verified authenticator enrollment before protected access. Confirmed
+  TOTP behavior: six digits/30-second step, current step ±1 clock-drift window,
+  at most one acceptance per account/time step, and expire interrupted enrollment
+  after 24 hours. Issue 10 random recovery codes once, store only verifiers, and
+  invalidate the old set on rotation. An unused code plus password may establish
+  the normal MFA-authenticated session without removing MFA; factor replacement
+  requires fresh authentication or an unused recovery code.
 - Email/password public registration requires once-at-signup email verification
-  and 2FA enrollment before protected access. Each account owns a private scope;
-  no automatic model-gateway access is granted by signup. An explicit deployment-
-  operator grant is required; this does not create shared workspaces or implicitly
-  grant operators trace-data access.
+  and 2FA enrollment before protected access. Trim and case-normalize the full
+  email identity; use a generic duplicate-safe signup confirmation and single-use
+  24-hour links invalidated by resend. Production sends through a configured
+  SMTP relay; acceptance tests capture mail locally. Exact copy/resend/abuse and
+  relay-failure behavior remain OD-11 decisions. Each account owns a private scope;
+  no automatic model-gateway access is granted by signup. A local host-admin
+  command grants/revokes gateway entitlement only for email-verified, MFA-enrolled
+  accounts; operators gain no trace/prompt/provider-secret read permission.
+  Exact bootstrap, host-authority proof/audit and revocation propagation remain
+  OD-11 decisions. This does not create shared workspaces or implicitly grant
+  operators trace-data access.
+- If a human loses normal MFA and recovery, a host-OS administrator performs
+  offline recovery for one named account, revokes that account's sessions/factors
+  and requires new authenticator enrollment. No public host-recovery endpoint is
+  selected. Exact authority proof/audit and database-outage procedure remain OD-11.
 - Low-friction human sessions persist across browser restarts for at most 30 days
   from creation and expire after 7 days of inactivity. Ordinary trace browsing and
   prompt approvals do not repeat authentication while the session is valid.
@@ -389,6 +407,11 @@ consume excessive memory if it retains a large prompt, response, or tool result.
   full authentication no more than 10 minutes old, reusable during that window.
   Password-manager autofill/paste is supported; no routine periodic password
   change is required. Fresh logins still require both factors.
+- Passwords contain at least 12 characters; passphrases are allowed and password
+  composition rules are not imposed. Password reset uses a single-use verified-
+  email link with a 30-minute expiry, preserves mandatory 2FA and revokes existing
+  sessions. Exact password maximum/hash parameters, reset privacy and abuse
+  controls remain OD-11 decisions.
 - Short-lived service credentials for runtime clients.
 - Gateway client keys and deployment-managed upstream provider keys are
   separate credentials; neither may be logged or exposed in model/event data.
