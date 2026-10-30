@@ -1,0 +1,80 @@
+﻿{
+    "recordedAtUtc":  "2026-10-30T08:45:14.7166724Z",
+    "purpose":  "Sequential Argon2 hashing-core observation, not authentication capacity or acceptance evidence",
+    "operatingSystem":  "Windows",
+    "logicalProcessorCount":  8,
+    "jdk":  "Temurin 25.0.5+8",
+    "maven":  "3.9.16",
+    "provider":  "BouncyCastle 1.86",
+    "sourceSha256":  "CC9A949F3A7122D00C2F05282130F2AFB4AA30842A31400A75712F95D78F433E",
+    "pomSha256":  "D3613E7EDA9589F2B09D9D8AB61107A912D614FFC5B4DF9110B9A9918C5B1ACF",
+    "limitations":  [
+                        "Two warmups and seven sequential samples per profile on a shared host",
+                        "No concurrent load, HTTP, persistence, MFA or email delivery included",
+                        "Observed working set is sampled, not an operating-system guaranteed peak",
+                        "Heap-pool peaks are summed across pools, not a simultaneous live-heap measure",
+                        "No throughput, production capacity, percentile SLO or acceptance pass is established"
+                    ],
+    "runs":  [
+                 {
+                     "javaVersion":  "25.0.5",
+                     "provider":  "BouncyCastle 1.86",
+                     "algorithm":  "Argon2id",
+                     "argonVersion":  19,
+                     "memoryKiB":  19456,
+                     "iterations":  2,
+                     "parallelism":  1,
+                     "saltBytes":  16,
+                     "outputBytes":  32,
+                     "warmups":  2,
+                     "samples":  7,
+                     "concurrency":  1,
+                     "sampleMilliseconds":  [
+                                                171.484,
+                                                80.447,
+                                                79.017,
+                                                104.103,
+                                                99.392,
+                                                160.293,
+                                                79.985
+                                            ],
+                     "medianMilliseconds":  99.392,
+                     "maximumMilliseconds":  171.484,
+                     "jvmMaxHeapBytes":  536870912,
+                     "sumOfHeapPoolPeaksBytes":  143805184,
+                     "observedPeakWorkingSetBytes":  180965376,
+                     "processWallMilliseconds":  2749.9562,
+                     "stderrText":  ""
+                 },
+                 {
+                     "javaVersion":  "25.0.5",
+                     "provider":  "BouncyCastle 1.86",
+                     "algorithm":  "Argon2id",
+                     "argonVersion":  19,
+                     "memoryKiB":  65536,
+                     "iterations":  3,
+                     "parallelism":  1,
+                     "saltBytes":  16,
+                     "outputBytes":  32,
+                     "warmups":  2,
+                     "samples":  7,
+                     "concurrency":  1,
+                     "sampleMilliseconds":  [
+                                                396.118,
+                                                383.960,
+                                                404.870,
+                                                444.706,
+                                                510.466,
+                                                435.572,
+                                                500.597
+                                            ],
+                     "medianMilliseconds":  435.572,
+                     "maximumMilliseconds":  510.466,
+                     "jvmMaxHeapBytes":  536870912,
+                     "sumOfHeapPoolPeaksBytes":  325058560,
+                     "observedPeakWorkingSetBytes":  377495552,
+                     "processWallMilliseconds":  5294.9213,
+                     "stderrText":  ""
+                 }
+             ]
+}

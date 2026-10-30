@@ -513,7 +513,26 @@ active TOTP seeds are encrypted with a deployment-local key outside source,
 database and logs; QR/manual setup key is shown once with no later seed readback;
 one valid code and acknowledgement of saved recovery codes are required before
 enrollment completes. Key generation/rotation/recovery, encryption algorithm,
-interrupted one-time-display recovery and exact UI/transport contracts remain open.
+exact UI/transport contracts remain open. DR-026 resolves interrupted display
+and authenticator-replacement behavior as follows.
+
+If a once-shown QR/manual key or recovery-code display is lost through refresh,
+back navigation, a closed tab or an interrupted response, do not redisplay it.
+Offer an explicit initial-enrollment restart after confirming the password for
+the verified account, with setup-only access. Invalidate the previous pending
+seed/codes and create a new 24-hour attempt. Stale tabs cannot complete an
+invalidated attempt. Protected access remains blocked until a valid new
+authenticator code and acknowledgement of saved recovery codes complete setup.
+
+During authenticator replacement, keep the current authenticator and recovery
+codes usable until the new authenticator is verified and its new recovery codes
+are acknowledged. Cancellation, expiry and lost-display restart discard only
+the pending replacement. Final completion atomically replaces the factor and
+recovery-code set and applies DR-025 session revocation/rotation below.
+Starting/restarting and final completion require full authentication within the
+existing ten-minute window, reusing a valid confirmation without replaying an
+OTP. A recovery code consumed to authenticate remains consumed even if the
+replacement is cancelled. These refine AUTH-002/004/006/008; no IDs are added.
 
 ### OD-11 confirmed session refinements
 
@@ -534,6 +553,241 @@ session without extending its original absolute deadline. This is not a
 forgot-password exception: AUTH-007 password reset and host-admin recovery still
 revoke all affected account sessions. No extra factor prompt is introduced for
 ordinary activity while the current session is valid.
+
+### OD-11 confirmed account lifecycle refinements
+
+DR-027 refines AUTH-001/002/004/007/008 without adding requirement IDs.
+Duplicate signup must never replace a stored password or take over enrollment.
+The verified email owner may use the approved password-reset flow, which does
+not bypass MFA or incomplete enrollment.
+
+Remove only never-verified registrations after seven days from creation or the
+latest issued verification link, whichever is later. Ordinary duplicate signup
+does not extend retention; an actually issued resend does. Verified accounts
+remain when an incomplete 24-hour enrollment attempt expires.
+
+Create one immutable private data scope only when initial enrollment fully
+completes. Before that, permit only required verification/setup/reset operations,
+not protected application data or gateway use. Later factor replacement and
+host recovery retain that scope and ownership.
+
+The first increment includes host-admin-only disable/re-enable, with no public
+admin UI. Disable denies further account access and revokes sessions, pending
+authentication operations and gateway entitlement, while retaining scope/data.
+Re-enable restores eligibility to authenticate/setup, not old tokens or gateway
+entitlement; a new explicit grant requires the approved verified/enrolled
+eligibility. Already-running gateway-call behavior remains an unresolved contract.
+
+Account deletion, data erasure and verified-email re-registration are deferred
+to a separately specified increment. Do not provide self-service deletion or
+automatically recycle a disabled verified email. Retention is not an implemented
+erasure policy; deferred deletion must be specified before it is offered.
+
+### OD-11 confirmed mail and one-use-link refinements
+
+DR-028 refines AUTH-002/007/009. New signup issues verification mail; duplicate
+signup preserves password/enrollment and sends none. Explicit resend issues a
+new verification link only for an enabled, never-verified registration. Reset
+sends only to an enabled, verified account, including incomplete initial MFA
+enrollment, without bypassing MFA/setup. Unknown, verified-for-resend,
+unverified-for-reset and disabled addresses receive the same generic public
+acknowledgement without mail.
+
+Keep one current link per account/purpose. Durable issuance atomically supersedes
+the previous link; failed issuance preserves it. Opening a link alone does not
+consume it: email verification requires explicit confirmation, and reset requires
+a valid new-password submission. Server time must be strictly before expiry;
+exactly at expiry fails. Consumption and its state changes are atomic, so
+concurrent submissions cannot both succeed. Failed validation or rollback does
+not consume it. Keep the approved 24-hour verification/30-minute reset lifetimes.
+
+Issuing a reset link does not log the user out. Successful reset changes the
+password and revokes sessions atomically, preserving active MFA and incomplete-
+setup restrictions.
+
+Acknowledge only after a bounded durable mail-work request has been accepted;
+acknowledgement is not confirmation of delivery. Use the same admission step for
+ineligible addresses so a queue outage cannot reveal account status. Admission
+failure returns a generic temporary-service error, never success. Delivery is
+asynchronous, with bounded retries stopping at expiry/supersession/disablement;
+workers recheck eligibility before sending. Surface later SMTP failures to the
+operator without secrets, not as address-specific public status. Old delivered/
+in-flight mail cannot be recalled, but superseded links fail; guide users to
+the newest link. Retry must never revive an expired link.
+
+Exact copy/routes/statuses, numerical abuse/retry/queue limits and concrete
+transaction/worker/key-protection contracts remain open.
+
+### OD-11 confirmed password input refinement
+
+DR-029 refines AUTH-003: passwords contain 12 through 128 characters inclusive,
+counted as Unicode code points, not bytes or UTF-16 storage units. Counting is
+not a restriction on characters or an encoding choice required from the user.
+Length is the only password-content restriction: no allowed-character list,
+composition rule or special ban on spaces, symbols or control characters.
+
+Preserve exact input without trimming, normalization, case folding, truncation
+or silent substitution; leading/trailing spaces are significant. Use consistent
+interpretation for signup, change/reset, login and reauthentication. Preserve
+paste/autofill and no periodic forced changes. Login failures remain generic;
+password-creation forms may explain validation errors.
+
+Malformed network requests are ordinary transport/parse errors, not additional
+password-content rules. Secure salted verifier hashing remains mandatory;
+algorithm/library/parameters, rehashing and measured memory/concurrency bounds
+remain technical-design gates. Do not reinstate the rejected password-specific
+NUL/line-break/encoding exclusions or claim hashing performance without evidence.
+
+### OD-11 confirmed TOTP-key lifecycle and availability
+
+DR-030 refines AUTH-003/004/005/008. The server-side TOTP seed-encryption key is
+not a provider API key or session key. Changing/disabling a provider API key
+does not revoke human sessions; affected model calls may become unavailable.
+This does not add provider-key-management UI or change selected server-side
+provider-key ownership.
+
+If the TOTP key is unavailable, the application may run explicitly degraded.
+Otherwise-valid sessions continue, and password plus an unused recovery code
+may sign in when its independent verifier and other required services are
+available. TOTP verification/enrollment/replacement requiring that key fail
+explicitly as temporarily unavailable, not incorrect-code errors. Report the
+degraded state to the operator without claiming full authentication readiness.
+Never bypass MFA, use plaintext fallback, automatically reset factors/sessions,
+or silently generate a replacement key.
+
+Provision protected local key material explicitly through host administration,
+outside source/database/logs. Keep protected key backup separate from database
+backup and verify a matched restore. Controlled versioned rotation re-encrypts
+the same seeds without user re-enrollment; retain old keys while retained backups
+need them. Correct-key restoration restores affected capability; irrecoverable
+loss requires explicit scoped offline host recovery, never a public bypass.
+Exact encryption/key/restore/rotation/health contracts remain design work.
+
+### OD-11 confirmed recovery-code format and standalone regeneration
+
+DR-031 refines AUTH-004/006/008. Each of the ten codes contains 128 random bits,
+displayed as 32 hexadecimal characters in eight groups of four. Accept upper/
+lower case and optional grouping hyphens; store only verifiers, never retrievable
+codes. This is separate from the length-only password policy.
+
+Standalone regeneration preserves the current set until the newly once-shown
+set is acknowledged as saved, then atomically activates the new set and revokes
+the old. Check the existing ten-minute recent-auth confirmation at start/restart
+and final completion, reusing valid confirmation. Pending code sets have the
+existing 24-hour setup lifetime. Cancellation/expiry/lost display before
+completion discards only pending codes; authentication-consumed codes stay
+consumed. Stale tabs cannot activate obsolete sets; concurrent use of one
+recovery code can succeed only once.
+
+A lost response after completion does not roll back or redisplay codes: expose
+nonsecret completion status and allow fresh regeneration. Completion revokes
+other sessions and rotates/retains the current session without extending its
+original absolute deadline. Initial setup/replacement interruption remains
+governed by DR-026; standalone regeneration preserves the active authenticator.
+
+When codes are exhausted, sign in with the existing authenticator to regenerate.
+If all second factors are lost, use approved offline host recovery. Exact verifier,
+acknowledgement/status, race/failure and session-binding contracts remain open.
+
+### OD-11 confirmed host operations, gateway ordering and session concurrency
+
+DR-032 refines AUTH-001/004/005/006/008. Host operations require trusted local
+host administration, one exact account, explicit reason and confirmation.
+Commit state change and secret-free audit atomically; unavailable database/audit
+commit fails explicitly without claimed success. Repeated grant/revoke/disable
+is safe and reports already-in-state. No public/bootstrap administrator account.
+
+Host recovery preserves email/password/private ownership but revokes sessions,
+factors, pending authentication and gateway entitlement. It creates no signed-in
+session or data/secret disclosure. The human returns using their password or
+approved email reset for setup-only re-enrollment; gateway access needs a new
+explicit grant. Recovery never silently re-enables a disabled account.
+
+Grant only enabled, verified, fully enrolled accounts. After revocation/disable/
+recovery commits, block later gateway admissions and calls not yet dispatched
+upstream. Dispatch authorization and revocation must have consistent ordering,
+not depend on stale cached grants. Already-dispatched calls may finish; upstream
+work/cost cannot be retracted. They grant no follow-on authority, and revoked
+human sessions cannot read protected results. Never automatically restore grants.
+
+Only successful deliberate protected navigation, manual refresh and authorized
+changes renew inactivity, not polling/prefetch/static assets. Sessions fail
+exactly at their 30-day absolute or seven-day idle deadline. Recent full auth
+is reusable through ten minutes inclusive, bound to the same account/current
+session; tabs sharing that session share confirmation, different sessions do not.
+
+Enforce logout/revocation on later authorization checks. Sensitive changes
+recheck current account/session/factor state at commit; stale tabs cannot undo
+revocation or activate obsolete pending factors. A retained/rotated current
+session carries only still-valid recent-auth confirmation, preserving its
+original timestamp and absolute session deadline; other sessions do not inherit it.
+
+Concrete host/dispatch/audit/transport mechanisms require design/review. Ordinary
+engineering details may be drafted without separate preference questions;
+numerical abuse/delivery limits remain deferred for review/measurement. No
+installation, implementation or acceptance freeze is authorized by this decision.
+
+### OD-11 confirmed cleanup and pending-setup equality
+
+DR-034 and composed native-auth intent v0.2 refine AUTH-002/008. For a still-
+never-verified registration, let R be the later of creation and latest actually
+issued verification link, D = R + seven days. Time alone does not permit removal
+at t < D; at t >= D the registration is eligible. A cleanup evaluation committing
+removal exactly at D removes it. This does not require the background process to
+run at the exact instant. Duplicate signup still does not extend retention;
+actually issued resend does; verified accounts remain protected from this cleanup.
+Concrete cleanup scheduling and issuance/verification race mechanisms need design.
+
+For pending enrollment and standalone pending recovery-code sets, let E be
+creation + 24 hours. Completion requires t < E and all other current account/
+factor/acknowledgement/recent-auth guards. At t >= E the pending attempt is
+expired and cannot activate candidate factors/codes. Existing active factors/
+codes and already-consumed authentication codes retain their approved standing;
+initial enrollment still grants no protected access before full completion.
+
+These are deadline clarifications, not lifetime changes. Intent v0.2 incorporates
+the unchanged v0.1 plus its approved addendum; neither approved file is rewritten.
+Remaining verifier/evidence/resource/numerical-limit contracts are not approved.
+
+### OD-11 approved initial verifier, admission and evidence profile
+
+DR-037 incorporates [native-auth intent v0.3](./spec-to-test-workflow/phase-1/native-auth/04-intent-v0.3.md)
+as the normative exact profile for AUTH-003/004/008/009 and their supporting
+evidence. Its raw SHA-256 is
+`C78BDBA0B2839F9D907159D4C60391B85EBFC119ADC5CF531629F9B4662A7F67`;
+it composes with the unchanged approved v0.1/v0.2 behavior.
+
+The approved profile fixes Argon2id verifier/upgrade parameters, bounded hash
+work/deadlines, a narrowly defined native reference check, recovery verifiers,
+seed encryption/randomness, rolling-window source/address admission, progressive
+temporary cooldown, finite counter/mail state, retry/send limits, trusted-proxy
+identity and the exported-evidence secrecy contract. Use that single definition,
+not older proposal values or framework defaults. New passwords retain the
+length-only exact-input policy; TOTP-key outages retain scoped degradation.
+
+This resolves the auth-specific numerical deferral, not the global guard/
+gateway/event/transport resource proposals. Sequential native observations are
+not end-to-end authentication capacity or a production percentile. Concrete
+shared contracts, design/tool baselines, native whole-application verification,
+freeze/red/lock and implementation gates still apply.
+
+### OD-11 approved browser password compatibility refinement
+
+DR-038 and [native-auth intent v0.4](./spec-to-test-workflow/phase-1/native-auth/04-intent-v0.4.md),
+raw SHA-256 `40761C1AD0C1233339B301F17DF6D483B4D6078D6B2CA4D5AB3BC4E62F1622EE`,
+narrow the earlier length-only rule only for CR/LF browser compatibility.
+Passwords remain 12-128 Unicode code points; other valid Unicode, spaces,
+symbols and controls including NUL remain allowed. No new strength/composition/
+encoding-choice or periodic-change requirement is imposed.
+
+Reject CR/LF when received by the application, including raw direct submissions
+and raw paste before native sanitization when observable. Never silently trim,
+normalize, case-fold, truncate, substitute or strip permitted input. Ordinary
+passphrase paste/autofill remains supported. Native controls may already have
+sanitized unsupported external text; do not claim recovery of an unobservable
+original or universal password-manager support for unusual characters. Exact
+validation/authentication wire/copy must preserve account privacy and undergo
+the shared contract review.
 
 ## Consistency rules for future work
 

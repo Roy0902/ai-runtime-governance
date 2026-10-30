@@ -1,0 +1,246 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "AI Runtime Governance native authentication",
+    "version": "0.1.0",
+    "description": "Phase 4 contract draft for Phase 6 review. No endpoint exists or has a captured baseline. This file is the shared shape definition referenced by the checklist, not evidence of implementation."
+  },
+  "servers": [{ "url": "/" }],
+  "security": [{ "browserContext": [] }],
+  "x-review-status": "draft",
+  "x-browser-policy": {
+    "sameOriginOnly": true,
+    "httpsRequired": true,
+    "cacheControl": "no-store",
+    "maximumJsonRequestBytes": 16384,
+    "unknownFields": "reject",
+    "passwordLengthUnit": "Unicode code points",
+    "passwordTransformation": "none",
+    "csrfHeader": "X-CSRF-Token",
+    "csrfRequiredMethods": ["POST", "PUT", "PATCH", "DELETE"],
+    "ordinarySessionIdleRenewal": ["readOwnAccount", "changePassword", "completeAuthenticatorReplacement", "completeRecoveryCodeGeneration"]
+  },
+  "paths": {
+    "/api/v1/auth/context": {
+      "get": {
+        "operationId": "readAuthContext", "x-context": ["ANONYMOUS", "SETUP", "HUMAN"],
+        "description": "Bootstrap/read same-origin context and CSRF value; never renew human inactivity. A missing/invalid cookie establishes anonymous context, not protected success.",
+        "responses": { "200": { "$ref": "#/components/responses/Context" }, "default": { "$ref": "#/components/responses/Failure" } }
+      }
+    },
+    "/api/v1/auth/registrations": {
+      "post": {
+        "operationId": "registerAccount", "x-context": ["ANONYMOUS"], "parameters": [{ "$ref": "#/components/parameters/Csrf" }],
+        "requestBody": { "$ref": "#/components/requestBodies/Registration" },
+        "responses": { "202": { "$ref": "#/components/responses/MailAccepted" }, "default": { "$ref": "#/components/responses/Failure" } }
+      }
+    },
+    "/api/v1/auth/email-verifications/resend": {
+      "post": {
+        "operationId": "resendVerification", "x-context": ["ANONYMOUS", "SETUP"], "parameters": [{ "$ref": "#/components/parameters/Csrf" }],
+        "requestBody": { "$ref": "#/components/requestBodies/Email" },
+        "responses": { "202": { "$ref": "#/components/responses/MailAccepted" }, "default": { "$ref": "#/components/responses/Failure" } }
+      }
+    },
+    "/api/v1/auth/email-verifications/consume": {
+      "post": {
+        "operationId": "consumeVerification", "x-context": ["ANONYMOUS"], "parameters": [{ "$ref": "#/components/parameters/Csrf" }],
+        "description": "Explicit confirmation consumes current authority, verifies email and establishes setup-only context; it never creates an ordinary human session.",
+        "requestBody": { "$ref": "#/components/requestBodies/Token" },
+        "responses": { "200": { "$ref": "#/components/responses/Context" }, "default": { "$ref": "#/components/responses/Failure" } }
+      }
+    },
+    "/api/v1/auth/password-resets": {
+      "post": {
+        "operationId": "requestPasswordReset", "x-context": ["ANONYMOUS", "SETUP", "HUMAN"], "parameters": [{ "$ref": "#/components/parameters/Csrf" }],
+        "requestBody": { "$ref": "#/components/requestBodies/Email" },
+        "responses": { "202": { "$ref": "#/components/responses/MailAccepted" }, "default": { "$ref": "#/components/responses/Failure" } }
+      }
+    },
+    "/api/v1/auth/password-resets/consume": {
+      "post": {
+        "operationId": "consumePasswordReset", "x-context": ["ANONYMOUS", "SETUP", "HUMAN"], "parameters": [{ "$ref": "#/components/parameters/Csrf" }],
+        "requestBody": { "$ref": "#/components/requestBodies/PasswordReset" },
+        "responses": { "204": { "description": "Password changed, reset consumed and all account sessions revoked atomically; current cookie cleared. No automatic sign-in." }, "default": { "$ref": "#/components/responses/Failure" } }
+      }
+    },
+    "/api/v1/auth/setup-access": {
+      "post": {
+        "operationId": "establishSetupAccess", "x-context": ["ANONYMOUS"], "parameters": [{ "$ref": "#/components/parameters/Csrf" }],
+        "description": "Verified enabled incomplete/recovery account plus password yields setup-only authority. All other credential/standing failures use the same generic outcome. Does not grant ordinary access.",
+        "requestBody": { "$ref": "#/components/requestBodies/Credentials" },
+        "responses": { "200": { "$ref": "#/components/responses/Context" }, "default": { "$ref": "#/components/responses/Failure" } }
+      }
+    },
+    "/api/v1/auth/enrollment": {
+      "get": {
+        "operationId": "readEnrollment", "x-context": ["SETUP"],
+        "responses": { "200": { "$ref": "#/components/responses/Operation" }, "default": { "$ref": "#/components/responses/Failure" } }
+      },
+      "post": {
+        "operationId": "startEnrollment", "x-context": ["SETUP"], "parameters": [{ "$ref": "#/components/parameters/Csrf" }],
+        "requestBody": { "$ref": "#/components/requestBodies/StartOperation" },
+        "responses": { "201": { "$ref": "#/components/responses/AuthenticatorSecrets" }, "default": { "$ref": "#/components/responses/Failure" } }
+      }
+    },
+    "/api/v1/auth/enrollment/restart": {
+      "post": {
+        "operationId": "restartEnrollment", "x-context": ["SETUP"], "parameters": [{ "$ref": "#/components/parameters/Csrf" }],
+        "description": "Explicit password confirmation invalidates prior pending setup; only the new operation response returns new secrets.",
+        "requestBody": { "$ref": "#/components/requestBodies/RestartEnrollment" },
+        "responses": { "201": { "$ref": "#/components/responses/AuthenticatorSecrets" }, "default": { "$ref": "#/components/responses/Failure" } }
+      }
+    },
+    "/api/v1/auth/enrollment/complete": {
+      "post": {
+        "operationId": "completeEnrollment", "x-context": ["SETUP"], "parameters": [{ "$ref": "#/components/parameters/Csrf" }],
+        "description": "Current password, candidate TOTP and saved-code acknowledgement commit enrollment and full ordinary authentication together. Initial scope is created only once; recovered ownership is retained.",
+        "requestBody": { "$ref": "#/components/requestBodies/CompleteEnrollment" },
+        "responses": { "200": { "$ref": "#/components/responses/Context" }, "default": { "$ref": "#/components/responses/Failure" } }
+      }
+    },
+    "/api/v1/auth/sign-in": {
+      "post": {
+        "operationId": "signIn", "x-context": ["ANONYMOUS"], "parameters": [{ "$ref": "#/components/parameters/Csrf" }],
+        "requestBody": { "$ref": "#/components/requestBodies/SignIn" },
+        "responses": { "200": { "$ref": "#/components/responses/Context" }, "default": { "$ref": "#/components/responses/Failure" } }
+      }
+    },
+    "/api/v1/auth/sign-out": {
+      "post": {
+        "operationId": "signOut", "x-context": ["SETUP", "HUMAN"], "parameters": [{ "$ref": "#/components/parameters/Csrf" }],
+        "responses": { "204": { "description": "Current context revoked; cookie cleared; no success-shaped retained authority." }, "default": { "$ref": "#/components/responses/Failure" } }
+      }
+    },
+    "/api/v1/auth/reauthentication": {
+      "post": {
+        "operationId": "confirmRecentAuthentication", "x-context": ["HUMAN"], "parameters": [{ "$ref": "#/components/parameters/Csrf" }],
+        "requestBody": { "$ref": "#/components/requestBodies/Reauthentication" },
+        "responses": { "200": { "$ref": "#/components/responses/Context" }, "default": { "$ref": "#/components/responses/Failure" } }
+      }
+    },
+    "/api/v1/account": {
+      "get": {
+        "operationId": "readOwnAccount", "x-context": ["HUMAN"],
+        "description": "Own account only; no caller-selected account/scope. Successful deliberate navigation/manual refresh renews inactivity; declared prefetch/background use does not.",
+        "responses": { "200": { "$ref": "#/components/responses/Account" }, "default": { "$ref": "#/components/responses/Failure" } }
+      }
+    },
+    "/api/v1/account/password": {
+      "post": {
+        "operationId": "changePassword", "x-context": ["HUMAN"], "x-recent-auth": true, "parameters": [{ "$ref": "#/components/parameters/Csrf" }],
+        "requestBody": { "$ref": "#/components/requestBodies/PasswordChange" },
+        "responses": { "200": { "$ref": "#/components/responses/Context" }, "default": { "$ref": "#/components/responses/Failure" } }
+      }
+    },
+    "/api/v1/account/authenticator-replacements": {
+      "post": {
+        "operationId": "startAuthenticatorReplacement", "x-context": ["HUMAN"], "x-recent-auth": true, "parameters": [{ "$ref": "#/components/parameters/Csrf" }],
+        "requestBody": { "$ref": "#/components/requestBodies/StartOperation" },
+        "responses": { "201": { "$ref": "#/components/responses/AuthenticatorSecrets" }, "default": { "$ref": "#/components/responses/Failure" } }
+      }
+    },
+    "/api/v1/account/authenticator-replacements/{operationId}/complete": {
+      "post": {
+        "operationId": "completeAuthenticatorReplacement", "x-context": ["HUMAN"], "x-recent-auth": true,
+        "parameters": [{ "$ref": "#/components/parameters/OperationId" }, { "$ref": "#/components/parameters/Csrf" }],
+        "requestBody": { "$ref": "#/components/requestBodies/CompleteReplacement" },
+        "responses": { "200": { "$ref": "#/components/responses/Context" }, "default": { "$ref": "#/components/responses/Failure" } }
+      }
+    },
+    "/api/v1/account/recovery-code-generations": {
+      "post": {
+        "operationId": "startRecoveryCodeGeneration", "x-context": ["HUMAN"], "x-recent-auth": true, "parameters": [{ "$ref": "#/components/parameters/Csrf" }],
+        "requestBody": { "$ref": "#/components/requestBodies/StartOperation" },
+        "responses": { "201": { "$ref": "#/components/responses/RecoverySecrets" }, "default": { "$ref": "#/components/responses/Failure" } }
+      }
+    },
+    "/api/v1/account/recovery-code-generations/{operationId}/complete": {
+      "post": {
+        "operationId": "completeRecoveryCodeGeneration", "x-context": ["HUMAN"], "x-recent-auth": true,
+        "parameters": [{ "$ref": "#/components/parameters/OperationId" }, { "$ref": "#/components/parameters/Csrf" }],
+        "requestBody": { "$ref": "#/components/requestBodies/Acknowledgement" },
+        "responses": { "200": { "$ref": "#/components/responses/Context" }, "default": { "$ref": "#/components/responses/Failure" } }
+      }
+    },
+    "/api/v1/account/security/operations/{operationId}": {
+      "get": {
+        "operationId": "readSecurityOperation", "x-context": ["HUMAN"], "parameters": [{ "$ref": "#/components/parameters/OperationId" }],
+        "description": "Own metadata only, never raw values. No idle renewal or other-account existence disclosure.",
+        "responses": { "200": { "$ref": "#/components/responses/Operation" }, "default": { "$ref": "#/components/responses/Failure" } }
+      },
+      "delete": {
+        "operationId": "cancelSecurityOperation", "x-context": ["HUMAN"],
+        "parameters": [{ "$ref": "#/components/parameters/OperationId" }, { "$ref": "#/components/parameters/Csrf" }],
+        "description": "Cancels only current pending authority; cannot roll back a completed operation or restore consumed codes.",
+        "responses": { "204": { "description": "Pending operation cancelled; active standing preserved." }, "default": { "$ref": "#/components/responses/Failure" } }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": { "browserContext": { "type": "apiKey", "in": "cookie", "name": "__Host-arg-session", "description": "Opaque server-side ANONYMOUS/SETUP/HUMAN context; purpose is enforced per operation. Secure, HttpOnly, SameSite=Lax, Path=/, no Domain. Never returned in JSON or browser storage." } },
+    "parameters": {
+      "Csrf": { "name": "X-CSRF-Token", "in": "header", "required": true, "schema": { "type": "string", "minLength": 43, "maxLength": 43 }, "description": "Current context-bound token from same-origin bootstrap. Origin validation is required as well." },
+      "OperationId": { "name": "operationId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+    },
+    "requestBodies": {
+      "Registration": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RegistrationBody" } } } },
+      "Email": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/EmailBody" } } } },
+      "Token": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TokenBody" } } } },
+      "PasswordReset": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PasswordResetBody" } } } },
+      "Credentials": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CredentialsBody" } } } },
+      "StartOperation": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/StartOperationBody" } } } },
+      "RestartEnrollment": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RestartEnrollmentBody" } } } },
+      "CompleteEnrollment": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CompleteEnrollmentBody" } } } },
+      "SignIn": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SignInBody" } } } },
+      "Reauthentication": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ReauthenticationBody" } } } },
+      "PasswordChange": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PasswordChangeBody" } } } },
+      "CompleteReplacement": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CompleteReplacementBody" } } } },
+      "Acknowledgement": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AcknowledgementBody" } } } }
+    },
+    "responses": {
+      "Context": { "description": "Typed context and CSRF metadata; cookie transitions occur only in headers.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Context" } } } },
+      "Account": { "description": "Current human's own account and session standing.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Account" } } } },
+      "Operation": { "description": "Own nonsecret operation metadata; no seed, provisioning URI or codes.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Operation" } } } },
+      "AuthenticatorSecrets": { "description": "One response only; no-store. Replays never return these values.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuthenticatorSecrets" } } } },
+      "RecoverySecrets": { "description": "One response only; no-store. Replays never return these values.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RecoverySecrets" } } } },
+      "MailAccepted": { "description": "Common durable admission, not account eligibility or delivery confirmation.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MailAccepted" } } } },
+      "Failure": { "description": "Use the checklist's exact code/status/copy mapping; never success-shaped. Correlation identifier also appears in X-Correlation-Id. Retry-After matches retryAfterSeconds when present.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Failure" } } } }
+    },
+    "schemas": {
+      "Email": { "type": "string", "format": "email", "minLength": 3, "maxLength": 254, "description": "Draft initial contract: ASCII mailbox without display-name/quoted-local syntax; punycode domains allowed. Trim surrounding Unicode White_Space then case-normalize the full identity. This new syntax/length disposition requires Phase 6 approval." },
+      "NewPassword": { "type": "string", "format": "password", "minLength": 12, "maxLength": 128, "not": { "pattern": "[\\r\\n]" }, "description": "Unicode code points, not UTF-16 units. No trimming/normalization. Do not apply native HTML maxLength or Java UTF-16 @Size as a substitute." },
+      "CredentialPassword": { "type": "string", "format": "password", "maxLength": 128, "not": { "pattern": "[\\r\\n]" }, "description": "Empty/incorrect credential values give generic authentication failure, not account-dependent validation. Received CR/LF is explicit input validation." },
+      "OpaqueToken": { "type": "string", "minLength": 43, "maxLength": 128, "pattern": "^[A-Za-z0-9_-]+$" },
+      "Factor": { "type": "object", "additionalProperties": false, "required": ["kind", "code"], "properties": { "kind": { "type": "string", "enum": ["TOTP", "RECOVERY"] }, "code": { "type": "string", "maxLength": 128 } }, "description": "Missing/invalid factor kind/code maps to generic sign-in failure on authentication operations, never an identity-specific challenge." },
+      "RegistrationBody": { "type": "object", "additionalProperties": false, "required": ["email", "password"], "properties": { "email": { "$ref": "#/components/schemas/Email" }, "password": { "$ref": "#/components/schemas/NewPassword" } } },
+      "EmailBody": { "type": "object", "additionalProperties": false, "required": ["email"], "properties": { "email": { "$ref": "#/components/schemas/Email" } } },
+      "TokenBody": { "type": "object", "additionalProperties": false, "required": ["token"], "properties": { "token": { "$ref": "#/components/schemas/OpaqueToken" } } },
+      "PasswordResetBody": { "type": "object", "additionalProperties": false, "required": ["token", "newPassword"], "properties": { "token": { "$ref": "#/components/schemas/OpaqueToken" }, "newPassword": { "$ref": "#/components/schemas/NewPassword" } } },
+      "CredentialsBody": { "type": "object", "additionalProperties": false, "required": ["email", "password"], "properties": { "email": { "$ref": "#/components/schemas/Email" }, "password": { "$ref": "#/components/schemas/CredentialPassword" } } },
+      "StartOperationBody": { "type": "object", "additionalProperties": false, "required": ["operationId"], "properties": { "operationId": { "type": "string", "format": "uuid" } } },
+      "RestartEnrollmentBody": { "type": "object", "additionalProperties": false, "required": ["operationId", "password"], "properties": { "operationId": { "type": "string", "format": "uuid" }, "password": { "$ref": "#/components/schemas/CredentialPassword" } } },
+      "CompleteEnrollmentBody": { "type": "object", "additionalProperties": false, "required": ["operationId", "password", "authenticatorCode", "recoveryCodesSaved"], "properties": { "operationId": { "type": "string", "format": "uuid" }, "password": { "$ref": "#/components/schemas/CredentialPassword" }, "authenticatorCode": { "type": "string", "pattern": "^[0-9]{6}$" }, "recoveryCodesSaved": { "type": "boolean", "const": true } } },
+      "SignInBody": { "type": "object", "additionalProperties": false, "required": ["email", "password"], "properties": { "email": { "$ref": "#/components/schemas/Email" }, "password": { "$ref": "#/components/schemas/CredentialPassword" }, "secondFactor": { "$ref": "#/components/schemas/Factor" } } },
+      "ReauthenticationBody": { "type": "object", "additionalProperties": false, "required": ["password"], "properties": { "password": { "$ref": "#/components/schemas/CredentialPassword" }, "secondFactor": { "$ref": "#/components/schemas/Factor" } } },
+      "PasswordChangeBody": { "type": "object", "additionalProperties": false, "required": ["newPassword"], "properties": { "newPassword": { "$ref": "#/components/schemas/NewPassword" } } },
+      "CompleteReplacementBody": { "type": "object", "additionalProperties": false, "required": ["authenticatorCode", "recoveryCodesSaved"], "properties": { "authenticatorCode": { "type": "string", "pattern": "^[0-9]{6}$" }, "recoveryCodesSaved": { "type": "boolean", "const": true } } },
+      "AcknowledgementBody": { "type": "object", "additionalProperties": false, "required": ["recoveryCodesSaved"], "properties": { "recoveryCodesSaved": { "type": "boolean", "const": true } } },
+      "Session": { "type": "object", "additionalProperties": false, "required": ["createdAt", "absoluteExpiresAt", "idleExpiresAt", "recentAuthExpiresAt"], "properties": { "createdAt": { "type": "string", "format": "date-time" }, "absoluteExpiresAt": { "type": "string", "format": "date-time" }, "idleExpiresAt": { "type": "string", "format": "date-time" }, "recentAuthExpiresAt": { "type": ["string", "null"], "format": "date-time" } } },
+      "Account": { "type": "object", "additionalProperties": false, "required": ["accountId", "email", "emailVerified", "mfaState", "scopeId", "gatewayEntitlement", "session"], "properties": { "accountId": { "type": "string", "format": "uuid" }, "email": { "type": "string" }, "emailVerified": { "type": "boolean", "const": true }, "mfaState": { "type": "string", "const": "ENROLLED" }, "scopeId": { "type": "string", "format": "uuid" }, "gatewayEntitlement": { "type": "string", "enum": ["ABSENT", "GRANTED", "REVOKED"] }, "session": { "$ref": "#/components/schemas/Session" } } },
+      "Operation": { "type": "object", "additionalProperties": false, "required": ["operationId", "purpose", "state", "createdAt", "expiresAt"], "properties": { "operationId": { "type": "string", "format": "uuid" }, "purpose": { "type": "string", "enum": ["INITIAL_ENROLLMENT", "RECOVERY_ENROLLMENT", "AUTHENTICATOR_REPLACEMENT", "RECOVERY_CODE_GENERATION"] }, "state": { "type": "string", "enum": ["PENDING", "COMPLETED", "CANCELLED", "SUPERSEDED", "EXPIRED"] }, "createdAt": { "type": "string", "format": "date-time" }, "expiresAt": { "type": "string", "format": "date-time" } } },
+      "Context": {
+        "oneOf": [
+          { "type": "object", "additionalProperties": false, "required": ["state", "csrfToken"], "properties": { "state": { "const": "ANONYMOUS" }, "csrfToken": { "type": "string", "minLength": 43, "maxLength": 43 } } },
+          { "type": "object", "additionalProperties": false, "required": ["state", "csrfToken", "setupExpiresAt", "enrollmentPurpose"], "properties": { "state": { "const": "SETUP" }, "csrfToken": { "type": "string", "minLength": 43, "maxLength": 43 }, "setupExpiresAt": { "type": "string", "format": "date-time" }, "enrollmentPurpose": { "enum": ["INITIAL_ENROLLMENT", "RECOVERY_ENROLLMENT"] } } },
+          { "type": "object", "additionalProperties": false, "required": ["state", "csrfToken", "account"], "properties": { "state": { "const": "HUMAN" }, "csrfToken": { "type": "string", "minLength": 43, "maxLength": 43 }, "account": { "$ref": "#/components/schemas/Account" } } }
+        ]
+      },
+      "RecoveryCodes": { "type": "array", "minItems": 10, "maxItems": 10, "uniqueItems": true, "items": { "type": "string", "pattern": "^[0-9A-F]{4}(?:-[0-9A-F]{4}){7}$" } },
+      "AuthenticatorSecrets": { "type": "object", "additionalProperties": false, "required": ["operation", "manualKey", "provisioningUri", "recoveryCodes"], "properties": { "operation": { "$ref": "#/components/schemas/Operation" }, "manualKey": { "type": "string", "pattern": "^[A-Z2-7]{32}$" }, "provisioningUri": { "type": "string", "pattern": "^otpauth://totp/" }, "recoveryCodes": { "$ref": "#/components/schemas/RecoveryCodes" } } },
+      "RecoverySecrets": { "type": "object", "additionalProperties": false, "required": ["operation", "recoveryCodes"], "properties": { "operation": { "$ref": "#/components/schemas/Operation" }, "recoveryCodes": { "$ref": "#/components/schemas/RecoveryCodes" } } },
+      "MailAccepted": { "type": "object", "additionalProperties": false, "required": ["message"], "properties": { "message": { "type": "string", "const": "If this request is eligible, we'll send an email with the next steps." } } },
+      "Failure": { "type": "object", "additionalProperties": false, "required": ["code", "message", "correlationId"], "properties": { "code": { "type": "string", "enum": ["REQUEST_INVALID", "SIGN_IN_FAILED", "SIGN_IN_REQUIRED", "SETUP_ACCESS_FAILED", "CSRF_REJECTED", "FORBIDDEN", "LINK_NOT_USABLE", "STALE_OPERATION", "SECRETS_ALREADY_ISSUED", "RECENT_AUTH_REQUIRED", "OPERATION_EXPIRED", "NOT_FOUND", "RATE_LIMITED", "TEMPORARILY_UNAVAILABLE", "INTERNAL_ERROR"] }, "message": { "type": "string" }, "correlationId": { "type": "string", "format": "uuid" }, "retryAfterSeconds": { "type": "integer", "minimum": 1 }, "fieldErrors": { "type": "array", "maxItems": 16, "items": { "type": "object", "additionalProperties": false, "required": ["field", "message"], "properties": { "field": { "type": "string", "enum": ["email", "password", "newPassword", "secondFactor", "authenticatorCode", "recoveryCodesSaved", "operationId", "token", "request"] }, "message": { "type": "string" } } } } } }
+    }
+  }
+}

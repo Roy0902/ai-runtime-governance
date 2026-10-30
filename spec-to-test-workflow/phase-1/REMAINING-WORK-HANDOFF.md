@@ -1,6 +1,6 @@
 # Remaining development preparation: cross-session handoff
 
-Updated: 2026-10-30, after DR-025.
+Updated: 2026-10-30, after DR-034 and native-auth scenario catalog v0.2.
 Status: **Preparation in progress. Full Phase 1 is NOT ready for implementation,
 acceptance freeze or release. No application code or executable acceptance tests
 have been produced in this work.**
@@ -17,22 +17,38 @@ decision:
 1. [Native-auth scoped register](./native-auth/00-ingestion.md).
 2. [Native-auth recommendations](./native-auth/01-decision-proposals.md):
    recommendations are not automatically approved.
-3. [Decision record](./05-decision-record.md), especially DR-018 through DR-025.
+3. [Decision record](./05-decision-record.md), especially DR-018 through DR-034.
 4. [Requirements](../../REQUIREMENTS.md): AUTH-001 through AUTH-009 and the
    confirmed enrollment/session refinements under OD-11.
 
-Recommended next discussion: **interrupted registration/enrollment and factor
-replacement**, followed by account lifecycle. Prepare one coherent recommendation
-per topic and ask only for unresolved observable behavior. After those choices,
-derive the native-auth domain model and intent for approval.
+**Next gate:** consolidated oracle closure for the
+[scenario catalog v0.2](./native-auth/05-scenarios.md). It drafts 83 SCN IDs/215
+expanded cases, including four `@unspecified` IDs: 012/024/079/080. Phase 3 is NOT passed;
+Phase 4 has not been entered. Preserve the [domain model](./native-auth/03-domain-model.md)
+and [intent v0.1](./native-auth/04-intent-v0.1.md), explicitly approved under DR-033.
+Approved raw SHA-256:
+`5AB84C0B99BDCAB8BF9C419AF6E55C958D1B159E8FFB155F7DE926EA042E6981`.
+[Intent v0.2](./native-auth/04-intent-v0.2.md), approved under DR-034, incorporates
+that unchanged base plus deadline equality. Addendum raw SHA-256:
+`7FD646D33431671BED907282FE7735DA1F1E6427BECF0A9AD8B019B8A368EE99`.
+Do not rewrite either approved file. SCN-005/037 are resolved; next review the
+[verifier/evidence candidate and measurement prerequisites](./native-auth/01-decision-proposals.md#13-verifierevidence-closure-candidate-and-measurement-prerequisites).
+Candidate crypto parameters are NOT approved/measured. Remaining missing oracles
+remain blocked, never assumed or marked green. Use the
+[consolidated proposal](./native-auth/01-decision-proposals.md), not repeated
+small engineering preference forms.
+Exact contracts, crypto/hash mechanisms, native setup/measurements and numerical
+abuse/delivery limits remain open before scenario/review/freeze gates. Respect
+DR-029 length-only passwords and DR-030 scoped TOTP-key degradation.
 
 ## 2. Current milestone sequence
 
-1. Finish native-auth requirements/decisions.
-2. Prepare native-auth pure domain model and versioned intent; obtain explicit
-   intent approval.
-3. Prepare concrete frontend acceptance scenarios, shared API/UI contracts,
-   native tooling baseline, implementation design and frontend/backend tasks.
+1. Core native-auth behavior is settled through DR-032; remaining exact/numerical
+   contract and measurement decisions stay explicit.
+2. Domain model presented; intent v0.1 approved DR-033 and composed v0.2 addendum
+   approved DR-034. Preserve both fingerprints.
+3. Scenario catalog drafted; close its explicit oracle gaps for Phase 3 exit,
+   then shared API/UI contracts, native baseline, design and task lists.
 4. Review the native-auth package, resolve blockers, then freeze the acceptance
    plan; author genuine failing browser tests and lock them before implementing.
 5. Implement and verify the native-auth prerequisite through the workflow.
@@ -67,6 +83,18 @@ tests. Unit/service tests supplement, never replace, frontend acceptance.
 | Idle renewal | Only successful deliberate protected actions reset inactivity; no background polling/static-asset renewal | DR-025 |
 | Session storage | Server-side sessions with Secure/HttpOnly/SameSite cookie and CSRF protection; no login token in localStorage | DR-025 |
 | Settings revocation | Signed-in password/factor changes revoke other sessions, rotate/retain current session without extending original absolute deadline; forgot-password/host recovery still revoke all sessions | DR-025 |
+| Interrupted setup | No lost-display readback; explicit password-confirmed initial restart for verified account, setup-only access, new 24h attempt, prior pending secrets/stale tabs invalidated | DR-026 |
+| Factor replacement | Preserve active factor/codes until verified/acknowledged atomic swap with DR-025 session effects; cancellation/expiry/restart discards pending only; recent-auth at start/restart/completion; consumed authentication codes stay consumed | DR-026 |
+| Registration lifecycle | Duplicate signup preserves password/enrollment; remove never-verified registrations seven days after creation/latest issued verification link, not ordinary duplicates; verified accounts survive setup expiry | DR-027 |
+| Scope/account lifecycle | Private scope at first completed enrollment, stable through recovery; host-only disable revokes sessions/pending auth/gateway entitlement and retains data; re-enable revives no tokens/grants; deletion/erasure/verified-email recycling deferred | DR-027 |
+| Verification/reset mail | New signup sends, duplicate signup does not; explicit resend only enabled/unverified; reset only enabled/verified including incomplete setup; generic eligibility-safe acknowledgement; common durable admission with explicit outage failure, asynchronous bounded delivery | DR-028 |
+| One-use links | One current per account/purpose, atomic supersession/consumption, no consume-on-open, strict expiry, failed issuance preserves old link; reset issuance does not log out, successful reset atomically changes password/revokes sessions and preserves MFA/setup | DR-028 |
+| Password input | Length only, 12–128 Unicode code points; no additional character/encoding restrictions or special control-character bans; exact text/no trim/normalization/truncation; paste/autofill; transport parse errors are not password rules | DR-029 |
+| TOTP-key lifecycle | Explicit protected provisioning, separate backup/matched restore, versioned same-seed rotation and backup-required old-key retention; missing key permits explicit degradation with otherwise-valid sessions/independent recovery login, not plaintext/MFA fallback or blanket shutdown; provider-key changes do not revoke human sessions | DR-030 |
+| Code format/regeneration | Ten 128-bit codes, 32 hex characters/eight groups, case/hyphen entry; standalone 24h pending set, recent-auth start/restart/commit, acknowledged atomic activation, pending-only pre-commit interruption, consumed-code permanence, stale-tab/single-use protection, post-commit nonsecret status and other-session revocation/current rotation | DR-031 |
+| Host/gateway/session core | Exact-account trusted local operations with reason/confirmation/atomic safe audit; recovery preserves identity/disabled standing, revokes auth/grant and creates no session; gateway revocation blocks later admission/undispatched work but cannot retract dispatched cost; exact session/recent-auth boundaries, deliberate activity, same-session binding and current-state commit checks | DR-032 |
+| Auth intent | Native-auth intent v0.1 explicitly approved at the fingerprint above; exact/numerical contracts, tooling and design remain open; no freeze or implementation approval | DR-033 |
+| Deadline equality | Cleanup of still-never-verified accounts is eligible at seven-day equality; pending enrollment/standalone code completion fails at 24-hour equality; composed intent v0.2 approved at its fingerprint above | DR-034 |
 | First timeline journey | Read-only incident/activity timeline; metadata-only prompt log, no original/redacted prompt body; no approve/reject controls or incident case management | DR-015/016 |
 | Timeline behavior | Receipt-ordered siblings; separate source time; honest missing/late parents, duration and coverage; execution/completeness independent; 50 traces/200 events per response; explicit continuation/manual refresh; duplicate/conflict rules | DR-016 |
 | Acceptance | Real frontend browser + backend + persisted controlled data; no mocked successful screen, forged production session or library/subprocess replacement | DR-014/015 |
@@ -75,24 +103,24 @@ tests. Unit/service tests supplement, never replace, frontend acceptance.
 ## 4. Native-auth leftovers
 
 The scoped AMB register has twelve groups, many **partially resolved**. Its older
-row wording may still list choices subsequently approved by DR-024/025. Apply
+row wording may still list choices subsequently approved by DR-024–032. Apply
 the decision record and source refinements; do not treat stale summary wording
 as a reason to reconfirm seed encryption, acknowledgement or session policies.
 
 | Remaining topic | Decisions/contracts still needed | Relevant AMBs |
 |---|---|---|
-| Pending registrations | Cleanup lifetime; duplicate pending submission cannot replace a password or seize enrollment; which address states receive mail; intermediate setup privileges | 001/002 |
-| Verification delivery | Exact generic copy; resend eligibility and delivery/queue failure; atomic supersession and one-use consumption; expiry boundary expectations | 002/011/012 |
-| Password details | Maximum length, Unicode counting/normalization, malformed text, hash algorithm/parameters/rehash and measured resource bounds | 003 |
-| Reset details | Exact response/copy and delivery failures, multiple outstanding links/invalidation, race/one-use semantics and rate limits; do not reconsider approved 30 minutes/MFA preservation/all-session revocation | 003/011/012 |
-| Interrupted one-time setup | What happens after losing the once-shown QR/key or recovery-code display, refresh/back/retry, pending-secret expiry and safe restart without protected access | 004/005/012 |
-| Factor replacement | Preserve old factor until replacement verified; atomic swap/failure/cancellation behavior; fresh-auth/recovery binding and revocation races | 004/005/008 |
-| Seed/key protection | Encryption/key generation, location/permissions, backup/rotation and unavailable-key behavior; no plaintext fallback | 004 |
-| Recovery code details | Entropy/encoding, verifier strategy, acknowledgement UX, rotation/use concurrency, exhausted-code guidance | 005 |
-| Host operations | Exact commands, proof of host authority, safe audit, scoped failure/DB outage behavior, enrollment handoff and inability to impersonate user data access | 006/010 |
-| Account lifecycle | Private scope creation timing; incomplete signup; account disable/delete, pending operations, retained metadata and re-registration; do not silently add workspace features | 009 |
-| Gateway entitlement | Bootstrap/repeat-command safeguards, revocation propagation and already-running calls; relation to disabled/recovering accounts | 010 |
-| Session/reauth implementation | Exact deliberate-action classification, SameSite mode/cookie scope, CSRF contract, session fixation/rotation, multi-tab/concurrent revocation and recent-auth binding | 007/008 |
+| Pending registrations | DR-027/028 resolve cleanup, duplicate safety, setup-only privileges and send eligibility; exact cleanup/issuance race/failure implementation and UI/API remain | 001/002 |
+| Verification delivery | DR-028 resolves eligibility, durable common admission/outage and asynchronous failure, atomic supersession/consumption and strict expiry; exact copy/UI/API, numerical queue/retry/abuse bounds and implementation/key protection remain | 002/011/012 |
+| Password details | DR-029 resolves length-only exact-input/counting without extra character/encoding restrictions; hash algorithm/library/parameters, safe rehash, measured resource bounds and exact UI/API remain | 003 |
+| Reset details | DR-028 resolves eligibility/privacy, delivery failure, one-current-link/atomic one-use/strict expiry and reset-session effects; exact copy/UI/API, numerical limits and concrete transaction/worker contracts remain | 003/011/012 |
+| Interrupted one-time setup | DR-026 resolves explicit restart, pending invalidation and setup-only access; exact UI/API, lost-response and concurrent completion contracts remain | 004/005/012 |
+| Factor replacement | DR-026 resolves old-factor preservation, verified/acknowledged atomic swap, cancellation/expiry and recent-auth checkpoints; exact binding/revocation race contracts remain | 004/005/008 |
+| Seed/key protection | DR-030 resolves explicit provisioning, backup/rotation and scoped unavailable-key behavior; concrete encryption, paths/permissions/commands/reload, rotation/restore failure and health/UI/API contracts remain | 004 |
+| Recovery code details | DR-031 resolves format/entropy, pending/acknowledged atomic regeneration, session effects, interruption/races and exhausted-code guidance; exact verifier, UI/API/ack/status and concrete transaction binding remain | 005 |
+| Host operations | DR-032 resolves core authority/reason/confirmation/atomic audit/failure, safe repeats and recovery handoff; draft concrete commands, authority proof and audit/transaction contracts for review | 006/010 |
+| Account lifecycle | DR-027 resolves scope timing/ownership, host-only disable/re-enable and deletion/erasure/verified-email-recycling deferral; exact commands, concurrent revocation/provisioning and failure contracts remain | 009 |
+| Gateway entitlement | DR-032 resolves eligibility, no public/bootstrap admin, safe repeats, admission/dispatch ordering and already-dispatched work; concrete host/dispatch consistency mechanism and contracts remain | 010 |
+| Session/reauth implementation | DR-032 resolves deliberate activity, exact expiry/recent-auth, shared/distinct sessions and current-state commit; draft exact action/transport/cookie/CSRF/rotation mechanisms for review | 007/008 |
 | Abuse limits | Numeric rates/delay progression/recovery windows, proxy/source identity and combined per-address/source bounds; user explicitly deferred numbers pending review/measurement | 011 |
 | Browser/UI/API | Exact routes/shapes/statuses/copy/semantic locators, loading/errors/navigation; private account screen for auth acceptance; no actual timeline needed to prove auth | 012 |
 | Real acceptance setup | Actual browser/backend/DB/mail capture and generated per-test secrets; secret-safe screenshots/traces/logs; real signup/verification/TOTP flow, not fake auth cookies | 012 and acceptance plan |
@@ -101,8 +129,13 @@ Prepared native-auth materials:
 [ingestion](./native-auth/00-ingestion.md),
 [recommendations](./native-auth/01-decision-proposals.md),
 [frontend acceptance coverage plan](./native-auth/02-acceptance-plan.md),
+[scenario catalog](./native-auth/05-scenarios.md),
 [status](./native-auth/README.md).
-No native-auth domain/intent/concrete SCN/API-UI matrix/design/tasks exist yet.
+The [domain model](./native-auth/03-domain-model.md) and
+[approved intent v0.1](./native-auth/04-intent-v0.1.md) now exist. The scenario
+catalog drafts 83 IDs/215 cases; no reviewed API/UI matrix or implementation design/tasks
+yet. Intent approvals are DR-033/034,
+not approval of those downstream deliverables.
 The acceptance coverage plan is not a frozen plan or executable test suite.
 
 ## 5. Timeline leftovers after native-auth planning
@@ -146,8 +179,16 @@ Do not overwrite it; material intent changes require a new version/review.
   installation is authorized by this handoff.
 - WSL 2.5.10 was present but no distro registered; user requested manual setup,
   later deferred. This blocks WSL live tests only.
-- Current document checks passed: 75 source/register mappings by stable ID and
-  status; 25 unique DR records; current global/auth source fingerprints and links.
+- DR-034/scenario checkpoint checks passed: both approved intent fingerprints unchanged;
+  75 stable global/eleven scoped mappings, unchanged 43/10/22 source statuses,
+  34 sequential decisions and current fingerprints; 83 SCN IDs expanding to
+  215 planned cases, four unspecified IDs blocked, six feature blocks with bound
+  Examples and all eleven REQs/22 invariants mapped; 205 local links across
+  fifteen documents and `git diff --check`. These are documentation checks,
+  not application test results or a passed Phase 3 gate.
+  The prior model/intent check covered five pure-domain sections/all eleven traces
+  and six labeled Mermaid blocks with defined nodes; diagrams were not rendered.
+  Earlier checkpoints remain historical, not current oracles.
 - No application/browser/auth/email/DB/live-agent tests have passed or run in
   this work. No frozen acceptance manifests or locked test suite were produced.
 - Existing changes are uncommitted; preserve them. Do not stage/commit or revert
@@ -178,8 +219,13 @@ Do not overwrite it; material intent changes require a new version/review.
 ## Suggested next-session prompt
 
 > Resume native-auth prerequisite preparation from REMAINING-WORK-HANDOFF.md.
-> Preserve DR-001 through DR-025 and the low-friction login rules. Start with
-> interrupted one-time enrollment/factor replacement and remaining account
-> lifecycle choices, then prepare the native-auth domain/intent for review.
+> Preserve DR-001 through DR-034 and both exact approved intent fingerprints.
+> Continue scenario catalog v0.2: four unspecified IDs (012/024/079/080) remain
+> blocked. Review the verifier/evidence candidate and measurement prerequisites,
+> not the already approved deadline equalities. Phase 3 has not passed. Only then
+> shared contracts and design in coherent batches;
+> numeric limits, exact contracts and tooling still block freeze. Avoid repeated
+> preference forms for routine technical details. TOTP-key outage is scoped
+> degradation; password content is restricted only by length.
 > Keep real frontend acceptance mandatory. Do not install tools, freeze plans,
 > implement code or reopen WSL setup yet.

@@ -438,6 +438,46 @@ consume excessive memory if it retains a large prompt, response, or tool result.
   integration requirements establish it.
 - Critical policy and audit decisions are independently authenticated.
 
+### Confirmed TOTP-key and recovery-code refinements (DR-030/031)
+
+The TOTP seed-encryption key is distinct from provider API keys, gateway/event
+credentials and human session state. Changing/disabling a provider API key does
+not sign out humans; affected model calls may become unavailable. This does not
+add provider-key-management UI or change server-side provider-key ownership.
+
+An unavailable TOTP key permits explicitly degraded operation, not blanket
+application shutdown or automatic session/factor reset. Otherwise-valid
+sessions and password-plus-recovery-code login may continue when independent
+verifiers and required services work. Operations needing the unavailable key
+fail explicitly as temporarily unavailable, never as incorrect-code errors,
+plaintext fallback or MFA bypass. Report degradation and do not claim full
+authentication readiness.
+
+Provision the protected local key explicitly through host administration outside
+source/database/logs; never silently replace a missing/wrong key. Keep protected
+backup separate from database backup and verify a matched restore. Versioned
+rotation re-encrypts the same seeds without user re-enrollment; retain old keys
+while retained backups require them. Correct-key restore recovers capability;
+irrecoverable loss uses scoped offline host recovery. Exact encryption, paths,
+permissions, commands, runtime reload and restore/rotation failure behavior
+remain design decisions.
+
+Each of ten recovery codes contains 128 random bits, shown as 32 hex characters
+in eight groups of four; accept upper/lower case and optional grouping hyphens.
+Store verifiers only. Standalone regeneration preserves old codes until
+acknowledged atomic activation of the new set. Pending sets expire after
+24 hours; start/restart/completion require the existing ten-minute recent-auth
+confirmation. Cancellation/expiry/pre-commit lost display discards pending only;
+consumed authentication codes stay consumed. Stale tabs cannot activate obsolete
+sets and one code cannot be consumed twice concurrently.
+
+Post-commit response loss permits nonsecret completion status/fresh regeneration,
+not rollback/readback. Completion revokes other sessions, rotates/retains current
+session and preserves its absolute deadline without replacing the active TOTP
+seed. Exhausted codes require existing authenticator login or, if all factors
+are lost, offline host recovery. Initial enrollment/replacement still follows
+DR-026. Exact verifier/UI/API/transaction contracts remain open.
+
 The request context should carry only request-scoped information such as:
 
 ```text

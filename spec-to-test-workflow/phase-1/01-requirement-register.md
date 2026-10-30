@@ -95,13 +95,13 @@ not release blockers. AMB suffixes refer to the [ambiguity register](./02-ambigu
 | REQ-runtime-governance-065 | [OPS-003](../../REQUIREMENTS.md#reliability-and-operational-requirements) | Confirmed | Bounded jobs, capped exponential-backoff/jitter retries, bounded attempts, inspectable exhausted/dead-letter state. | Flow | API | blocked: 007, 008, 010 |
 | REQ-runtime-governance-066 | [OPS-004](../../REQUIREMENTS.md#reliability-and-operational-requirements) | Proposed | Operational latency/failure/queue/storage/rejection/worker metrics without sensitive labels. | Data | API | blocked: approval; 010 |
 | REQ-runtime-governance-067 | [OPS-005](../../REQUIREMENTS.md#reliability-and-operational-requirements) | Confirmed | Production acceptance needs documented backup/restore and failure evidence for consistent selected-scope policy/trace data with explicit artifact/key/deletion treatment. | Flow | API | blocked: 008, 010, 011 |
-| REQ-runtime-governance-068 | [AUTH-002](../../REQUIREMENTS.md#integrations-and-secrets) | Confirmed | Public email/password signup; trim/case-normalize full address; same generic response for new/pending/verified; 2FA before protected access; one-use 24-hour verification link invalidated by resend, SMTP relay and local test capture. Copy/send eligibility/rate/delivery failures remain open. | Flow | Both | blocked: 002, 010, 014 |
-| REQ-runtime-governance-069 | [AUTH-003](../../REQUIREMENTS.md#integrations-and-secrets) | Confirmed | Password/authenticator 2FA at fresh login, recovery alternative and secure salted verifiers; minimum 12 characters, passphrases/paste/autofill, no composition or routine expiry; maximum/counting/hash parameters remain open. | Rule | Both | blocked: 002, 006, 014 |
+| REQ-runtime-governance-068 | [AUTH-002](../../REQUIREMENTS.md#integrations-and-secrets) | Confirmed | Public email/password signup; trim/case-normalize full address; generic duplicate-safe response; 2FA before protected access; one-use 24h verification, SMTP/local test capture. DR-028: new signup sends, duplicates do not; explicit resend only enabled/unverified; atomic supersession/consumption, explicit confirmation, strict expiry and common durable admission with explicit outage error. Exact UI/API and numerical limits remain open. | Flow | Both | blocked: 002, 010, 014 |
+| REQ-runtime-governance-069 | [AUTH-003](../../REQUIREMENTS.md#integrations-and-secrets) | Confirmed | Password/authenticator 2FA at fresh login, recovery alternative and secure salted verifiers; DR-029: 12–128 Unicode-code-point length only, no additional character/encoding restrictions; preserve exact input/paste/autofill, no composition or routine expiry. Malformed requests are transport errors, not extra password rules. Hash design/parameters/measurements and exact UI/API remain open. | Rule | Both | blocked: 002, 006, 014 |
 | REQ-runtime-governance-070 | [AUTH-004](../../REQUIREMENTS.md#integrations-and-secrets) | Confirmed | Offline single-use recovery code with password, plus controlled host-admin recovery; no unauthenticated public bypass. | Flow | Both | blocked: 002, 006, 014 |
 | REQ-runtime-governance-071 | [AUTH-005](../../REQUIREMENTS.md#integrations-and-secrets) | Confirmed | Persistent human sessions: 30-day absolute/7-day inactivity expiry, survive browser restart; no extra factor for routine browsing/prompt approval; logout/revocation/expiry end access. | Flow | Both | blocked: 002, 006, 014 |
 | REQ-runtime-governance-072 | [AUTH-006](../../REQUIREMENTS.md#integrations-and-secrets) | Confirmed | Password/authenticator/recovery-code changes require full authentication at most 10 minutes old; reuse confirmation within window without OTP replay; ordinary prompt approval has no extra step-up. | Rule | Both | blocked: 002, 006, 014 |
-| REQ-runtime-governance-073 | [AUTH-007](../../REQUIREMENTS.md#integrations-and-secrets) | Confirmed | Single-use password-reset link to verified email, expires at 30 minutes; reset preserves MFA and revokes existing sessions. Reset-response privacy, rate limits and delivery failure remain open. | Flow | Both | blocked: 002, 006, 014 |
-| REQ-runtime-governance-074 | [AUTH-008](../../REQUIREMENTS.md#integrations-and-secrets) | Confirmed | TOTP six digits/30s, accept current ±1 step and one acceptance/account/step; enrollment needs one valid code and expires after 24h; exactly 10 random recovery-code verifiers displayed once, rotation invalidates old set, recovery login preserves MFA. Secret/QR safety and factor replacement remain open. | Rule | Both | blocked: 002, 006, 014 |
+| REQ-runtime-governance-073 | [AUTH-007](../../REQUIREMENTS.md#integrations-and-secrets) | Confirmed | Single-use 30-minute reset for enabled verified accounts, including incomplete setup; generic eligibility-safe responses. DR-028: one current link, strict expiry, atomic password/consumption/session revocation, no consumption on open/validation failure/rollback; issuance does not log out. Preserve MFA/setup restrictions; common durable mail admission with explicit outage error and bounded asynchronous delivery. Exact UI/API and numerical limits remain open. | Flow | Both | blocked: 002, 006, 014 |
+| REQ-runtime-governance-074 | [AUTH-008](../../REQUIREMENTS.md#integrations-and-secrets) | Confirmed | TOTP six digits/30s, current ±1 step, one acceptance/account/step; encrypted seeds, once-shown QR/key, valid code and saved-code acknowledgement before completion; 24h pending expiry; ten verifier-stored recovery codes, rotation revokes old set, recovery login preserves MFA. DR-026: explicit password-confirmed setup-only restart invalidates pending secrets/stale tabs; replacement preserves active factors until verified/acknowledged atomic swap with DR-025 sessions and recent-auth checks. Exact UI/concurrency/key/code contracts remain open. | Rule | Both | blocked: 002, 006, 014 |
 | REQ-runtime-governance-075 | [AUTH-009](../../REQUIREMENTS.md#integrations-and-secrets) | Confirmed | Generic sign-in/reset/email-resend responses don't reveal account status; repeated failures use temporary progressive throttling, never permanent account lock; resends throttled per normalized address/source. Numeric thresholds/recovery windows remain OD-11. | Rule | Both | blocked: 002, 006, 014 |
 
 AUTH-002 through AUTH-004 were added by explicit confirmation on 2026-10-29.
@@ -127,6 +127,52 @@ These are refinements of existing rows, not new independent requirements:
   -024, -026; unresolved under AMB-runtime-governance-005.
 - Release boundary: deferred platforms and scans do not become gates through
   examples or architecture inventories. Preserve the deferred/proposed classifications.
+- DR-027 / OD-11: duplicate signup preserves password/enrollment; unverified-only
+  cleanup after seven days from creation/latest issued verification link, not
+  ordinary duplicates; verified accounts survive setup expiry. Create one private
+  scope at first completed enrollment and preserve it across recovery. Host-only
+  disable revokes sessions/pending auth/gateway entitlement and retains data;
+  re-enable does not restore tokens/grants. Defer deletion/verified-email
+  recycling. Covered by REQ-runtime-governance-028, -068, -070, -073 and -074.
+- DR-030 / OD-11: TOTP encryption keys are not provider/session keys. Provider-key
+  changes do not sign out humans; unavailable TOTP keys permit explicitly degraded
+  operation with valid sessions/independent recovery login, while key-dependent
+  operations fail explicitly without MFA/plaintext fallback. Explicit protected
+  provisioning, separate backup/matched restore and versioned same-seed rotation;
+  retain backup-required keys, no silent replacement. Covered by
+  REQ-runtime-governance-069, -070, -071 and -074.
+- DR-031 / OD-11: ten 128-bit/32-hex-character codes, eight groups of four;
+  case/hyphen entry, verifier-only storage. Standalone pending sets last 24h and
+  replace old codes only at acknowledged atomic commit with recent-auth checks
+  and other-session revocation/current rotation. Pre-commit cancellation/expiry/
+  lost display discards pending only; consumed codes stay consumed, obsolete
+  tabs cannot activate and concurrent use succeeds once. Post-commit response
+  loss uses nonsecret status/fresh regeneration, not readback/rollback.
+  Covered by REQ-runtime-governance-070, -072 and -074.
+- DR-032 / OD-11: exact-account local host authority, reason/confirmation,
+  atomic secret-free audit and explicit rollback/failure; safe repeated changes.
+  Recovery preserves identity/ownership, revokes auth/grant, creates no session
+  and does not re-enable disabled accounts. Regrant requires completed setup.
+  Revocation blocks later admission/undispatched calls; already-dispatched work
+  may finish without follow-on or revoked-session read authority. Deliberate
+  activity only; exact session-expiry/recent-auth boundaries, same-session binding,
+  commit-time state checks and preserved recent-auth timestamps on rotation.
+  Covered by REQ-runtime-governance-028, -070, -071, -072 and -074.
+- DR-034 / OD-11: never-verified cleanup eligibility starts at the seven-day
+  creation/latest-issued-link deadline, without promising exact scheduling;
+  pending enrollment/code-set completion fails exactly at and after 24 hours.
+  Existing verified-account and pending-only active-factor protections remain.
+  Covered by REQ-runtime-governance-068 and -074; no source IDs changed.
+- DR-037 / OD-11: approved immutable auth intent v0.3 defines exact verifier/
+  upgrade/hash bounds, recovery/seed protection, auth/mail admission/cooldown/
+  state/queue/retry/source policies and complete exported-evidence secrecy.
+  Auth numerical oracles are no longer deferred; unrelated global capacity
+  proposals remain unapproved. Covered by REQ-runtime-governance-069, -070,
+  -074 and -075. Narrow native observations are not whole-service capacity.
+- DR-038 / OD-11: browser compatibility excludes CR/LF without treating it as a
+  strength rule; 12-128 code points, permitted exact text including NUL, ordinary
+  paste/autofill and account privacy remain. Covered by
+  REQ-runtime-governance-069; exact wire/copy remains in shared contract review.
 
 The nine AT groups and candidate numeric targets are retained in the coverage
 plan; none is silently promoted to a new approved requirement or concrete SCN.

@@ -1,16 +1,19 @@
 # Native authentication prerequisite: scoped ingestion
 
-Version: 0.4. Prepared: 2026-10-30. Feature key: `native-auth`.
+Version: 0.13. Prepared: 2026-10-30. Feature key: `native-auth`.
 Status: **DR-018 sequencing and DR-019/020/021 selected account behaviors are
-confirmed. Remaining flow/intent decisions remain open. No
-account/UI contract, SCN, freeze or implementation implied.**
+confirmed. DR-033 approves intent v0.1 with explicit exact/numerical and
+design/tooling gates remaining. Phase 3 scenario catalog is drafted with
+four explicit blockers after DR-034 deadline clarification; no scenario gate,
+freeze or implementation approval is implied.**
 
 DR-019 resolved the signup identity, duplicate-response and link lifetime/resend
 choices in AMB-native-auth-001/002. DR-020 resolved the minimum 12-character,
 passphrase-friendly password policy and 30-minute verified-email reset that
-preserves MFA and revokes sessions in AMB-native-auth-003. Exact copy, reset/
-resend limits, max password length/hash parameters and SMTP failure behavior
-remain open.
+preserves MFA and revokes sessions in AMB-native-auth-003. DR-028 below resolves
+send eligibility, mail admission/failure and atomic link behavior. Exact copy,
+reset/resend limits and hash parameters remain open. DR-029 resolves the
+12–128-character length-only policy below.
 
 DR-021 resolves TOTP timing/replay, enrollment completion/expiry, recovery-code
 count/storage/rotation and the post-recovery login result in AMB-native-auth-004/005.
@@ -34,18 +37,82 @@ rotate/retain the current session and preserve its original absolute deadline.
 Forgot-password and host recovery still revoke all sessions. Exact classification,
 cookie/CSRF and concurrency contracts remain open.
 
+DR-026 resolves lost-display restart and replacement behavior: explicit
+password-confirmed initial restart has setup-only access, invalidates the old
+pending secrets and stale tabs, and starts a new 24-hour attempt. Replacement
+preserves active factors until verified/acknowledged atomic completion with
+DR-025 session effects; cancellation/expiry/restart affects only the pending
+replacement. Starting/restarting and completing replacement require the existing
+recent-auth window. Consumed recovery codes are not restored on cancellation.
+Exact UI/concurrency contracts remain open.
+
+DR-027 resolves lifecycle scope: duplicate signup preserves password/enrollment;
+never-verified registrations expire seven days after creation/latest issued
+verification link, not ordinary duplicate submission; verified accounts survive
+setup expiry. Create the private scope once at completed first enrollment and
+retain it across recovery. Host-only disable/re-enable revokes sessions, pending
+auth and gateway entitlement without deleting data or reviving tokens/grants.
+Deletion/data erasure/verified-email re-registration are deferred. Exact operation,
+cleanup/race and in-flight gateway contracts remain open.
+
+DR-028 resolves verification/reset eligibility, one-current-link atomic
+supersession/consumption, non-consuming link opens, strict expiry and atomic
+reset/session effects. Acknowledgement means bounded durable mail-work admission,
+not delivery; common admission applies to ineligible addresses too, with explicit
+temporary-service failure on outage. Asynchronous retry stops at expiry,
+supersession/disablement; later SMTP failure is secret-safely reported to operators.
+Exact UI/API, numerical limits and implementation/key-protection contracts remain.
+
+DR-029 resolves password input: 12–128 Unicode code points, length only; no
+additional character/encoding restrictions, special control-character bans or
+silent transformations. Exact spaces/text, paste/autofill and consistent flow
+interpretation are preserved. Malformed transport is not a password-complexity
+rule. Hash design/parameters, safe rehash and measured bounds remain open.
+
+DR-030 resolves the TOTP-key lifecycle and scoped outage: keep valid sessions
+and independent password/recovery login available when other dependencies work;
+fail key-dependent operations explicitly and report degraded readiness. Provider
+API keys do not own human sessions. Explicit protected key provisioning, separate
+backup/matched restore and versioned same-seed rotation are approved; no silent
+replacement/fallback or automatic factor/session reset.
+
+DR-031 resolves recovery-code format (128 bits, 32 hex characters/eight groups,
+case/hyphen entry) and standalone regeneration: 24h pending set, recent-auth
+start/restart/completion, acknowledged atomic activation, pending-only pre-commit
+interruption, consumed-code permanence, stale-tab/single-use protection,
+post-commit nonsecret status rather than readback/rollback, and DR-025-style
+session effects. Exact key/verification/UI/API/transaction contracts remain open.
+
+DR-032 resolves core host/gateway/session behavior: local exact-account authority
+with reason/confirmation and atomic safe audit; recovery revokes authentication/
+grant without changing identity/ownership or enabling disabled accounts. Gateway
+revocation blocks later admissions/undispatched calls, not already-dispatched
+work. Deliberate activity, exact expiry/recent-auth boundaries, same-session
+confirmation and commit-time current-state checks are approved. Remaining
+AMB groups below concern design/contracts/measurements, not a reason to reopen
+approved behavior. Domain/intent may be drafted; detailed acceptance/freeze
+still requires the outstanding numerical and concrete contract decisions.
+
+DR-033 explicitly approves intent v0.1 at raw SHA-256
+`5AB84C0B99BDCAB8BF9C419AF6E55C958D1B159E8FFB155F7DE926EA042E6981`.
+Keep its bytes unchanged; approval status is external. Next prepare concrete
+scenarios with exact/numerical gaps visibly blocked, then contracts/design/tasks.
+
 | Source | Revision / authority | Sections used |
 |---|---|---|
-| [Requirements](../../../REQUIREMENTS.md) | SHA-256 `355909532B11C55826152DFA3A1C72E24346E96EFE27D700E11A668B007332C3`; primary oracle | 75 global rows; AUTH-001 through AUTH-009, DR-024/025 enrollment/session refinements, AT-09 and OD-11 |
-| [Technical baseline](../../../TECHNICAL_BASELINE.md) | SHA-256 `CFAD34925669F6BD14626A9EB2F44F794C9D90B9C0CE4AB53F8E6A07A33E55FE` | Native TOTP/recovery, password verifier/reset, same-host demo-secret direction, SMTP relay and operator boundary |
+| [Requirements](../../../REQUIREMENTS.md) | SHA-256 `E426ECF7A941347378AF185A372903C0A07614C30D7B705038F1D19A78889AD7`; primary oracle | 75 global rows; AUTH-001 through AUTH-009 and refinements through DR-034 deadline equality; verifier/evidence/numerical proposals remain unapproved |
+| [Technical baseline](../../../TECHNICAL_BASELINE.md) | SHA-256 `09C0C8213A7165F7486C6C48BB349434EAB304901D2F9D47DE015BC60AA49A16` | Native TOTP/recovery, password/reset, same-host secrets, SMTP/operator boundary; DR-030/031 scoped key degradation and code regeneration |
 | [Pending design decisions](../../../PENDING-DESIGN-DECISIONS.md) | SHA-256 `F00814DDEECD9FB3B43B2CDE9E3BA51EBF635A8BF3939E9657B0794AA6EBCA4D` | Confirmed review direction and remaining processing/operational limits |
-| [Confirmation record](../05-decision-record.md) | SHA-256 `AA624D1DF02248110A1E446957D1E6FB0C13C1752593DE90CC8D3D60FDFD5BD6`; DR-004 through DR-008/018–025 | Confirmed account, recovery/session/scope/operator, privacy, protected enrollment and session-renewal choices |
-| [Phase 1 materials index](../README.md) | SHA-256 `A16A05F40C5FF95E1243883A562062B718B964D69AFEE39A700A2168299DAA30` | Package sequencing and current native-auth status |
+| [Confirmation record](../05-decision-record.md) | SHA-256 `E7D82E64F70AD81365D909A2F43190EC85BF1C06718BE5BBCEC138C4A3A8AD97`; DR-004 through DR-008/018–034 | Exact composed intent v0.2 approval, immutable v0.1 base and four remaining oracle blockers |
+| [Phase 1 materials index](../README.md) | SHA-256 `A502A5C1B074B50D9CA640FF4C92E7198B971B048887DAEAB1AD4FEE4A1386EA` | Package sequencing, approved composed intent and blocked Phase 3 scenario v0.2 status |
 | [Canonical workflow](../../../../spec-to-test-workflow/.github/skills/spec-to-test-workflow/SKILL.md) | SHA-256 `6A0D84DC14A6CF9EEC068863354AD9FDE327BC2BD0F5071BB9F929685DCC916A` | Phase order, review/freeze/red gates |
 | Spec-ingestion skill | SHA-256 `E9D14F318823B7DE550314BB0E76CC42849D621A7ED8EECBEBC2BE145332EF76` | Source precedence, REQ/AMB traceability and coverage gates |
 | Domain-modeling skill | SHA-256 `10E164077120B902BA0BE2B6E218303921A806A8B76C8E7DCDB512132F934B1A` | Required pure domain model shape and traceability |
 | Behavioral-specification skill | SHA-256 `524375FFBDB658C426650A599F0183B9AD3B44F6A8C5E6003B2CBEA2EA94669B` | Concrete scenario and frontend acceptance gates |
-| Reviewed account-auth intent | Not yet produced | Requires settled behavior and explicit user approval |
+| [Domain model](./03-domain-model.md) | Version 0.1, presented | Core vocabulary, aggregates, invariants and events derived through DR-032 |
+| [Account-auth intent](./04-intent-v0.1.md) | Version 0.1, approved DR-033; raw SHA-256 `5AB84C0B99BDCAB8BF9C419AF6E55C958D1B159E8FFB155F7DE926EA042E6981` | Bounded behavior approved; outstanding exact/numerical contracts remain blocking where applicable |
+| [Intent v0.2 addendum](./04-intent-v0.2.md) | Approved DR-034; raw SHA-256 `7FD646D33431671BED907282FE7735DA1F1E6427BECF0A9AD8B019B8A368EE99` | Composes with unchanged approved v0.1; cleanup and pending-attempt equality now explicit |
+| [Acceptance scenarios](./05-scenarios.md) | Version 0.2, Phase 3 draft | SCN-native-auth-001 through -083; 215 outline-expanded cases; four unspecified IDs remain blocked |
 | Existing login/routes/build/tests | Not present in target root | Greenfield; no existing auth pattern or API behavior is claimed |
 
 No live application/browser, source code, email provider, identity service or
@@ -79,17 +146,17 @@ renumber or replace the global requirements.
 
 | Scoped REQ | Confirmed expectation | Source | Test surface | Testability |
 |---|---|---|---|---|
-| REQ-native-auth-001 | Public email/password self-registration; full-address trim/case identity; generic duplicate-safe signup response; verify once and enroll 2FA before protected access; single-use 24-hour link invalidated by resend | AUTH-002, DR-006/008/019 | Browser + backend | Email identity/link lifetime confirmed; exact copy, send eligibility and delivery failure pending |
-| REQ-native-auth-002 | Fresh login requires password and authenticator code; password >=12 characters; allow passphrases/paste/autofill; no composition rules or periodic expiry | AUTH-003, DR-006/007/020 | Browser + backend | Minimum/usability confirmed; max, character counting, hashing and MFA enrollment/replay pending |
+| REQ-native-auth-001 | Public email/password signup; normalized identity and generic duplicate safety; new signup sends verification, duplicates do not; explicit resend only enabled/unverified; 24h one-current-link, atomic supersession/explicit-confirmation consumption and strict expiry; common durable mail admission, explicit outage failure and bounded asynchronous delivery; verification/MFA before protected access | AUTH-002/009, DR-006/008/019/028 | Browser + backend | Behavior confirmed; exact UI/API, numerical queue/retry/abuse limits and concrete implementation contracts pending |
+| REQ-native-auth-002 | Fresh login requires password and authenticator/recovery factor; password length 12–128 Unicode code points only, no additional character/encoding restrictions; exact text/no silent transforms; passphrases/paste/autofill and no composition or periodic expiry; generic login failures | AUTH-003, DR-006/007/020/029 | Browser + backend | Input policy confirmed; hash design/parameters/measurements and exact UI/API pending |
 | REQ-native-auth-003 | Passwords use secure salted verifier hashes, never plaintext; same-host demo storage is acceptable | AUTH-003, DR-004/005 | Supporting persistence/security + browser | Behavior confirmed; exact algorithm/configuration and proof hooks pending |
-| REQ-native-auth-004 | Offline single-use recovery code with password; controlled host-admin recovery if normal options are lost | AUTH-004, DR-006 | Browser + backend / controlled operations | Blocked: recovery/reset/re-enrollment contract |
-| REQ-native-auth-005 | Sessions persist across browser restarts, max 30 days and 7 days inactive, whichever first; valid session avoids repeated MFA for ordinary reading/approval | AUTH-005, DR-007 | Browser + backend | Limits confirmed; activity and token lifecycle contract pending |
-| REQ-native-auth-006 | Sensitive account changes require full auth no more than 10 minutes old; reuse confirmation; no repeated challenge within that window | AUTH-006, DR-007 | Browser + backend | Limit confirmed; exact action/reauth/replay semantics pending |
-| REQ-native-auth-007 | Accounts own distinct private data/credential scopes; public signup does not grant model budget; explicit operator grant is required | AUTH-001/002, DR-008 | Browser + backend | Business rule confirmed; provisioning/grant/bootstrap contract pending |
+| REQ-native-auth-004 | Password plus single-use recovery code; exact-account local host recovery with reason/confirmation and atomic safe audit; preserve identity/ownership, revoke sessions/factors/pending auth/grant, no session creation or silent re-enable; password/reset leads to setup-only re-enrollment and explicit regrant | AUTH-004, DR-006/022/032 | Browser + backend / controlled operations | Core behavior confirmed; concrete commands, authority/audit and handoff contracts pending |
+| REQ-native-auth-005 | Persistent sessions, 30-day absolute/seven-day idle deadlines fail exactly at expiry; successful deliberate protected navigation/manual refresh/changes renew idle, not polling/prefetch/static assets; ordinary activity needs no extra MFA; revocation enforced on later authorization | AUTH-005, DR-007/025/032 | Browser + backend | Core behavior confirmed; exact transport/action mapping and mechanism contracts pending |
+| REQ-native-auth-006 | Sensitive changes reuse full auth through ten minutes inclusive, same account/current session only; shared-session tabs share confirmation, distinct sessions do not; recheck current account/session/factor at commit; valid confirmation carried on current rotation with original timestamp/deadline only | AUTH-006, DR-007/025/026/031/032 | Browser + backend | Core behavior confirmed; concrete binding/commit contracts pending |
+| REQ-native-auth-007 | Create one immutable private scope at first completed enrollment; preserve ownership across factor replacement/host recovery; no gateway budget without explicit eligible-account grant; host-only disable revokes sessions/pending auth/entitlement but retains data; re-enable revives neither tokens nor grants; defer deletion and verified-email recycling | AUTH-001/002/004, DR-008/027 | Browser + backend / controlled operations | Lifecycle scope confirmed; exact operation/race and grant/bootstrap contracts pending |
 | REQ-native-auth-008 | Human approval authority is the submitting human; gateway/event/provider credentials remain purpose-separated | AUTH-001, INT-009, DR-005 | Browser + backend | Scope confirmed; integration binding/lifecycle is separately gated |
-| REQ-native-auth-009 | Single-use password-reset link to verified email, 30-minute expiry; reset preserves MFA and revokes existing sessions | AUTH-007, DR-020 | Browser + backend | Reset behavior confirmed; response privacy, abuse controls and delivery failures pending |
+| REQ-native-auth-009 | Single-use 30-minute reset only for enabled verified accounts, including incomplete setup; one current link, strict expiry, atomic consumption/password/session revocation; no consume-on-open or failed validation/rollback; issuance does not log out; preserve MFA/setup; generic responses/common durable admission and bounded asynchronous delivery | AUTH-007/009, DR-020/028 | Browser + backend | Behavior confirmed; exact UI/API, numerical limits and concrete worker/transaction contracts pending |
 | REQ-native-auth-011 | Sign-in/reset do not reveal registration status; temporary bounded progressive throttling, no permanent account lock; address/source resend throttling with generic responses | AUTH-009, DR-023 | Browser + backend | Behavior confirmed; exact response copy, numerical limits and source/recovery windows pending |
-| REQ-native-auth-010 | TOTP six digits/30s with ±1-step clock tolerance and single use per account/time step; verified enrollment, 24-hour interrupted-setup expiry; exactly 10 random recovery-code verifiers displayed once, rotation invalidates old set, recovery login preserves MFA | AUTH-004, AUTH-008, DR-021 | Browser + backend | Behavior confirmed; secret/QR protection, code formatting/display acknowledgment and replacement UX pending |
+| REQ-native-auth-010 | TOTP six digits/30s, ±1-step tolerance/replay prevention; encrypted seeds, one-time setup and acknowledged completion; 24h pending expiry and DR-026 safe restart/atomic replacement. DR-030: explicit key lifecycle/scoped outage, valid sessions/independent recovery login preserved. DR-031: ten 128-bit grouped-hex verifier-stored codes, atomic acknowledged standalone regeneration with recent-auth/session effects, pending-only interruption, single-use/stale-tab protection and post-commit nonsecret status | AUTH-002/004/005/006/008, DR-021/024/025/026/030/031 | Browser + backend / controlled operations | Behavior confirmed; concrete encryption/verifier/commands and exact UI/API/concurrency contracts pending |
 
 The proposed auth package must add negative and boundary acceptance coverage only
 after the corresponding choices are confirmed. This is not a claim that full
@@ -144,24 +211,24 @@ testable contract before Phase 2/3 expectations use them.
 
 | ID | Open decision | Recommended starting point (proposal, not approved) | Impact / gate |
 |---|---|---|---|
-| AMB-native-auth-001 | Email normalization, account identity and pending/verified account lifecycle | DR-019 resolves trim + full-address case normalization and a generic response for new/pending/verified addresses. Pending-state cleanup, exact send eligibility and response copy remain open. | Partially resolved; remaining registration lifecycle blocks |
-| AMB-native-auth-002 | Verification message/link lifetime, resend/invalidation, expiry and delivery failure | DR-019 resolves single-use 24-hour link, resend invalidation, configurable SMTP and local mail capture. Exact copy, resend limits and relay-failure behavior remain open. | Partially resolved; email contract blocks |
-| AMB-native-auth-003 | Password policy and reset when password is forgotten | DR-020 resolves minimum 12 characters, passphrase/paste/autofill, no composition/expiry and 30-minute verified-email reset preserving MFA/revoking sessions. Maximum length/Unicode counting, hash algorithm/parameters, generic reset response, token replay/rate limits and mail failure remain open | Partially resolved; password/auth-reset contract blocks |
-| AMB-native-auth-004 | MFA enrollment secret/QR protection, implementation of confirmed TOTP clock drift/replay, and factor replacement | DR-021 resolves six-digit/30-second TOTP, ±1 step, one acceptance/account/step and 24-hour pending-enrollment expiry. Secret/QR protection and factor replacement/re-enrollment UX remain open | Partially resolved; secret/factor lifecycle blocks |
-| AMB-native-auth-005 | Recovery-code encoding/entropy/acknowledgment/rotation UX and authenticator-loss journey | DR-021 resolves exactly 10 random one-use codes, verifier-only storage, one-time display, old-set invalidation and ordinary MFA-preserving recovery login. Code format, offline-storage acknowledgment and replacement UX remain open | Partially resolved; remaining recovery acceptance blocked |
-| AMB-native-auth-006 | Host-admin recovery procedure and authority/audit boundary | DR-022 confirms offline host recovery for one named account, revoking sessions/factors and requiring re-enrollment, with no public endpoint. Proof of host authority, exact command, audit and DB-outage behavior remain open | Partially resolved; operational recovery contract blocks |
-| AMB-native-auth-007 | What constitutes “activity” for the 7-day inactivity expiry; persistent-session transport/logout/revocation/CSRF | Count successful human-initiated protected requests, not background polling or anonymous static assets; absolute and idle deadlines enforced server-side; opaque HttpOnly/Secure/SameSite cookie over HTTPS with CSRF defense; logout/revoke invalidates immediately | High; preserves low-friction rule |
-| AMB-native-auth-008 | Reauth for sensitive changes, validity window and consumed factor handling | Reuse a server-recorded recent authentication until 10 minutes after password+second-factor verification; do not reuse the OTP code itself; define which operations are sensitive and require same-human/session binding | High; step-up contract |
-| AMB-native-auth-009 | Private scope creation/deletion, account disablement/deletion and retained timeline records | One immutable private scope per account created only after verified signup; public account cannot select scope; define explicit disable/delete behavior and metadata retention before account deletion is accepted; no workspace sharing | High; account lifecycle/privacy |
-| AMB-native-auth-010 | Initial operator bootstrap and grant/revoke of gateway access | DR-022 confirms local host-admin grant/revoke only for verified/enrolled accounts, no public admin UI and no operator trace/prompt/provider-secret read permission. Bootstrap proof, repeat grant protections, audit and revocation/in-flight-call propagation remain open | Partially resolved; gateway entitlement contract blocks |
+| AMB-native-auth-001 | Exact registration/cleanup UI and operation contracts | DR-019/027/028 resolve identity, duplicate/password safety, unverified cleanup, verified-account retention and send eligibility. Exact copy and cleanup/issuance race/failure implementation remain open | Partially resolved; remaining registration contracts block |
+| AMB-native-auth-002 | Exact verification UI/API, numerical delivery limits and implementation contracts | DR-019/028 resolve 24h lifetime, eligibility, explicit non-open consumption, atomic supersession/one-use, strict expiry, durable common admission and explicit outage failure, bounded asynchronous SMTP delivery/local capture. Copy/routes/statuses, numeric retry/queue/abuse limits and implementation/key protection remain open | Partially resolved; remaining email contracts block |
+| AMB-native-auth-003 | Hash design/measurements and exact password/reset UI/API/implementation contracts | DR-020/028/029 resolve 12–128-code-point length-only exact input, usability/no periodic expiry, enabled-verified 30min reset, atomic one-use/password/session effects, strict expiry, preserved MFA/setup and eligibility-safe delivery/failure. Hash design/parameters/measurements, exact UI/API and numerical limits remain open | Partially resolved; remaining password/reset contracts block |
+| AMB-native-auth-004 | Concrete TOTP-key provisioning/rotation/restore, clock/replay and enrollment/replacement contracts | DR-021/024/026 resolve TOTP, encrypted seeds, one-time setup and atomic replacement. DR-030 resolves explicit provisioning/backup/rotation and scoped key-outage degradation without invalidating otherwise-valid sessions or independent recovery login. Encryption/commands/reload/restore failure and exact UI/concurrency remain open | Partially resolved; remaining key/factor implementation contracts block |
+| AMB-native-auth-005 | Concrete recovery verifier and acknowledgement/status/transaction contracts | DR-021/024/026/031 resolve ten one-use 128-bit codes, 32 hex digits/eight groups, case/hyphen entry, verifier-only storage, once-only display, acknowledgement and MFA-preserving recovery login. Standalone 24h pending regeneration commits atomically with recent-auth/session effects; pending-only interruption, consumed-code permanence, stale-tab/single-use protection and post-commit status without readback. Exact verifier/UI/concurrency remain open | Partially resolved; remaining recovery contracts block |
+| AMB-native-auth-006 | Concrete local authority/commands/audit and recovery handoff | DR-022/032 resolve scoped host recovery, exact account/reason/confirmation, atomic safe audit/failure, no session/data disclosure and no silent re-enable. Identity/ownership retained; auth/grant revoked, setup-only handoff. Concrete mechanism/contracts remain open | Core behavior resolved; operational design/review blocks implementation |
+| AMB-native-auth-007 | Concrete session/action/transport/logout/CSRF contracts | DR-025/032 resolve deliberate activity, polling/prefetch exclusion, exact expiry and later-authorization revocation; server-side Secure/HttpOnly/SameSite cookie/CSRF, no localStorage login token. Exact action mapping and transport mechanisms remain open | Core behavior resolved; contract/design gate remains |
+| AMB-native-auth-008 | Concrete recent-auth/session/commit binding mechanism | DR-007/025/026/031/032 resolve ten-minute-inclusive same-account/session binding, shared vs distinct sessions, commit-time current-state checks and preserved valid confirmation timestamp on rotation. Concrete mechanism/contracts remain open | Core behavior resolved; contract/design gate remains |
+| AMB-native-auth-009 | Exact scope-provisioning and disable/re-enable operation contracts | DR-027 resolves private scope at completed first enrollment, stable ownership through recovery, host-only disable with sessions/pending auth/gateway revocation and retained data, and no token/grant revival on re-enable. Deletion/erasure/verified-email recycling deferred. Exact commands, concurrency and failure semantics remain open | Partially resolved; lifecycle operation contracts block |
+| AMB-native-auth-010 | Concrete host grant/dispatch authorization and revocation mechanism | DR-022/032 resolve local enabled/verified/enrolled grant, no public/bootstrap admin account or data/secret read authority, atomic safe audit/repeated operations; revocation blocks later admission/undispatched calls, dispatched work may finish without follow-on or revoked-session read authority. Concrete commands/ordering/contracts remain open | Core behavior resolved; contract/design gate remains |
 | AMB-native-auth-011 | Public registration/login/reset/enrollment abuse limits, delay progression, lockout and email throttling | DR-023 resolves generic sign-in/reset/resend behavior, bounded temporary progressive throttling and no permanent account lock; resend throttles per normalized address/source. Numeric thresholds, keying/source identity and recovery windows remain open | Partially resolved; public abuse contract/limits block |
 | AMB-native-auth-012 | Exact frontend copy, accessible controls, pending navigation, rate-limit/error states and auth/test bootstrap | Declare accessible semantic locators and exact copy from approved behavior; real browser/backend tests use isolated SMTP capture, per-test identities and real TOTP verification; no forged production login cookie | High; Phase 4/6/8 readiness |
 
 ## 6. Coverage and workflow plan
 
-No auth intent diagram or SCN is authored in this Phase 0 package because
-AMB-native-auth-001 through -012 include material branch behavior. Proposed
-eventual journey coverage:
+Core behavior is now sufficient to derive a pure domain model and draft intent.
+Concrete contracts and numerical AMB-native-auth-011 limits still block detailed
+SCNs/freeze. Proposed eventual journey coverage:
 
 1. Public registration → generic confirmation → signup email verification →
    mandatory authenticator enrollment → first protected login.
@@ -185,3 +252,32 @@ SCNs, shared UI/API contracts, exact toolchain/baseline and design/frontend/back
 tasks. Then review in Phase 6, freeze, author red browser tests, and only then
 implement. Timeline stays downstream. Java 25/Maven/browser/database setup is
 currently absent and needs a separate reviewed setup gate.
+
+## 7. Scenario checkpoint and remaining exact oracles
+
+[Scenario catalog v0.2](./05-scenarios.md) derives 83 SCN IDs from the approved
+requirements/composed intent. Outline expansion describes 215 independent cases, not
+executed tests. No scenario has run, passed, been frozen or locked.
+
+The following are specific subitems of existing AMB groups, not newly approved
+behavior or new top-level ambiguity IDs:
+
+| AMB | Concrete gap | Affected SCNs |
+|---|---|---|
+| AMB-native-auth-003 | Reviewed verifier/versioned parameters, rehash and measured bounds | 024/079 |
+| AMB-native-auth-011 | Numerical mail/queue/retry and authentication/delay/source/recovery limits | 012/080 |
+| AMB-native-auth-003/004/012 | Complete verifier/randomness/secret-safe evidence contract | 079 |
+
+DR-034 resolves exact equality for SCN-005/037 without changing their IDs.
+Cleanup scheduling/race mechanisms remain design prerequisites, not unspecified
+equality oracles.
+
+The four remaining `@unspecified` IDs are 012/024/079/080. Every other SCN still depends on
+reviewed frontend/shared contracts and a real harness, plus applicable crypto/
+scope/limit prerequisites; a concrete business oracle is not execution readiness.
+Phase 3 has not passed and Phase 4 has not been entered. Review the
+[verifier/evidence candidate and measurement prerequisites](./01-decision-proposals.md#13-verifierevidence-closure-candidate-and-measurement-prerequisites).
+No candidate value or public guidance is an approved oracle or measured result. Record new
+observable choices before using them as test oracles. If a clarification
+materially changes intent, create/review a new version instead of editing either
+approved intent file.

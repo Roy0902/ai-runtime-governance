@@ -1,6 +1,6 @@
 # Phase 0: Source inventory
 
-Version: 0.6. Captured: 2026-10-30. Feature: `runtime-governance`.
+Version: 0.12. Captured: 2026-10-30. Feature: `runtime-governance`.
 
 ## 1. Artifact inventory
 
@@ -10,9 +10,9 @@ from their repositories' HEAD commits.
 
 | Artifact | SHA-256 | Sections used / authority |
 |---|---|---|
-| [REQUIREMENTS.md](../../REQUIREMENTS.md) | `355909532B11C55826152DFA3A1C72E24346E96EFE27D700E11A668B007332C3` | 75 global rows: 43 confirmed, 10 proposed, 22 deferred. Includes DR-024/025 enrollment/session refinements alongside AUTH-007–009 and confirmed timeline scope. |
+| [REQUIREMENTS.md](../../REQUIREMENTS.md) | `E426ECF7A941347378AF185A372903C0A07614C30D7B705038F1D19A78889AD7` | 75 global rows: 43 confirmed, 10 proposed, 22 deferred. Includes approved auth refinements through DR-034 cleanup/pending equality; no verifier or numerical-limit proposal promoted to a requirement. |
 | [README.md](../../README.md) | `4A301785F27DE7FD05C7887AFF5ABA72A422A23B8914127E6BA28F102B95C6E3` | Product context with confirmed timeline, native auth, TOTP/recovery, password reset and host-operator boundaries; client gates preserved. |
-| [TECHNICAL_BASELINE.md](../../TECHNICAL_BASELINE.md) | `CFAD34925669F6BD14626A9EB2F44F794C9D90B9C0CE4AB53F8E6A07A33E55FE` | Native TOTP/recovery, password/reset, host-only recovery/operator grant boundary, sessions, same-host credentials and SMTP test boundary. |
+| [TECHNICAL_BASELINE.md](../../TECHNICAL_BASELINE.md) | `09C0C8213A7165F7486C6C48BB349434EAB304901D2F9D47DE015BC60AA49A16` | Native TOTP/recovery, password/reset, host boundaries, sessions, same-host credentials and SMTP; DR-030/031 key/session/provider separation, scoped degradation and recovery format/regeneration. |
 | [PENDING-DESIGN-DECISIONS.md](../../PENDING-DESIGN-DECISIONS.md) | `F00814DDEECD9FB3B43B2CDE9E3BA51EBF635A8BF3939E9657B0794AA6EBCA4D` | PD-01–11 and confirmed auth/timeline behavior including DR-023 throttling; numeric abuse/source rules, secret handling, grant propagation, query/UI and client lifecycle remain open. |
 | [Canonical workflow](../../../spec-to-test-workflow/.github/skills/spec-to-test-workflow/SKILL.md) | `6A0D84DC14A6CF9EEC068863354AD9FDE327BC2BD0F5071BB9F929685DCC916A` | Phase order, gates, hard rules, progressive context, adoption and freeze boundaries. Process authority, not product behavior. |
 | [Spec-ingestion skill](../../../spec-to-test-workflow/.github/skills/spec-ingestion/SKILL.md) | `E9D14F318823B7DE550314BB0E76CC42849D621A7ED8EECBEBC2BE145332EF76` | Inventory, precedence, oracle separation, register format, coverage obligations and exit criteria. |

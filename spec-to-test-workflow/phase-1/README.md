@@ -15,9 +15,16 @@ recommendations and a frontend-acceptance coverage plan. DR-019 approved signup
 email identity/verification, DR-020 password minimum/usability/reset, DR-021
 TOTP/recovery behavior, and DR-022/023 host-operator/public-auth-abuse boundaries;
 confirmed requirements are in the source register.
-Remaining recommendations are proposals. No native-auth intent, SCNs,
-dependencies, application code or freeze manifest have been created. Detailed
-setup remains unrun.
+DR-024 through DR-032 settle further core behavior. A
+[native-auth domain model](./native-auth/03-domain-model.md) is presented and
+[intent v0.1](./native-auth/04-intent-v0.1.md) is explicitly approved under DR-033.
+A [native-auth scenario catalog](./native-auth/05-scenarios.md) now drafts 83 SCN
+IDs/215 expanded cases. DR-034 approves the
+[v0.2 deadline addendum](./native-auth/04-intent-v0.2.md), resolving two oracles;
+four IDs remain explicitly unspecified. Other recommendations remain
+proposals; the Phase 3 exit and exact/numerical/tooling gates remain blocked.
+No application code, executable acceptance tests or freeze manifest have been
+created. Detailed setup remains unrun.
 
 The current global requirement inventory is 75 rows (43 confirmed, 10 proposed,
 22 deferred). AUTH-007–009 cover password reset, TOTP/recovery lifecycle and

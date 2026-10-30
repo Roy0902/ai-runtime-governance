@@ -1,19 +1,30 @@
 # Native-auth prerequisite materials
 
-Status: **Preparation started per DR-018. Existing account/session behavior,
-DR-019 signup email, DR-020 password/reset, DR-021 TOTP/recovery, DR-022
-host-operator boundaries and DR-023 generic responses/throttling are confirmed;
-other OD-11 decisions remain open.
+Status: **Core behavior approved through DR-032. Domain model v0.1 is presented;
+intent v0.1 is explicitly approved under DR-033. Exact contracts, measured limits,
+tooling/design review and acceptance gates remain open. DR-034 approves the
+composed intent v0.2 deadline addendum. Phase 3 has 83 draft scenario IDs/215
+expanded cases, four explicitly unspecified IDs; its exit gate is not passed.
 No native-auth behavior has been implemented or frozen.**
 
 - [Scoped ingestion](./00-ingestion.md): existing AUTH-001–009, source inventory,
   scope boundary and twelve explicit OD-11 decision groups.
 - [Decision recommendations](./01-decision-proposals.md): coherent starter flow
   and remaining MFA, recovery, session, scope and operator-bootstrap proposals.
-  Only rows marked DR-019 through DR-023 are approved; other recommendations
-  remain proposals.
+  Decisions through DR-032 supersede older proposal wording; unapproved
+  engineering recommendations remain proposals.
 - [Frontend acceptance plan](./02-acceptance-plan.md): candidate real-browser/
   backend journeys and secret-safe test setup. It is not a scenario file or test.
+- [Domain model v0.1](./03-domain-model.md): vocabulary, aggregates, invariants
+  and conceptual events; presented for review.
+- [Intent v0.1](./04-intent-v0.1.md): six bounded Mermaid diagrams with explicit
+  guards/failures and outstanding gates; approved under DR-033 at the fingerprint
+  in the [decision record](../05-decision-record.md). Do not rewrite it.
+- [Intent v0.2 deadline addendum](./04-intent-v0.2.md): approved under DR-034,
+  composed with the unchanged approved v0.1; do not rewrite either file.
+- [Scenario catalog v0.2](./05-scenarios.md): SCN-native-auth-001 through -083,
+  outline examples, requirement/invariant/intent-exit mappings and explicit
+  oracle/execution blockers. Not executable tests or a frozen plan.
 
 ## Confirmed already (DR-004–008/018)
 
@@ -71,11 +82,55 @@ are superseded. Key lifecycle, interrupted setup and exact contracts remain open
 The public registration, email verification, factor enrollment/replacement,
 password reset, recovery lifecycle, host recovery, abuse/rate controls, scope
 creation, operator bootstrap/grant, session transport/activity/revocation and
-true-browser fixture/setup contracts need decisions. No Phase 1 domain model,
-intent, concrete SCN, API/UI contract or file-level implementation tasks are
-created for native auth yet; the package deliberately stops at Phase 0 decision
-materials.
+true-browser fixture/setup contracts still require design/review. The domain
+model, approved intent and scenario draft now exist; no reviewed API/UI contract
+or file-level implementation tasks have been created. Numerical abuse/delivery limits remain
+deferred rather than invented.
 
-Start with password policy/reset and mandatory-MFA enrollment/replay in
-[01-decision-proposals.md](./01-decision-proposals.md). Confirm or revise each
-package; then update the decision record and source requirements before domain modeling.
+**Current checkpoint (DR-026):** interrupted one-time displays require explicit
+restart, not readback. Initial restart is password-confirmed/setup-only and
+invalidates pending secrets/stale tabs. Replacement preserves active factors
+until verified/acknowledged atomic completion, applies DR-025 session effects,
+and uses recent-auth at start/restart/completion. Cancelling never restores a
+recovery code consumed for authentication.
+
+**Current checkpoint (DR-027):** duplicate signup preserves password/enrollment;
+unverified-only seven-day cleanup uses creation/latest issued verification link,
+not ordinary duplicates. Verified accounts survive setup expiry. Private scope
+starts at first completed enrollment and persists through recovery. Host-only
+disable revokes sessions/pending auth/gateway entitlement but retains data;
+re-enable revives no tokens/grants. Deletion/erasure/verified-email recycling are
+deferred.
+
+**Current checkpoint (DR-028):** verification/reset send eligibility, explicit
+non-open link consumption, atomic supersession/consumption, strict expiry,
+reset-session effects and durable eligibility-safe admission/asynchronous
+delivery failures are approved. Exact UI/API and numerical limits remain open.
+
+**Current checkpoint (DR-029):** 12–128-character passwords, counted as Unicode
+code points, with length as the only content restriction. No additional character/
+encoding rules or special control-character bans; preserve exact input without
+silent transformations. Hash design/measurements remain open.
+
+**Current checkpoint (DR-030):** TOTP encryption keys are not provider API keys
+or session keys. Explicit provisioning/protected separate backup/versioned
+same-seed rotation and scoped outage degradation are approved: otherwise-valid
+sessions/independent recovery login may continue, key-dependent operations fail
+explicitly. Blanket startup denial was revised, not approved.
+
+**Current checkpoint (DR-031):** ten 128-bit grouped-hex codes and standalone
+24h pending regeneration with recent-auth checkpoints, acknowledged atomic commit,
+pending-only interruption, post-commit nonsecret status and other-session
+revocation/current rotation are approved. Initial setup still follows DR-026.
+
+**Current checkpoint (DR-033):** intent v0.1 is explicitly approved and immutable
+at raw SHA-256 `5AB84C0B99BDCAB8BF9C419AF6E55C958D1B159E8FFB155F7DE926EA042E6981`.
+**Current checkpoint (DR-034):** intent v0.2 adds approved deadline equality:
+seven-day pending cleanup eligibility includes equality; pending 24-hour
+completion excludes equality. SCN-005/037 now have exact expected outcomes.
+Four unspecified IDs remain: 012/024/079/080. Next review the source-backed
+verifier/evidence candidate and measurement prerequisites in the recommendations;
+these are proposals, not measured/approved contracts. Shared contracts/design
+follow the scenario gate in workflow order. No scenario has run or passed.
+See [recommendations](./01-decision-proposals.md); do not reopen DR-019 through
+DR-034. Do not infer approval of open exact/numerical contracts from intent approval.

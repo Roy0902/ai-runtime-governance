@@ -679,3 +679,450 @@ repository relocation or client configuration changes.
   token; settings change invalidates other sessions and rotates the current token;
   current absolute deadline is preserved; forgot-password/host recovery invalidate
   all sessions. No implementation or test execution is claimed.
+
+## DR-026: Interrupted enrollment and atomic authenticator replacement
+
+- **Date / decision owner:** 2026-10-30 / user.
+- **Proposal / ambiguities:** AMB-native-auth-004/005/008/012.
+- **Approved initial restart:** losing the once-shown QR/manual key or recovery
+  codes through refresh, back navigation, closed tab or interrupted response
+  does not permit secret readback. Offer an explicit restart after confirming
+  the password for the verified account, with setup-only access.
+- **Approved restart effect:** invalidate the previous pending seed/code set and
+  create a new 24-hour attempt. A stale tab cannot complete the invalidated
+  attempt. Protected access remains blocked until a valid new authenticator
+  code and acknowledgement of saved recovery codes complete enrollment.
+- **Approved replacement:** retain the current authenticator and recovery codes
+  until the new authenticator is verified and its new recovery codes are
+  acknowledged. Cancellation, expiry or lost-display restart discards only
+  the pending replacement; it does not disable the active factor/code set.
+- **Approved commit:** atomically replace the factor and recovery-code set,
+  revoke other sessions and rotate/retain the current session without extending
+  its original absolute deadline, as required by DR-025.
+- **Approved authorization:** starting/restarting and final replacement completion
+  require full authentication within the existing ten-minute window. Reuse a
+  valid confirmation; do not unnecessarily consume another OTP. Recovery codes
+  consumed for authentication remain consumed even if replacement is cancelled.
+- **Trade-off presented:** avoiding accidental lockout and secret readback means
+  rescanning a new QR after losing a one-time display.
+- **Still open:** account lifecycle, exact UI/API and acknowledgement transport,
+  concurrent completion/revocation contracts, code format/entropy and key lifecycle.
+- **Source reconciliation:** OD-11 enrollment refinements, global/scoped register,
+  recommendations and acceptance coverage updated; existing REQ IDs preserved.
+- **Verification criteria:** browser refresh/back/close/interrupted-response
+  restart; no redisplay or protected access before completion; stale-tab denial;
+  pending-only cancellation/expiry; old factors usable before replacement commit
+  and rejected afterwards; ten-minute authorization at start/restart/commit;
+  consumed-code cancellation and DR-025 session outcomes.
+- **Evidence:** user approved both recommended policies in the guided form.
+  Documentation only; no application, browser test, freeze or implementation
+  outcome is claimed.
+
+## DR-027: Pending registration, private scope and bounded account lifecycle
+
+- **Date / decision owner:** 2026-10-30 / user.
+- **Proposal / ambiguities:** AMB-native-auth-001/009, with effects on
+  AMB-native-auth-003/006/010/012.
+- **Approved pending safety:** duplicate signup never replaces the stored
+  password or takes over enrollment. The verified email owner may use the
+  approved password-reset flow; reset does not bypass MFA or incomplete setup.
+- **Approved cleanup:** remove only never-verified registrations after seven
+  days from creation or the latest issued verification link, whichever is later.
+  Ordinary duplicate submissions do not extend retention; an actually issued
+  resend does. Verified accounts are not deleted when a 24-hour enrollment
+  attempt expires.
+- **Approved scope:** create one immutable private data scope only when first
+  enrollment fully completes. Before that allow only required verification,
+  setup and reset operations, not protected application data or gateway use.
+  Later factor replacement/host recovery preserves that scope and ownership.
+- **Approved first-increment boundary:** host-admin-only disable/re-enable.
+  Defer account deletion, data erasure and verified-email re-registration to a
+  separately specified increment. No public admin UI, self-service deletion
+  or automatic recycling of a disabled verified email.
+- **Approved disable effects:** deny further account access and revoke sessions,
+  pending authentication operations and gateway entitlement; retain scope/data.
+  Re-enable restores eligibility to authenticate/setup, not old tokens or
+  gateway entitlement. Gateway use needs a new explicit eligible-account grant.
+- **Trade-off presented:** smaller first increment without self-service erasure;
+  verified accounts/data remain retained rather than silently deleted/reassigned.
+- **Still open:** exact disable/cleanup commands and race/failure contracts,
+  verification send eligibility, reset delivery, gateway in-flight propagation
+  and deferred deletion/retention policy. No actual erasure capability is claimed.
+- **Source reconciliation:** OD-11 lifecycle refinements, global/scoped register,
+  proposals, acceptance coverage and handoff updated; no REQ IDs added/renumbered.
+- **Verification criteria:** duplicate password/enrollment preservation; seven-day
+  cleanup boundary and resend-vs-duplicate distinction; verified interrupted
+  enrollment survives; scope created once after full enrollment and stable
+  across recovery; disable blocks access/revokes auth and entitlement; re-enable
+  does not revive tokens/grants; disabled verified email cannot be recycled.
+- **Evidence:** user approved all three recommended lifecycle policies in the
+  guided form. Documentation only; no implementation or executable test result.
+
+## DR-028: Verification/reset eligibility, atomic links and durable delivery
+
+- **Date / decision owner:** 2026-10-30 / user.
+- **Proposal / ambiguities:** AMB-native-auth-001/002/003/011/012.
+- **Approved send eligibility:** new signup issues verification mail; duplicate
+  signup preserves password/enrollment and sends no new mail. Explicit resend
+  issues a verification link only for an enabled, never-verified registration.
+  Reset sends only to an enabled, verified account, including incomplete initial
+  MFA enrollment. Unknown, verified-for-resend, unverified-for-reset and disabled
+  addresses receive the same generic acknowledgement without mail. Reset
+  never bypasses MFA or setup.
+- **Approved link lifecycle:** one current link per account/purpose. Durable
+  issuance atomically supersedes the prior link; failed issuance preserves it.
+  Opening a link alone does not consume it: verification requires explicit
+  confirmation and reset requires a valid new-password submission.
+- **Approved boundaries/races:** valid only while server time is strictly before
+  expiry; exactly at expiry fails. Consumption and state changes are atomic;
+  concurrent submissions cannot both succeed. Failed validation or rollback
+  does not consume the link. Lifetimes remain 24 hours/30 minutes.
+- **Approved reset effect:** issuing a reset link does not revoke sessions.
+  Successful reset atomically changes password and revokes sessions while
+  preserving active MFA, including the incomplete-setup restrictions.
+- **Approved delivery admission:** acknowledge only accepted bounded durable
+  mail-work requests, not successful delivery. Use the same admission step for
+  ineligible addresses so queue outage does not disclose eligibility.
+  Admission failure returns a generic temporary-service error, never success.
+- **Approved asynchronous delivery:** bounded retries stop at expiry,
+  supersession or disablement. Recheck eligibility before sending. Later SMTP
+  failures are recorded/surfaced to the operator without secrets, not exposed
+  as address-specific public status. Old delivered/in-flight mail cannot be
+  recalled, but superseded links fail; guide users to the newest link. Retry
+  never revives expiry.
+- **Trade-offs presented:** explicit verification click; request acceptance is
+  not delivery assurance. Avoids scanner consumption and success-shaped queue
+  failures without revealing account eligibility.
+- **Still open:** exact copy/routes/statuses, numerical abuse/retry/queue limits,
+  delivery/key protection and concrete transactional/worker implementation.
+- **Source reconciliation:** OD-11 mail/link refinements, global/scoped register,
+  proposals, frontend coverage and handoff updated; no REQ IDs added/renumbered.
+- **Verification criteria:** eligibility matrix/duplicate no-send; link opening
+  does not consume; newest-link validity; failed issuance retains previous link;
+  before/at/after expiry; concurrent consumption and rollback; reset-session
+  effects; common admission outage; accepted-then-failed delivery; retry expiry/
+  supersession/disablement and secret-safe operator reporting.
+- **Evidence:** user approved all three recommendations in the guided form.
+  Documentation only; no application, mail service or executable test run.
+
+## DR-029: Length-only password input policy
+
+- **Date / decision owner:** 2026-10-30 / user.
+- **Proposal / ambiguities:** AMB-native-auth-003/012.
+- **Approved length:** 12 through 128 characters inclusive, counted as Unicode
+  code points rather than bytes or UTF-16 storage units. Counting is not an
+  allowed-character or encoding restriction.
+- **Approved content policy:** no additional character/encoding restrictions,
+  allowed-character lists, composition rules or special bans on spaces,
+  symbols or control characters. Keep paste/autofill and no periodic forced
+  password changes.
+- **Approved exact input:** no trimming, normalization, case folding, truncation
+  or silent substitution. Preserve leading/trailing spaces. Use consistent
+  interpretation at signup, password change/reset, login and reauthentication.
+  Login failures retain the approved generic response; password-creation forms
+  may explain validation errors.
+- **Transport boundary:** malformed network requests remain ordinary transport/
+  parse errors, not additional password-content/complexity rules. No alternate
+  password encoding is required of the user. Secure salted verifier hashing
+  remains mandatory and separate from input policy.
+- **Correction recorded:** the initial proposal's special NUL/line-break and
+  password-specific encoding exclusions were not approved. The user rejected
+  extra character restrictions and then explicitly approved the revised
+  12–128-character length-only policy.
+- **Still open:** hash library/algorithm/parameters, safe rehash design and
+  measured memory/concurrency bounds; exact UI/API/copy. Argon2id remains a
+  recommendation, not an installed/measured/frozen implementation.
+- **Source reconciliation:** AUTH-003 OD-11 refinement, global/scoped register,
+  recommendations, frontend coverage and handoff updated; no REQ IDs changed.
+- **Verification criteria:** 11/12/128/129 boundaries, non-BMP and multi-code-point
+  counting, spaces/symbols/control characters without extra content rejection,
+  exact-text differences/no silent transforms, paste/autofill, consistent
+  password flows and generic login failure. Malformed transport handled explicitly.
+- **Evidence:** user explicitly approved the revised length range with no
+  additional character/encoding restrictions. Documentation only; no tests run.
+
+## DR-030: TOTP encryption-key lifecycle and scoped degradation
+
+- **Date / decision owner:** 2026-10-30 / user.
+- **Proposal / ambiguities:** AMB-native-auth-004/007/012.
+- **Approved separation:** the server-side TOTP seed-encryption key is not a
+  provider API key, human credential or session key. Changing/disabling a
+  provider API key does not revoke human sessions; affected model calls may
+  become unavailable. This does not add a provider-key-management UI or change
+  the selected server-side provider-key ownership.
+- **Approved outage behavior:** permit explicitly degraded application operation
+  when the TOTP key is unavailable. Otherwise-valid sessions continue. Password
+  plus an unused recovery code may still sign in when independent verifiers and
+  all other required services are available. No password-only MFA shortcut.
+- **Approved affected operations:** TOTP verification and enrollment/replacement
+  requiring the unavailable key fail explicitly as temporarily unavailable,
+  not as an incorrect code. Report degraded state to the operator; never claim
+  full authentication readiness. Do not use plaintext fallback, automatically
+  reset factors or silently generate a replacement key.
+- **Approved operations:** explicit host-admin provisioning of protected local
+  key material outside source/database/logs; protected backup separate from
+  database backup, with matched restore verification. Controlled versioned
+  rotation re-encrypts the same seeds without user re-enrollment; retain old
+  keys while retained backups need them. Restoring the correct key restores the
+  affected capability. Irrecoverable loss uses explicit scoped offline host
+  recovery, never a public bypass.
+- **Correction recorded:** the original proposal to prevent all startup/readiness
+  on missing keys was rejected/revised. The final approval is scoped degradation,
+  not application-wide denial and not automatic session revocation.
+- **Still open:** encryption algorithm, key identifiers/paths/permissions/commands,
+  runtime reload/rotation/restore failure semantics, retention configuration,
+  health/UI/API contracts and independent protection of other secret purposes.
+- **Source reconciliation:** OD-11 and technical baseline clarify key/session/
+  provider separation; global/scoped materials and coverage updated.
+- **Verification criteria:** existing valid sessions and independent recovery
+  login during key outage; key-dependent operations explicitly unavailable;
+  no automatic factor/session reset, plaintext fallback or replacement key;
+  operator-visible degraded readiness; provider-key changes do not sign out;
+  matched restore/versioned rotation preserves seeds and account ownership.
+- **Evidence:** user requested clarification of provider keys versus encryption
+  keys, then explicitly answered true to the revised policy and proposed backup/
+  rotation rules after a form returned no selection. No approval was inferred
+  from that empty form. Documentation only; no implementation or live tests.
+
+## DR-031: Recovery-code format and atomic standalone regeneration
+
+- **Date / decision owner:** 2026-10-30 / user.
+- **Proposal / ambiguities:** AMB-native-auth-004/005/008/012.
+- **Approved format:** each of ten codes contains 128 random bits, displayed as
+  32 hexadecimal characters grouped in eight blocks of four. Accept upper/lower
+  case and optional grouping hyphens; store only verifiers, never retrievable
+  codes. This does not add restrictions to passwords.
+- **Approved standalone regeneration:** keep the current set until the new
+  once-shown set is acknowledged as saved; atomically activate the new set and
+  revoke the old. Require the existing ten-minute recent-auth confirmation at
+  start/restart and final completion; reuse valid confirmation.
+- **Approved pending lifecycle:** use the existing 24-hour pending-setup
+  lifetime for a standalone pending code set. Cancellation, expiry or lost
+  display before completion discards only that pending set. Authentication-
+  consumed codes remain consumed. Stale tabs cannot activate an obsolete set.
+- **Approved post-commit interruption:** a lost response after completion does
+  not roll back or redisplay codes. Show nonsecret completion status and allow
+  fresh regeneration. Do not promise that the old set remains valid after commit.
+- **Approved session effects:** successful regeneration revokes other sessions
+  and rotates/retains the current session without extending its original
+  absolute deadline, as with authenticator replacement.
+- **Approved exhaustion:** use the existing authenticator to sign in/regenerate
+  when no recovery codes remain. If all second factors are lost, use approved
+  offline host recovery. Concurrent use of one code can succeed only once.
+- **Preserved initial setup:** DR-026 still governs interrupted initial
+  enrollment and authenticator replacement. Standalone code regeneration does
+  not replace the active authenticator seed.
+- **Still open:** verifier algorithm, exact acknowledgement/status UI/API,
+  race/failure transport and concrete transactional/session binding contracts.
+- **Source reconciliation:** AUTH-004/006/008 OD-11 refinements and technical
+  baseline, global/scoped registers, recommendations, coverage and handoff
+  updated; no REQ IDs added/renumbered.
+- **Verification criteria:** ten 128-bit codes/32 hex digits/eight groups;
+  case/hyphen entry; verifier-only storage; old-set validity before commit and
+  rejection after; pending cancellation/expiry/lost display; consumed-code
+  permanence; recent-auth checkpoints; single-use races/stale tabs; lost commit
+  response/nonsecret status; session rotation/revocation and exhaustion guidance.
+- **Evidence:** user approved format and regeneration in the original guided
+  form while requesting revision of the separate key policy. Documentation only;
+  no executable browser, persistence, cryptography or session tests have run.
+
+## DR-032: Consolidated host, gateway-revocation and session behavior
+
+- **Date / decision owner:** 2026-10-30 / user.
+- **Proposal / ambiguities:** AMB-native-auth-006/007/008/009/010/012.
+- **Approved host authority:** trusted local host administration, one exact
+  account, explicit reason/confirmation. Atomic state change and secret-free
+  audit; unavailable database/audit commit means explicit failure, not success.
+  Repeated grant/revoke/disable is safe and reports already-in-state.
+- **Approved recovery handoff:** preserve email/password/private ownership;
+  revoke sessions, factors, pending authentication and gateway entitlement.
+  Create no signed-in session and disclose no data/secrets. The human returns
+  with their password or approved email reset for setup-only re-enrollment,
+  then needs a new explicit gateway grant. Recovery does not silently re-enable
+  a disabled account. No separate public/bootstrap administrator account.
+- **Approved gateway ordering:** grant only enabled, verified, fully enrolled
+  accounts. After revoke/disable/recovery commits, block later admissions and
+  not-yet-dispatched upstream calls; order dispatch authorization consistently
+  with revocation, not stale cached grants. Already-dispatched calls may finish:
+  upstream work/cost cannot be retracted. No follow-on authority; revoked human
+  sessions cannot read protected results. No automatic entitlement restoration.
+- **Approved activity/deadlines:** successful deliberate protected navigation,
+  manual refresh and authorized changes renew inactivity, not polling/prefetch/
+  static assets. Sessions fail exactly at the 30-day absolute or seven-day idle
+  deadline. Recent full auth is reusable through ten minutes inclusive, bound
+  to the same account/current session; shared-session tabs share it, distinct
+  sessions do not.
+- **Approved concurrency:** enforce logout/revocation on later server-side
+  authorization checks. Sensitive changes recheck current account/session/factor
+  state at commit: stale tabs cannot undo revocation or activate obsolete factors.
+  Retained/rotated current sessions carry only still-valid recent-auth confirmation,
+  preserving its original timestamp and absolute session deadline; other sessions
+  do not inherit it.
+- **Engineering delegation:** user was told ordinary command/cookie/CSRF/
+  encryption/verifier details would be drafted in the design, not individually
+  submitted as preference questions. This does not approve unreviewed design.
+- **Still open:** concrete commands/authority proof, dispatch ordering mechanism,
+  audit schema, exact contracts and native setup/measurements. Numerical abuse/
+  delivery limits remain explicitly deferred pending review/measurement.
+- **Source reconciliation:** OD-11 and scoped/global registers, recommendations,
+  coverage and handoff updated. Domain model and draft intent may now be derived
+  from settled core behavior; intent approval remains separate.
+- **Verification criteria:** scoped/idempotent audited host operations and
+  rollback; recovery handoff/disabled-state preservation; grant eligibility;
+  before/after dispatch revocation; no follow-on/read authority from revoked
+  sessions; activity/expiry/recent-auth boundaries; shared/distinct sessions;
+  stale-factor/session rejection at commit and preserved confirmation timestamps.
+- **Evidence:** user approved recommendations A, B and C in one guided form.
+  No application implementation, installation, freeze or test execution approved.
+
+## DR-033: Native-auth intent v0.1 approved
+
+- **Date / decision owner:** 2026-10-30 / user.
+- **Artifact:** [Native-auth intent v0.1](./native-auth/04-intent-v0.1.md).
+- **Approved raw SHA-256:**
+  `5AB84C0B99BDCAB8BF9C419AF6E55C958D1B159E8FFB155F7DE926EA042E6981`.
+- **Approved scope:** the bounded behavioral intent derived through DR-032:
+  mail/link lifecycle; mandatory MFA/enrollment/replacement/recovery codes;
+  persistent sessions/recent authentication/concurrent revocation; scoped
+  TOTP-key degradation; local host operations and gateway dispatch/revocation.
+- **Explicit open gates:** numerical abuse/delay/source and delivery/queue limits;
+  exact UI/API/copy, engineering/crypto/hash/session/audit/dispatch contracts;
+  native dependency/tooling baseline and resource measurements. This approval
+  closes none of those gaps and approves no installation, acceptance freeze,
+  implementation design or application implementation.
+- **Version integrity:** approval status lives here, not by rewriting the
+  approved intent. Material changes require a new version and explicit review;
+  future as-built diagrams remain separate.
+- **Next workflow phase:** concrete frontend acceptance-scenario preparation
+  from the approved requirements/intent, with missing exact/numerical oracles
+  explicitly blocked. Then shared contracts, native baseline, design/tasks,
+  review, freeze, genuine red acceptance and lock before implementation.
+- **Evidence:** user selected "Approve this exact v0.1 intent with the stated
+  open gates" after the exact path/fingerprint and scope were presented.
+- **Verification status:** approval is not an application/browser result.
+  Preserve the approved bytes and verify their fingerprint on resumption.
+
+## DR-034: Deadline equality and composed native-auth intent v0.2 approved
+
+- **Date / decision owner:** 2026-10-30 / user.
+- **Artifact:** [Native-auth intent v0.2 deadline addendum](./native-auth/04-intent-v0.2.md).
+- **Approved addendum raw SHA-256:**
+  `7FD646D33431671BED907282FE7735DA1F1E6427BECF0A9AD8B019B8A368EE99`.
+- **Unchanged incorporated v0.1 raw SHA-256:**
+  `5AB84C0B99BDCAB8BF9C419AF6E55C958D1B159E8FFB155F7DE926EA042E6981`.
+- **Approved cleanup equality:** for a still-never-verified registration, R is
+  the later of creation/latest actually issued verification link, D = R + seven
+  days. At t < D time alone does not permit removal; at t >= D it is eligible.
+  A cleanup evaluation committing removal exactly at D removes it. This is not
+  a promise of exact-instant background scheduling; existing resend/verified
+  account protections and concrete race/transaction design gates remain.
+- **Approved pending equality:** pending enrollment/standalone code sets are
+  eligible for completion only while t < creation + 24 hours, with all other
+  guards holding. Exactly at or after expiry, reject without activating pending
+  factors/codes. Preserve initial-access restrictions and active-factor/
+  consumed-code standing under the existing pending-only expiry rules.
+- **Version integrity:** v0.2 consists of the approved immutable v0.1 behavior/
+  diagrams plus this immutable addendum. Neither approved file is overwritten;
+  material subsequent changes require a further version/review.
+- **Scenario reconciliation:** SCN-native-auth-005 and -037 now have exact
+  oracles. SCN-037 enumerates enrollment and standalone code sets independently.
+  SCN-012/024/079/080 remain unspecified/blocked; Phase 3 is not passed.
+- **Explicit limits:** no verifier/evidence/numerical-limit contract, resource
+  measurement, installation, application implementation, freeze or test execution
+  is approved by this clarification.
+- **Evidence:** user selected approval of the exact v0.2 addendum and its unchanged
+  v0.1 base after both clauses, scope and addendum fingerprint were presented.
+- **Status:** documentation approval, not a passed runtime acceptance result.
+
+## DR-035: Entire Phase 1 pre-implementation readiness and local setup authorized
+
+- **Date / decision owner:** 2026-10-30 / user.
+- **Approved scope:** entire confirmed Phase 1 preparation, not only native auth
+  or timeline. Deferred features are not reinstated.
+- **Approved finish line:** reviewed specification/contracts/design/task package,
+  frozen acceptance expectations and genuine feature-missing red browser
+  acceptance tests locked before feature implementation.
+- **Approved setup:** bounded project-local downloads/tooling/dependencies and
+  isolated loopback measurements/services; no global installation, system PATH
+  changes, unrelated-project modification, real outbound email, production
+  credentials or feature implementation.
+- **Preserved gates:** observable policy changes and final design/freeze review
+  still need explicit approval. Setup permission does not approve candidate
+  crypto costs, numerical limits or invented acceptance oracles.
+- **External feasibility limits:** existing per-client/WSL/live-account
+  prerequisites are not silently waived or claimed verified. Record actual
+  capability evidence and any user-controlled blockers honestly.
+- **Evidence:** user chose entire Phase 1, the full pre-implementation gate, and
+  project-local setup authorization in one scope/setup form.
+
+## DR-036: Staged prerequisite implementation authorized; WSL remains external
+
+- **Date / decision owner:** 2026-10-30 / user.
+- **Approved dependency sequencing:** prerequisite increments may be implemented
+  and verified only after each increment's approved design, freeze, genuine
+  feature-missing red acceptance and test-lock gates. Continue readiness for
+  downstream increments afterwards; do not substitute missing-auth failures
+  for independent correct-reason downstream acceptance.
+- **Preserved target:** Windows with WSL remains the client-feasibility target.
+  The user will perform missing WSL/client setup; record that external gate
+  as blocked. No Windows-native substitution or distro installation is approved.
+- **Scope limits:** DR-035 local-tool authorization still applies; no global
+  changes, unrelated projects, production credentials or real outbound email.
+  This is staged permission, not an assertion that any design/freeze/lock or
+  implementation gate has already passed.
+- **Evidence:** user selected staged prerequisite implementation after its own
+  gates and retained user-performed Windows-with-WSL setup in the dependency form.
+
+## DR-037: Native-auth verifier/evidence/admission intent v0.3 approved
+
+- **Date / decision owner:** 2026-10-30 / user.
+- **Artifact:** [Native-auth intent v0.3](./native-auth/04-intent-v0.3.md).
+- **Approved raw SHA-256:**
+  `C78BDBA0B2839F9D907159D4C60391B85EBFC119ADC5CF531629F9B4662A7F67`.
+- **Composition:** incorporates immutable approved v0.1/v0.2 with their recorded
+  fingerprints. Preserve all three files; changes require another version/review.
+- **Approved additions:** current/legacy Argon2id profiles and safe upgrade;
+  one active hash job/four waiting/two-second authority bound; narrow seven-
+  sample Java reference thresholds; account/set-bound recovery verifiers,
+  authenticated seed encryption/randomness; exact rolling-window admission,
+  progressive cooldown, finite state/queue/retry/send bounds; explicit trusted-
+  proxy source identity; complete exported-evidence inventory and secret safety.
+- **Numerical-deferral change:** this replaces the earlier auth-specific
+  numerical deferral with the exact v0.3 demo policy. It does not approve the
+  unrelated global guard/gateway/event/transport capacity proposals.
+- **Measurement limitation:** actual sequential Java 25 hash observations informed
+  review; approval is not proof of end-to-end authentication throughput, a
+  production percentile, concurrent capacity or whole-service memory bounds.
+- **Scenario effect:** replace the missing oracles in SCN-012/024/079/080 with
+  these approved expectations and append any necessary independent boundary
+  cases without renumbering existing SCNs. Execution/native-design gates remain.
+- **Preserved permissions:** DR-036 permits prerequisite feature implementation
+  only after its own reviewed design, freeze, genuine red acceptance and lock.
+  Windows-with-WSL client setup remains an external user-controlled block.
+- **Evidence:** user approved the exact v0.3 profile and its stated measurement
+  limits after the file fingerprint, proposed policy counts and scope were
+  presented. This is not a passed acceptance, design or freeze gate.
+
+## DR-038: Browser line-break compatibility intent v0.4 approved
+
+- **Date / decision owner:** 2026-10-30 / user.
+- **Artifact:** [Native-auth intent v0.4](./native-auth/04-intent-v0.4.md).
+- **Approved raw SHA-256:**
+  `40761C1AD0C1233339B301F17DF6D483B4D6078D6B2CA4D5AB3BC4E62F1622EE`.
+- **Reason:** isolated real Chromium input observation showed native password
+  controls remove CR/LF and textareas normalize CR/CRLF. This is platform
+  feasibility, not application behavior or a password-strength argument.
+- **Approved narrow refinement:** keep 12-128 Unicode-code-point length and
+  other allowed content, including NUL. Reject CR/LF when the application
+  receives them and reject raw pasted line breaks before native sanitization
+  when observable. Do not silently transform otherwise permitted password text.
+- **Preserved behavior:** ordinary passphrase paste/autofill, no composition/
+  encoding-choice/periodic-change rules, generic account-private authentication
+  outcomes and all v0.3 verifier/session/evidence/admission policies remain.
+  Do not promise to recover original external/autofill text already sanitized
+  by a native browser control.
+- **Version integrity:** v0.4 composes with immutable approved v0.1/v0.2/v0.3.
+  Preserve every approved artifact; exact shared wire/copy still needs review.
+- **Evidence:** user approved the exact v0.4 browser-compatibility addendum and
+  preservation of other rules after its fingerprint and observed limitation
+  were presented. No feature implementation or acceptance pass is implied.
