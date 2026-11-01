@@ -1126,3 +1126,164 @@ repository relocation or client configuration changes.
 - **Evidence:** user approved the exact v0.4 browser-compatibility addendum and
   preservation of other rules after its fingerprint and observed limitation
   were presented. No feature implementation or acceptance pass is implied.
+
+## DR-039: Native-auth Phase 4 shared contracts approved
+
+- **Date / decision owner:** 2026-11-01 / user.
+- **Approved artifacts:** [shared checklist](./native-auth/06-shared-checklist.md),
+  [UI/copy contract](./native-auth/07-ui-contract.md),
+  [operator command contract](./native-auth/08-operator-contract.md),
+  [SCN scope map](./native-auth/09-scn-scope-map.md),
+  [native baseline](./native-auth/10-native-baseline.md) and the
+  [consolidated proposals](./native-auth/11-decision-proposals.md) DP-NA-001–010.
+- **Email identity:** ASCII mailbox `local@domain`, 3–254 characters, one `@`,
+  no display name/quoted local part/comments/multiple addresses; punycode domains
+  allowed; reject whitespace/control/trailing content; trim Unicode `White_Space`
+  then lower-case the full identity. Subaddressing remains ordinary text.
+- **UI contract:** the routes, context guards, exact copy, role/name locators,
+  failure presentation and secret-display boundary in the UI contract are
+  approved. Visual design, component library and i18n are not.
+- **Transport:** `__Host-arg-session` cookie (`Secure`, `HttpOnly`,
+  `SameSite=Lax`, `Path=/`, no `Domain`); 43-character base64url CSRF token and
+  one-time/session tokens; Origin/`Sec-Fetch-Site` validation; JSON only; 16,384
+  byte request limit; unknown fields rejected; `no-store` on auth/account
+  responses. Eight `ANONYMOUS`-eligible operations do not require a cookie; the
+  other 14 do.
+- **Failures:** the 15 codes and their 400/401/403/404/409/410/429/500/503
+  mapping are approved. Transport-only 405/413/415 carry no body code.
+  Authentication failures stay generic and never disclose account standing.
+- **Host operator:** local-only `arg-admin` commands `account disable|enable|
+  recover-mfa`, `gateway grant|revoke`, `security cancel` and
+  `totp-key provision|status|retire`; required `--reason` (8–200 code points) and
+  `--confirm <normalized-email>`; exit codes 0/2/3/4/5/6; state change and audit
+  commit atomically; recovery creates no session; re-enable revives nothing.
+- **Acceptance split:** 49 Browser SCNs and 45 API SCNs, exactly one locked
+  acceptance tag per SCN; API cases exercise the real service, worker or host
+  CLI and never replace browser coverage for a user-visible journey.
+- **Clock control:** a test-profile-only time source advanced through a
+  loopback-only control channel with a per-run random token, absent from
+  production profiles, is approved. If it cannot be built safely, the listed
+  exact-boundary cases move to API level with an injected clock.
+- **Toolchain:** JDK 25.0.5+8, Maven 3.9.16, Node 24.22.0, npm 11.19.1,
+  Playwright 1.64.1, Chromium 156.0.8078.4; proposed PostgreSQL 18.6, Mailpit
+  1.32.0, Spring Boot 4.1.2, React 19.3.1, Vite 8.3.5, React plugin 6.1.2 and
+  TypeScript 5.9.3. Project-local installs only. Approval is not a build or
+  runtime result; each pin is re-verified at the scaffold.
+- **Contract status:** after these approvals the machine contract becomes
+  `0.2.0` with `x-review-status: reviewed`; later observable changes require
+  another reviewed version.
+- **First increment:** include account enable/disable/recover and gateway
+  grant/revoke; include `totp-key status`; defer `security cancel` and
+  `totp-key provision|retire` from the first implementable increment. Enrollment
+  still requires a reviewed test-only key bootstrap that is not a public endpoint.
+- **Preserved gates:** this is Phase 4 approval only. Phase 5 design/tasks,
+  Phase 6 review, Phase 7 freeze, Phase 8 genuine red acceptance and test lock
+  remain mandatory before native-auth implementation under DR-036. No scenario,
+  build, database or browser acceptance has run.
+- **Evidence:** the user selected approval of the consolidated ten-item batch
+  after the validation results, the 49/45 split, the exact-copy reference and the
+  clock-control fallback were presented.
+
+## DR-040: Native-auth Phase 5 design/tasks reviewed; Phase 6 conflicts resolved
+
+- **Date / decision owner:** 2026-11-01 / user.
+- **Approved artifacts:** [implementation design](./native-auth/12-implementation-design.md),
+  [frontend tasks](./native-auth/13-frontend-tasks.md) and
+  [backend tasks](./native-auth/14-backend-tasks.md).
+- **Design scope:** Spring Boot 4.1.2 / Java 25 / Spring MVC virtual threads /
+  Spring JDBC / Flyway / PostgreSQL; React 19 + Vite 8 + TypeScript 5.9; 16-table
+  V1 schema; Argon2id current/predecessor; AES-256-GCM seeds; opaque hashed
+  tokens; real browser + API acceptance split.
+- **Resolution 1 — `readEnrollment`:** a request with no current operation returns
+  404 `NOT_FOUND`; the UI starts a new operation. The machine contract becomes
+  `0.2.1` with that explicit response.
+- **Resolution 2 — host operator proof:** the demo verifies the configured local
+  OS user for `arg-admin`; real OS group ACLs are deployment-specific and must be
+  documented as such. No new public authority is created.
+- **Resolution 3 — `__Host-` cookie:** try Chromium on `http://localhost` first.
+  If the prefix/cookie is rejected, the acceptance harness runs on local HTTPS with
+  a generated test certificate. Production remains HTTPS.
+- **Resolution 4 — PostgreSQL:** install project-local PostgreSQL 18.6 binaries
+  under `.local-tools`; do not use an embedded classpath database as the
+  acceptance database.
+- **Resolution 5 — mail capacity:** the 100-uncompleted bound counts `PENDING`,
+  `DELAYED`, `SENDING` and `INELIGIBLE_ACCEPTED`; terminal `SENT`,
+  `FAILED_FINAL`, `SUPERSEDED`, `EXPIRED` and `CANCELLED` rows do not count.
+- **Resolution 6 — `host_audit.changed_fields`:** JSONB array in the database,
+  emitted as a JSON array in CLI output; nonsecret field names only.
+- **Resolution 7 — locators:** manual key and recovery codes use labelled
+  `<output>`, `<p>` or `<ol>` elements with accessible names; no `data-testid`
+  exception is approved.
+- **Resolution 8 — step-up retry:** after `confirmRecentAuthentication`, the
+  frontend re-issues the same request; server current-state checks and
+  idempotency prevent double application.
+- **Preserved gates:** this is Phase 6 design approval. Phase 7 freeze, Phase 8
+  genuine red acceptance and test lock remain required before implementation under
+  DR-036. No build, database, browser or scenario has run.
+- **Evidence:** the user selected approval of the design/task package and all eight
+  recommended resolutions after the conflicts and their consequences were presented.
+
+## DR-041: Pre-lock re-freeze to correct frozen-plan provenance links
+
+- **Date / decision owner:** 2026-11-01 / user.
+- **Reason:** `specs/native-auth.md` was frozen at
+  `d03e6470b12957cef0794dd7601784a0f63c476bbdfee68b60a33c3af7d0b7b5` with
+  Phase-1-relative provenance links. The plan lives at the repository root, so 16
+  Markdown links resolved one directory too high. The SCN IDs, expected values,
+  hashes and oracle text were correct; only link paths and the decision-record
+  fingerprint needed correction.
+- **Authorized exception:** the user explicitly authorized a one-time pre-lock
+  re-freeze for this documentation defect. No test was locked and no feature code
+  existed at the time.
+- **Scope of correction:** relative link paths only, plus the decision-record
+  SHA-256 updated to the post-DR-041 value. No scenario ID, requirement mapping,
+  expected observable, coverage count, scope statement or sign-off changes.
+- **Procedure:** preserve the old manifest as historical evidence, replace the
+  plan with the corrected links, run `ai:freeze` again, and record the new plan
+  hash in the execution/gap records. Do not edit the guard.
+- **Preserved gates:** this is not an oracle change, test lock, implementation
+  approval or acceptance pass. The 45 API SCNs remain unauthored and the lock
+  remains blocked.
+- **Evidence:** user selected the pre-lock re-freeze after the defect, the 16
+  broken links and the unaffected oracle were presented. GAP-NA-001 is closed by
+  this decision, subject to the re-freeze result.
+
+## DR-042: PostgreSQL 17.6 local verification deviation
+
+- **Date / decision owner:** 2026-11-01 / user.
+- **Observed failure:** PostgreSQL 18.6 local binaries start but child backends
+  terminate with `0xC0000142` and shared-memory reservation error 487; several
+  children became unkillable. PostgreSQL 17.6 starts, accepts connections and runs
+  Flyway correctly on the same host.
+- **Approved local deviation:** use project-local PostgreSQL 17.6 for acceptance
+  and implementation verification. The intended production baseline remains 18.6
+  pending a host/build fix; do not claim 18.6 was verified.
+- **Scope:** environment/baseline only. No application behavior, SQL contract or
+  scenario oracle changes. The schema uses features available in both versions.
+- **Evidence:** [gap register](./native-auth/evidence/gap-register.md) GAP-NA-011;
+  `pg.log`/`pg3.log` and the successful 17.6 `psql` result.
+- **Preserved gates:** this is not a full baseline pass, capacity claim or
+  release approval.
+
+## DR-043: Follow-up plan for locked TOTP test pacing
+
+- **Date / decision owner:** 2026-11-01 / user.
+- **Reason:** locked SCNs 033, 039, 041, 057 and 089 reuse the TOTP step consumed
+  by enrollment/replacement completion, then expect an immediate successful
+  sign-in with the same code. The approved per-step replay rule correctly rejects
+  it. This is a test-oracle pacing defect, not an implementation bug.
+- **Authorized path:** create a separate follow-up plan and corrected tests that
+  advance the controlled clock by one 30-second step before each distinct
+  successful authentication. Do not edit the original frozen plan or its locked
+  test files.
+- **Product rule preserved:** DR-021/DR-037 per-step replay remains strict. No
+  exemption for enrollment or replacement verification is approved.
+- **Acceptance effect:** the affected original SCNs are reported blocked in the
+  first iteration and superseded by the follow-up for pacing only. Their
+  behavioral oracle is unchanged apart from the controlled clock step.
+- **Preserved gates:** the follow-up needs its own freeze, genuine red run and
+  test lock before implementation claims. This decision does not pass Phase 9 or
+  authorize weakening a locked test.
+- **Evidence:** the user selected the follow-up pacing option after the
+  SCN-033/039/041/057/089 conflict and the correct `401` replay result were
+  presented.
