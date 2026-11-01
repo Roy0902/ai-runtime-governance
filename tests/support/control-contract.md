@@ -1,0 +1,31 @@
+# Test-only control surface
+
+Version: 0.1. Prepared: 2026-11-01. **Test support only; never exposed in a
+production profile.**
+
+The acceptance suite needs controlled time, fault injection, mail flushing,
+cleanup, dispatch and nonsecret inspection. These controls are bound to
+`127.0.0.1`, enabled only when the `test` profile is active, and require the
+per-run `X-Test-Token` header. They are not part of the product API and must not
+appear in the OpenAPI contract.
+
+| Control | Method/path | Purpose |
+|---|---|---|
+| Clock set | `POST /__test/clock` `{now}` | Set the test server clock |
+| Clock advance | `POST /__test/clock/advance` `{milliseconds}` | Advance the test clock |
+| Fault | `POST /__test/faults` `{name, enabled}` | Enable/disable a named fault |
+| Cleanup | `POST /__test/cleanup` | Run the pending-registration cleanup once |
+| Mail flush | `POST /__test/mail/flush` | Run the mail worker until idle or exhausted |
+| Dispatch | `POST /__test/dispatch` `{accountId}` | Exercise the gateway admission/dispatch path |
+| Inspect | `GET /__test/inspect?what=...` | Read nonsecret state: account, link, mail_request, audit, verifier, seed, evidence, buckets |
+| Export evidence | `POST /__test/evidence/export` | Produce the declared metadata-only evidence inventory |
+
+Fault names: `mail-admission`, `smtp`, `consume-rollback`, `hash-service`,
+`recovery-verifier`, `totp-key-missing`, `db-commit`, `account-disable`.
+
+Inspection never returns passwords, verifiers, seeds, recovery codes, tokens or
+cookies. A missing/empty inspection result is not a pass.
+
+The token is generated per run and passed to Playwright through
+`TEST_CLOCK_TOKEN`; the URL is `TEST_CONTROL_URL` (default
+`http://127.0.0.1:8081/__test`).
