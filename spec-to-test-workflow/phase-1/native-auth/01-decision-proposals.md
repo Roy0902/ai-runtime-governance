@@ -1,9 +1,13 @@
 # Native authentication prerequisite: recommendations for review
 
-Version: 0.15. Prepared: 2026-10-30. **Partially approved:** DR-019 confirms signup
+Version: 0.16. Prepared: 2026-11-01. **Partially approved:** DR-019 confirms signup
 email; DR-020 password/reset; DR-021 TOTP/recovery; DR-022 host-admin boundaries;
-DR-023 generic responses and no-permanent-lockout throttling. Other recommendations
-remain unapproved.
+DR-023 generic responses and no-permanent-lockout throttling. DR-024 through
+DR-032 confirm protected authenticator setup, session storage/activity, interrupted
+setup, pending registration lifecycle, link/delivery semantics, length-only
+passwords, TOTP-key lifecycle, recovery-code regeneration and host/gateway
+authority. DR-037/038 approve the v0.3 verifier/evidence/admission and v0.4
+line-break profiles. Other recommendations remain unapproved.
 
 DR-024 additionally confirms encrypted seeds, one-time QR/manual-key display and
 saved-recovery-code acknowledgement. DR-025 confirms session activity/storage and
@@ -292,15 +296,14 @@ intent. No fake auth cookie or successful mocked login can satisfy them.
 
 Resolve the decisions in this order:
 
-**Current next gate:** close the explicit oracle gaps in
-[scenario catalog v0.2](./05-scenarios.md) as one consolidated review. Its 83 SCN
-IDs now include four `@unspecified` cases: 012/024/079/080. DR-034 approves
-[intent v0.2](./04-intent-v0.2.md) composed with unchanged
-[v0.1](./04-intent-v0.1.md), resolving the two deadline cases. Phase 3 is not passed.
-Only after scenario-gate closure proceed to shared contracts and subsequent
-engineering design in workflow order.
-Numerical abuse/delivery limits, exact contract and tooling/measurement gates
-remain open before acceptance freeze. Approval status is in the decision record;
+**Current position:** Phase 3 is closed. DR-037 closed the four former
+`@unspecified` cases (012/024/079/080) with [intent v0.3](./04-intent-v0.3.md);
+DR-038 added the line-break cases and SCN-094. The catalog has 94 SCN IDs / 271
+outline-expanded cases and zero active `@unspecified`. Phase 4 shared contracts
+are approved under DR-039, and the contract is `0.2.1` / `reviewed`. Phase 5
+design and task lists are drafted; Phase 6 review is next. Exact numeric
+abuse/delivery limits and the v0.3 crypto/evidence profile are already approved;
+whole-service capacity, harness execution and native acceptance remain open.
 DR-033 is not approval of unspecified expectations or an implementation design.
 
 ### Consolidated oracle-closure work, not new approvals

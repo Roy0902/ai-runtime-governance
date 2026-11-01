@@ -1,11 +1,12 @@
 # Native authentication prerequisite: scoped ingestion
 
-Version: 0.13. Prepared: 2026-10-30. Feature key: `native-auth`.
+Version: 0.14. Prepared: 2026-11-01. Feature key: `native-auth`.
 Status: **DR-018 sequencing and DR-019/020/021 selected account behaviors are
-confirmed. DR-033 approves intent v0.1 with explicit exact/numerical and
-design/tooling gates remaining. Phase 3 scenario catalog is drafted with
-four explicit blockers after DR-034 deadline clarification; no scenario gate,
-freeze or implementation approval is implied.**
+confirmed. DR-033/034/037/038 approve intent v0.1–v0.4 with exact/numerical
+business choices. Phase 3 scenario catalog is closed for business oracles: 94 SCN
+IDs / 271 planned cases, zero active `@unspecified`. Phase 4 shared contracts,
+baseline, design and all later gates remain open; no freeze or implementation
+approval is implied.**
 
 DR-019 resolved the signup identity, duplicate-response and link lifetime/resend
 choices in AMB-native-auth-001/002. DR-020 resolved the minimum 12-character,
@@ -112,7 +113,7 @@ scenarios with exact/numerical gaps visibly blocked, then contracts/design/tasks
 | [Domain model](./03-domain-model.md) | Version 0.1, presented | Core vocabulary, aggregates, invariants and events derived through DR-032 |
 | [Account-auth intent](./04-intent-v0.1.md) | Version 0.1, approved DR-033; raw SHA-256 `5AB84C0B99BDCAB8BF9C419AF6E55C958D1B159E8FFB155F7DE926EA042E6981` | Bounded behavior approved; outstanding exact/numerical contracts remain blocking where applicable |
 | [Intent v0.2 addendum](./04-intent-v0.2.md) | Approved DR-034; raw SHA-256 `7FD646D33431671BED907282FE7735DA1F1E6427BECF0A9AD8B019B8A368EE99` | Composes with unchanged approved v0.1; cleanup and pending-attempt equality now explicit |
-| [Acceptance scenarios](./05-scenarios.md) | Version 0.2, Phase 3 draft | SCN-native-auth-001 through -083; 215 outline-expanded cases; four unspecified IDs remain blocked |
+| [Acceptance scenarios](./05-scenarios.md) | Version 0.3, Phase 3 closed | SCN-native-auth-001 through -094; 271 outline-expanded cases; zero active `@unspecified` |
 | Existing login/routes/build/tests | Not present in target root | Greenfield; no existing auth pattern or API behavior is claimed |
 
 No live application/browser, source code, email provider, identity service or
@@ -250,14 +251,17 @@ SCNs/freeze. Proposed eventual journey coverage:
 After decisions, produce a pure domain model, approved versioned intent, concrete
 SCNs, shared UI/API contracts, exact toolchain/baseline and design/frontend/backend
 tasks. Then review in Phase 6, freeze, author red browser tests, and only then
-implement. Timeline stays downstream. Java 25/Maven/browser/database setup is
-currently absent and needs a separate reviewed setup gate.
+implement. Timeline stays downstream. Project-local Java 25/Maven/browser tooling
+is installed; PostgreSQL and mail capture are still absent and belong to the
+harness setup gate.
 
 ## 7. Scenario checkpoint and remaining exact oracles
 
-[Scenario catalog v0.2](./05-scenarios.md) derives 83 SCN IDs from the approved
-requirements/composed intent. Outline expansion describes 215 independent cases, not
-executed tests. No scenario has run, passed, been frozen or locked.
+[Scenario catalog v0.3](./05-scenarios.md) derives 94 SCN IDs from the approved
+requirements/composed intent. Outline expansion describes 271 independent cases,
+not executed tests. Zero active `@unspecified` tags remain; DR-037 closed
+012/024/079/080 and DR-038 added SCN-094. No scenario has run, passed, been frozen
+or locked.
 
 The following are specific subitems of existing AMB groups, not newly approved
 behavior or new top-level ambiguity IDs:

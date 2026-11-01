@@ -1,5 +1,12 @@
 # Entire Phase 1: pre-implementation readiness audit
 
+> **HISTORICAL (2026-10-30, after DR-035).** The sequencing choice in section 2
+> was resolved by DR-036 (staged prerequisite implementation after each
+> increment's own gates). The native-auth four unspecified IDs listed in section 3
+> were closed by DR-037/038. Package inventory and measurement limits remain
+> useful; the blocker counts do not. Current position:
+> [SESSION-PROGRESS-2026-11-01.md](./SESSION-PROGRESS-2026-11-01.md).
+
 Version: 0.1. Recorded: 2026-10-30, after DR-035.
 Verdict: **NOT development ready. Shared prerequisites have progressed; scope,
 dependency sequencing, observable contracts and client feasibility still block

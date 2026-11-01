@@ -1,9 +1,9 @@
 # Native authentication prerequisite: frontend acceptance plan
 
-Version: 0.10. Prepared: 2026-10-30.
-Status: **Coverage plan only; separate Phase 3 scenario draft now exists.
-No scenario/locator/test/login outcome is frozen. Four unspecified scenario IDs
-and common contract/harness gates remain blocked.**
+Version: 0.11. Prepared: 2026-11-01.
+Status: **Coverage plan only; the separate Phase 3 scenario catalog now has
+94 SCN IDs / 271 planned cases, zero active `@unspecified`. No scenario/locator/
+test/login outcome is frozen. Common contract/harness gates remain blocked.**
 
 ## 1. Acceptance principle
 
@@ -146,14 +146,14 @@ Concrete scenario preparation may proceed; missing exact/numerical oracles must
 remain blocked. This coverage plan does not close AMB-native-auth-011 or freeze
 any tests, approve tooling or imply implementation readiness.
 
-The [scenario catalog v0.2](./05-scenarios.md) now contains SCN-native-auth-001
-through -083 with requirement, invariant and intent-guard/exit mappings. IDs
-include outlines, not executed tests. DR-034 approves the
-[v0.2 deadline addendum](./04-intent-v0.2.md), resolving 005/037; independent
-outline expansion now totals 215 cases. Four IDs are explicitly `@unspecified`:
-012, 024, 079 and 080. The rest have concrete business-state oracles
-but are not execution-ready until their common prerequisites are reviewed.
-Phase 3 has not passed; the proposal is not permission to skip into Phase 4.
+The [scenario catalog v0.3](./05-scenarios.md) now contains SCN-native-auth-001
+through -094 with requirement, invariant and intent-guard/exit mappings. IDs
+include outlines, not executed tests. DR-037 closed the four former unspecified
+cases (012/024/079/080) with [intent v0.3](./04-intent-v0.3.md); DR-038 added the
+line-break cases and SCN-094. Independent outline expansion totals 271 cases and
+zero active `@unspecified` tags. Phase 3 is closed; Phase 4 is approved under
+DR-039 and the contract is `0.2.1` / `reviewed`. This coverage plan still does not
+freeze tests, approve a design or imply implementation readiness.
 
 ## 3. Real frontend/backend fixture strategy (proposed)
 

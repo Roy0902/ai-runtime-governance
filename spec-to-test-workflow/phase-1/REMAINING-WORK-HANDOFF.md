@@ -1,5 +1,12 @@
 # Remaining development preparation: cross-session handoff
 
+> **HISTORICAL (superseded 2026-11-01).** This file reflects the DR-034 snapshot.
+> DR-035 through DR-038 have since approved the v0.3/v0.4 auth profiles and closed
+> the four unspecified scenario IDs. Use
+> [SESSION-PROGRESS-2026-11-01.md](./SESSION-PROGRESS-2026-11-01.md) for the
+> current position. Do not follow the stale counts or "four unspecified IDs"
+> instructions below.
+
 Updated: 2026-10-30, after DR-034 and native-auth scenario catalog v0.2.
 Status: **Preparation in progress. Full Phase 1 is NOT ready for implementation,
 acceptance freeze or release. No application code or executable acceptance tests

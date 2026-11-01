@@ -1,30 +1,35 @@
 # Phase 1 development materials
 
-Version: 0.6. Prepared: 2026-10-30. Feature key: `runtime-governance`.
-Status: **Phase 0 prepared; guided confirmation in progress; exit gate blocked.
-Only explicitly recorded choices are approved. Nothing is frozen.**
+Version: 0.8. Prepared: 2026-11-01. Feature key: `runtime-governance`.
+Status: **Native-auth Phases 0-8 are complete: contracts approved, design/tasks
+reviewed, plans frozen and the acceptance tests locked. Phase 9 API
+implementation is complete for product behavior (44/48 + follow-up-01). The
+frontend is implemented and 31/49 Browser SCNs pass. Timeline and guard-core stay
+at their review/draft stages.**
 
 **Review outcome, 2026-10-30:** timeline requires changes before freeze; see the
 [Phase 6 review](./timeline/08-review.md). DR-018 selects a separately planned
 and frontend-acceptance-tested native-auth prerequisite before timeline delivery.
 Public registration/2FA and approved low-friction session rules are unchanged.
-No application implementation or tool installation was authorized.
 
 The requested native-auth prerequisite has scoped ingestion, decision
-recommendations and a frontend-acceptance coverage plan. DR-019 approved signup
-email identity/verification, DR-020 password minimum/usability/reset, DR-021
-TOTP/recovery behavior, and DR-022/023 host-operator/public-auth-abuse boundaries;
-confirmed requirements are in the source register.
-DR-024 through DR-032 settle further core behavior. A
-[native-auth domain model](./native-auth/03-domain-model.md) is presented and
-[intent v0.1](./native-auth/04-intent-v0.1.md) is explicitly approved under DR-033.
-A [native-auth scenario catalog](./native-auth/05-scenarios.md) now drafts 83 SCN
-IDs/215 expanded cases. DR-034 approves the
-[v0.2 deadline addendum](./native-auth/04-intent-v0.2.md), resolving two oracles;
-four IDs remain explicitly unspecified. Other recommendations remain
-proposals; the Phase 3 exit and exact/numerical/tooling gates remain blocked.
-No application code, executable acceptance tests or freeze manifest have been
-created. Detailed setup remains unrun.
+recommendations and a frontend-acceptance coverage plan. DR-019 through DR-032
+settle core account, MFA, recovery, session, host-operator and abuse behavior.
+DR-033/034/037/038 approve intent v0.1 and the v0.2 deadline, v0.3 verifier/
+evidence/admission and v0.4 line-break addenda at their recorded fingerprints.
+The [native-auth scenario catalog](./native-auth/05-scenarios.md) now has
+**94 SCN IDs / 271 outline-expanded planned cases and zero active `@unspecified`
+tags**. Phase 4 drafts exist: [shared checklist](./native-auth/06-shared-checklist.md),
+[UI/copy](./native-auth/07-ui-contract.md),
+[operator commands](./native-auth/08-operator-contract.md),
+[SCN scope map](./native-auth/09-scn-scope-map.md),
+[native baseline](./native-auth/10-native-baseline.md) and the
+[ten consolidated proposals](./native-auth/11-decision-proposals.md). Phase 4 is
+**approved under DR-039**; the machine contract is `0.2.1` / `reviewed`. Phase 5
+now has a [shared design](./native-auth/12-implementation-design.md) and
+[frontend](./native-auth/13-frontend-tasks.md) /
+[backend](./native-auth/14-backend-tasks.md) task lists, both awaiting Phase 6
+review. Freeze, red acceptance and test lock remain outstanding.
 
 The current global requirement inventory is 75 rows (43 confirmed, 10 proposed,
 22 deferred). AUTH-007–009 cover password reset, TOTP/recovery lifecycle and
@@ -82,12 +87,23 @@ scope/domain/intent/contracts must be prepared before browser-test freeze.
     review drafts, not frozen or implementation-ready.
 15. [Phase 6 timeline review](./timeline/08-review.md): findings, corrections and
     unresolved decisions. Verdict: not ready to freeze or implement.
-16. [Native-auth scoped ingestion](./native-auth/00-ingestion.md) and
-    [decision recommendations](./native-auth/01-decision-proposals.md): DR-018
-    prerequisite materials; no new recommendation is approved yet.
+16. [Native-auth scoped ingestion](./native-auth/00-ingestion.md),
+    [decision recommendations](./native-auth/01-decision-proposals.md),
+    [shared checklist](./native-auth/06-shared-checklist.md),
+    [UI/copy contract](./native-auth/07-ui-contract.md),
+    [operator contract](./native-auth/08-operator-contract.md),
+    [SCN scope map](./native-auth/09-scn-scope-map.md),
+    [native baseline](./native-auth/10-native-baseline.md) and
+    [Phase 4 proposals](./native-auth/11-decision-proposals.md): DR-018
+    prerequisite materials through DR-039, plus the Phase 5
+    [design](./native-auth/12-implementation-design.md),
+    [frontend tasks](./native-auth/13-frontend-tasks.md) and
+    [backend tasks](./native-auth/14-backend-tasks.md).
     The [frontend acceptance coverage plan](./native-auth/02-acceptance-plan.md)
     records real-browser/backend prerequisites without treating its candidates
     as scenarios or tests.
+    The [draft machine contract](../../contracts/native-auth.openapi.json) is the
+    single Phase 4 shape definition, validated but not approved or implemented.
     See the [native-auth status](./native-auth/README.md).
 
 **Earlier guard-core direction (DR-011/DR-012), superseded by DR-015:** WSL remains pending for its own live
@@ -125,18 +141,20 @@ No live integration tests were performed during this documentation preparation.
 
 ## Workflow position
 
-| Phase | Deliverable | Current disposition |
-|---|---|---|
-| 0 | Inventory, REQ/AMB registers, coverage plan | Prepared; user decisions outstanding |
-| 1 | Pure domain model and invariants | Not started: Phase 0 blocking ambiguities unresolved |
-| 2 | Versioned Mermaid intent diagrams | Not started; requires domain gate and explicit user approval |
-| 3 | Concrete behavioral scenarios | Not started; must not invent unresolved values |
-| 4 | Shared contracts, checklist, native quality baselines | Not started; target has no application manifests/toolchain yet |
-| 5 | Shared implementation design, frontend/backend tasks | Not started; follows contracts and design review |
-| 6 | User review | Pending |
-| 7 | Frozen acceptance plan | Not created; freeze is one-way and prerequisites are unmet |
-| 8 | Red acceptance tests and lock | Not created; no runner or resolved contracts |
-| 9-12 | Implementation, verification, accessibility, as-built diagrams | Outside this preparation and not started |
+No package has passed every gate. Position by package:
+
+| Phase | Deliverable | Native auth | Timeline | Guard core |
+|---|---|---|---|---|
+| 0 | Inventory, REQ/AMB registers, coverage plan | Prepared | Prepared | Prepared |
+| 1 | Pure domain model and invariants | Presented (v0.1) | Prepared | Prepared |
+| 2 | Versioned Mermaid intent diagrams | v0.1–v0.4 approved (DR-033/034/037/038) | v0.1 approved (DR-017) | v0.1 approved (DR-013) |
+| 3 | Concrete behavioral scenarios | 94 SCNs / 271 cases, zero unspecified | 30 draft SCNs | 29 draft SCNs |
+| 4 | Shared contracts, checklist, native baselines | Draft OpenAPI only; checklist/copy/locator/operator/baseline pending | Draft checklist; membership contract withdrawn (R-TL-001) | Library contract approved; frontend evidence path missing |
+| 5 | Shared implementation design, frontend/backend tasks | Draft design + 7 FE / 13 BE tasks; Phase 6 pending | Draft design + 7 FE / 10 BE tasks | Not started |
+| 6 | User review | Approved DR-040; eight conflicts resolved | Review done: not ready (R-TL-001/003/004/005/008) | Pending |
+| 7 | Frozen acceptance plan | `specs/native-auth.md`, hash `3929c857…c699b5` | Not created | Not created |
+| 8 | Red acceptance tests and lock | 49 Browser + 45 API SCNs red for feature-missing; **locked** | Not created | Not created |
+| 9-12 | Implementation, verification, accessibility, as-built diagrams | API complete: 44/48 + follow-up 01 3/3; frontend 31/49; 037/092 test follow-up pending | Not started | Not started |
 
 This follows the [canonical workflow](../../../spec-to-test-workflow/.github/skills/spec-to-test-workflow/SKILL.md).
 These documents are not a substitute for the later design, task lists, or frozen
@@ -144,19 +162,12 @@ plan. A request to prepare materials is not approval of unresolved product choic
 
 ## Next decision
 
-Review the [full-release recommendations](./04-decision-proposals.md) and resolve
-the [ambiguities](./02-ambiguity-register.md), or explicitly approve a smaller
-first development slice and identify which decisions it still needs.
-Two source-supported starting scopes are:
-
-- Integration-feasibility milestone: capability evidence for each candidate
-  client/version/environment, with no production compatibility claim.
-- Independent guard-engine milestone: server-side behavior with a reviewed catalog
-  and synthetic inputs, with no verified client-integration claim.
-
-Neither option silently removes the remaining Phase 1 release gates. After a scope
-decision, re-evaluate the active blockers rather than marking all ambiguities
-resolved. Changes to observable behavior require corresponding source-spec updates.
+Finish native-auth Phase 4 from the draft machine contract, then Phase 5 design
+and separate task lists, Phase 6 review, Phase 7 freeze, Phase 8 red acceptance
+and test lock. DR-036 permits implementing a prerequisite only after its own
+gates pass. After native auth, resolve the timeline findings (R-TL-001/003/004/
+005/008) and the guard-core frontend/service evidence path. The 14 global
+ambiguities and the user-performed Windows-with-WSL client gate remain open.
 
 ## Preparation checks
 
@@ -207,13 +218,12 @@ requirements. No authentication, email delivery or client integration was run.
 
 DR-016 confirms the read-only package and DR-017 approves timeline intent v0.1.
 Scoped domain, 30 browser business scenarios, shared contract/checklist, design
-and separate frontend/backend tasks are prepared as review drafts. New API/UI
-choices and candidate scenarios still require confirmation/reconciliation;
-native-auth prerequisites and actual JDK/Maven/frontend/browser/DB setup remain
-explicit blockers. Native-auth decision materials now cover DR-019/DR-020,
-including the reset requirement, but further account decisions and all auth
-design/acceptance materials remain outstanding. No freeze, red browser evidence
-or application implementation has been performed. WSL remains deferred.
+and separate frontend/backend tasks are prepared as review drafts. The Phase 6
+review found R-TL-001/003/004/005/008 still open; R-TL-002 sequencing is resolved
+by DR-018. Native-auth Phase 3 business oracles are now closed, but native-auth
+Phase 4–8 gates and actual authentication implementation remain explicit
+timeline blockers. No freeze, red browser evidence or application implementation
+has been performed. WSL remains deferred.
 
 Preparation checks passed: eleven scoped requirements, fourteen pure-domain
 invariants, two diagrams with 34 labeled edges and complete binary decision
