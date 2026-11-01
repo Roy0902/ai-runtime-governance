@@ -1,0 +1,61 @@
+{
+    "recordedAtUtc":  "2026-11-01T10:26:42.7356003Z",
+    "purpose":  "Project-local toolchain baseline for Phase 4. Not an application build or acceptance result.",
+    "host":  {
+                 "os":  "Windows 10.0.19045 (Win32NT)",
+                 "logicalProcessors":  16,
+                 "workingDirectory":  "C:\\Users\\pigcr\\Documents\\Workspace\\ai-runtime-governance"
+             },
+    "node":  "v24.22.0",
+    "npm":  "11.19.1",
+    "git":  "git version 2.56.0.windows.2",
+    "jdk":  {
+                "path":  ".local-tools/jdk-25.0.5+8",
+                "version":  "openjdk version \"25.0.5\" 2026-10-20 LTS\r\nOpenJDK Runtime Environment Temurin-25.0.5+8 (build 25.0.5+8-LTS)\r\nOpenJDK 64-Bit Server VM Temurin-25.0.5+8 (build 25.0.5+8-LTS, mixed mode, sharing)",
+                "sourceArchiveSha256":  "636bdc13dc649ddc7d5921c5c7d23cca6e44fd19d662b45cc9c02135a6c96c42",
+                "checksumVerified":  true
+            },
+    "maven":  {
+                  "path":  ".local-tools/apache-maven-3.9.16",
+                  "version":  "Apache Maven 3.9.16 (2bdd9fddda4b155ebf8000e807eb73fd829a51d5)\r\nMaven home: C:\\Users\\pigcr\\Documents\\Workspace\\ai-runtime-governance\\.local-tools\\apache-maven-3.9.16\r\nJava version: 25.0.5, vendor: Eclipse Adoptium, runtime: C:\\Users\\pigcr\\Documents\\Workspace\\ai-runtime-governance\\.local-tools\\jdk-25.0.5+8\r\nDefault locale: zh_HK, platform encoding: UTF-8\r\nOS name: \"windows 10\", version: \"10.0\", arch: \"amd64\", family: \"windows\"",
+                  "sourceArchiveSha512":  "ed41650d42485cfc243fad22158caf9cbb5dc408ce7a09ddb94dd42a019de929ca43065bfa450612cf12bf78b5cafa3884b96c090de326ff590448c933454af3",
+                  "checksumVerified":  true
+              },
+    "playwright":  {
+                       "package":  "@playwright/test 1.64.1",
+                       "browsersPath":  ".local-tools/playwright",
+                       "chromiumVersionObserved":  "156.0.8078.4",
+                       "chromiumBuild":  "chromium-1248",
+                       "headlessShellBuild":  "chromium_headless_shell-1248",
+                       "smokeResult":  "launched headless Chromium and read a page title"
+                   },
+    "contractTools":  {
+                          "redoclyCli":  "2.72.1",
+                          "openapiTypescript":  "7.13.0",
+                          "typescript":  "5.9.3",
+                          "redoclyLint":  {
+                                              "parses":  true,
+                                              "errors":  22,
+                                              "warnings":  23,
+                                              "errorKinds":  [
+                                                                 "operation-summary"
+                                                             ],
+                                              "warningKinds":  [
+                                                                   "info-license",
+                                                                   "operation-4xx-response"
+                                                               ],
+                                              "note":  "Style/completeness gaps only; no $ref or schema parse failure. To be resolved during Phase 4 contract completion."
+                                          },
+                          "generatedTypes":  {
+                                                 "output":  ".local-cache/generated/native-auth.d.ts",
+                                                 "bytes":  33777,
+                                                 "success":  true
+                                             }
+                      },
+    "notInstalled":  [
+                         "PostgreSQL",
+                         "Mailpit or other mail capture",
+                         "application server",
+                         "Maven Wrapper"
+                     ]
+}

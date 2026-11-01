@@ -1,0 +1,11 @@
+{
+  "name": "contract-tools",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Project-local OpenAPI validation and type generation for Phase 4 contracts",
+  "devDependencies": {
+    "@redocly/cli": "2.72.1",
+    "openapi-typescript": "7.13.0",
+    "typescript": "5.9.3"
+  }
+}
