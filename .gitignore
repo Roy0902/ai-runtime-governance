@@ -1,6 +1,7 @@
 .local-tools/
 .local-cache/
 **/target/
+frontend/dist/
 **/node_modules/
 **/playwright-report/
 **/test-results/
