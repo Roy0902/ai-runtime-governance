@@ -1,4 +1,5 @@
 import { createHmac } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { expect, type Page } from '@playwright/test';
 
 export const PASSWORD = 'Correct horse battery staple';
@@ -28,10 +29,6 @@ export function tag(id: string, title: string): string {
 }
 
 export async function register(page: Page, email: string, password = PASSWORD): Promise<void> {
-  const control = process.env.TEST_CLOCK_URL ?? 'http://127.0.0.1:8080/__test';
-  const token = process.env.TEST_CLOCK_TOKEN ?? 'test-token';
-  await page.request.post(`${control}/reset`, { headers: { 'X-Test-Token': token } });
-  setClockOffset(0);
   await page.goto('/register');
   await expect(page.getByRole('heading', { name: 'Create account', level: 1 })).toBeVisible();
   await page.getByRole('textbox', { name: 'Email' }).fill(email);
@@ -76,6 +73,7 @@ export async function latestLink(
   page: Page,
   email: string,
   kind: 'verify' | 'reset',
+  excludeLink?: string,
 ): Promise<string> {
   const base = process.env.MAILPIT_URL ?? 'http://127.0.0.1:8025';
   const path = kind === 'verify' ? 'verify' : 'reset-password';
@@ -84,15 +82,15 @@ export async function latestLink(
     const body = (await list.json()) as {
       messages?: { ID: string; To?: { Address?: string }[] }[];
     };
-    const match = body.messages?.find((message) =>
+    const matches = body.messages?.filter((message) =>
       message.To?.some((to) => to.Address?.toLowerCase() === email.toLowerCase()),
-    );
-    if (match) {
+    ) ?? [];
+    for (const match of matches) {
       const detailResponse = await page.request.get(`${base}/api/v1/message/${match.ID}`);
       const detail = (await detailResponse.json()) as { Text?: string; HTML?: string };
       const text = `${detail.Text ?? ''}\n${detail.HTML ?? ''}`;
       const found = text.match(new RegExp(`https?://[^\\s"'<>]+/${path}\\?token=[A-Za-z0-9_-]+`));
-      if (found) return found[0];
+      if (found && found[0] !== excludeLink) return found[0];
     }
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
@@ -161,7 +159,13 @@ export function totp(secret: string, offset = 0): string {
     }
   }
   const key = Buffer.from(bytes);
-  const counter = Math.floor((Date.now() + clockOffsetMs) / 30_000) + offset;
+  const controlledTime = process.env.TEST_CLOCK_FILE
+    ? Date.parse(readFileSync(process.env.TEST_CLOCK_FILE, 'utf8').trim())
+    : Date.now() + clockOffsetMs;
+  if (!Number.isFinite(controlledTime)) {
+    throw new Error('Controlled TOTP clock snapshot is invalid');
+  }
+  const counter = Math.floor(controlledTime / 30_000) + offset;
   const buffer = Buffer.alloc(8);
   buffer.writeBigUInt64BE(BigInt(counter));
   const digest = createHmac('sha1', key).update(buffer).digest();

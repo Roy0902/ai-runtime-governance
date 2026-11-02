@@ -137,6 +137,13 @@ public class AuthRepository {
                 .optional();
     }
 
+    public Optional<AccountRow> accountByIdForUpdate(UUID id) {
+        return jdbc.sql("SELECT * FROM account WHERE id = :id FOR UPDATE")
+                .param("id", id)
+                .query(AuthRepository::mapAccount)
+                .optional();
+    }
+
     public void markVerified(UUID accountId, Instant now) {
         jdbc.sql("""
                 UPDATE account SET email_verified_at = :now, status = 'VERIFIED', updated_at = :now, version = version + 1
@@ -151,8 +158,8 @@ public class AuthRepository {
                 """).param("hash", hash).param("now", ts(now)).param("id", accountId).update();
     }
 
-    public void updatePasswordIfVersion(UUID accountId, String hash, long version, Instant now) {
-        jdbc.sql("""
+    public int updatePasswordIfVersion(UUID accountId, String hash, long version, Instant now) {
+        return jdbc.sql("""
                 UPDATE account SET password_hash = :hash, updated_at = :now, version = version + 1
                 WHERE id = :id AND version = :version
                 """).param("hash", hash).param("now", ts(now)).param("id", accountId).param("version", version).update();

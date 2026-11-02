@@ -43,6 +43,7 @@ public class AuthService {
     private final Tokens tokens;
     private final MailService mailService;
     private final SessionService sessions;
+    private final AuthenticationFinalizer authenticationFinalizer;
     private final RateLimitService rateLimit;
     private final FactorVerifier factors;
     private final ContextMapper contexts;
@@ -56,6 +57,7 @@ public class AuthService {
             Tokens tokens,
             MailService mailService,
             SessionService sessions,
+            AuthenticationFinalizer authenticationFinalizer,
             RateLimitService rateLimit,
             FactorVerifier factors,
             ContextMapper contexts,
@@ -67,6 +69,7 @@ public class AuthService {
         this.tokens = tokens;
         this.mailService = mailService;
         this.sessions = sessions;
+        this.authenticationFinalizer = authenticationFinalizer;
         this.rateLimit = rateLimit;
         this.factors = factors;
         this.contexts = contexts;
@@ -231,29 +234,29 @@ public class AuthService {
         if (verification == Passwords.Verification.FAILED) {
             throw credentialFailure(email);
         }
-        if (!"ENROLLED".equals(account.mfaState())) {
+        if (!"VERIFIED".equals(account.status()) || !"ENROLLED".equals(account.mfaState())
+                || account.recoveryRequiredAt() != null) {
             throw credentialFailure(email);
         }
+        long sessionVersion = account.version();
+        if (verification == Passwords.Verification.PREDECESSOR) {
+            String upgraded = hashLimiter.submit(() -> passwords.hash(body.password()));
+            faults.pauseIfEnabled("predecessor-rehash-after-derive");
+            if (repository.updatePasswordIfVersion(account.id(), upgraded, account.version(), clock.instant()) != 1) {
+                throw credentialFailure(email);
+            }
+            sessionVersion++;
+        }
+        rateLimit.clearFailures(email);
         try {
-            factors.verify(account, body.secondFactor());
+            return authenticationFinalizer.complete(account.id(), sessionVersion, body.secondFactor(),
+                    request, response);
         } catch (ApiException exception) {
             if ("SIGN_IN_FAILED".equals(exception.code())) {
                 throw credentialFailure(email);
             }
             throw exception;
         }
-        rateLimit.clearFailures(email);
-        if (verification == Passwords.Verification.PREDECESSOR) {
-            String upgraded = hashLimiter.submit(() -> passwords.hash(body.password()));
-            repository.updatePasswordIfVersion(account.id(), upgraded, account.version(), clock.instant());
-        }
-        SessionService.Current before = sessions.read(request).orElse(null);
-        Instant now = clock.instant();
-        SessionService.Current current = before == null
-                ? sessions.create(response, "HUMAN", account.id(), null, now)
-                : sessions.rotate(response, before, "HUMAN", account.id(), null, now);
-        AccountRow updated = repository.accountById(account.id()).orElse(account);
-        return contexts.context(current, updated);
     }
 
     public void signOut(HttpServletRequest request, HttpServletResponse response) {
@@ -305,8 +308,7 @@ public class AuthService {
         Instant now = clock.instant();
         repository.updatePassword(account.id(), hash, now);
         repository.revokeOtherSessions(account.id(), current.sessionId(), now);
-        SessionService.Current rotated = sessions.rotate(response, current, "HUMAN", account.id(), null, now);
-        sessions.touch(rotated);
+        SessionService.Current rotated = sessions.rotateForSettings(response, current);
         AccountRow updated = repository.accountById(account.id()).orElse(account);
         return contexts.context(rotated, updated);
     }

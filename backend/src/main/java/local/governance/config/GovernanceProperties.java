@@ -73,6 +73,7 @@ public class GovernanceProperties {
     public static class TestControl {
         private boolean enabled;
         private String token = "";
+        private String clockFile = "";
 
         public boolean isEnabled() {
             return enabled;
@@ -88,6 +89,14 @@ public class GovernanceProperties {
 
         public void setToken(String token) {
             this.token = token;
+        }
+
+        public String getClockFile() {
+            return clockFile;
+        }
+
+        public void setClockFile(String clockFile) {
+            this.clockFile = clockFile;
         }
     }
 }

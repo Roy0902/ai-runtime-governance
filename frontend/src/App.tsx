@@ -26,6 +26,37 @@ function Status({ text }: { text: string }) {
   return <p role="status">{text}</p>;
 }
 
+function AccountNavigation() {
+  const { send, refresh } = useAuth();
+  const navigate = useNavigate();
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+
+  async function signOut() {
+    setPending(true);
+    setError(null);
+    try {
+      await send('/api/v1/auth/sign-out', 'POST');
+      await refresh();
+      navigate('/signed-out', { replace: true });
+    } catch (caught) {
+      setError(errorText(caught));
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <>
+      <nav aria-label="Account navigation">
+        <a href="/account">Account</a>
+        <button type="button" onClick={signOut} disabled={pending}>Sign out</button>
+      </nav>
+      {error ? <Message text={error} /> : null}
+    </>
+  );
+}
+
 function RequireHuman({ children }: { children: ReactNode }) {
   const { context } = useAuth();
   if (!context) {
@@ -37,7 +68,7 @@ function RequireHuman({ children }: { children: ReactNode }) {
   if (context.state !== 'HUMAN') {
     return <Navigate to="/sign-in" replace />;
   }
-  return <>{children}</>;
+  return <><AccountNavigation />{children}</>;
 }
 
 function RequireSetup({ children }: { children: ReactNode }) {
@@ -284,7 +315,11 @@ function ResetPasswordPage() {
   );
 }
 
-function useEnrollmentSecrets(start: () => Promise<AuthenticatorSecrets>, complete: (operationId: string, code: string, saved: boolean) => Promise<void>) {
+function useEnrollmentSecrets(
+  read: () => Promise<Operation>,
+  start: () => Promise<AuthenticatorSecrets>,
+  complete: (operationId: string, code: string, saved: boolean) => Promise<void>,
+) {
   const [secrets, setSecrets] = useState<AuthenticatorSecrets | null>(null);
   const [operationId, setOperationId] = useState<string | null>(null);
   const [alreadyIssued, setAlreadyIssued] = useState(false);
@@ -298,19 +333,26 @@ function useEnrollmentSecrets(start: () => Promise<AuthenticatorSecrets>, comple
       return;
     }
     started.current = true;
-    start()
-      .then((value) => {
-        setSecrets(value);
-        setOperationId(value.operation.operationId);
-      })
-      .catch((caught) => {
+    async function initialize() {
+      try {
+        await read();
+        setAlreadyIssued(true);
+      } catch (caught) {
         if (caught instanceof ApiError && caught.code === 'NOT_FOUND') {
-          setAlreadyIssued(true);
+          try {
+            const value = await start();
+            setSecrets(value);
+            setOperationId(value.operation.operationId);
+          } catch (startError) {
+            setError(errorText(startError));
+          }
         } else {
           setError(errorText(caught));
         }
-      });
-  }, [start]);
+      }
+    }
+    void initialize();
+  }, [read, start]);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -351,6 +393,7 @@ function EnrollPage() {
   const { send } = useAuth();
   const navigate = useNavigate();
   const state = useEnrollmentSecrets(
+    () => send<Operation>('/api/v1/auth/enrollment', 'GET'),
     () => send<AuthenticatorSecrets>('/api/v1/auth/enrollment', 'POST', { operationId: crypto.randomUUID() }),
     async (operationId, code, saved) => {
       await send('/api/v1/auth/enrollment/complete', 'POST', {
@@ -502,14 +545,8 @@ function StepUpDialog({ open, onConfirmed, onCancel }: { open: boolean; onConfir
 }
 
 function AccountPage() {
-  const { context, send } = useAuth();
-  const navigate = useNavigate();
+  const { context } = useAuth();
   const account = context?.account;
-
-  async function signOut() {
-    await send('/api/v1/auth/sign-out', 'POST');
-    navigate('/signed-out');
-  }
 
   return (
     <main>
@@ -530,7 +567,6 @@ function AccountPage() {
         <a href="/account/password">Change password</a> · <a href="/account/authenticator">Replace authenticator</a> ·{' '}
         <a href="/account/recovery-codes">Generate new recovery codes</a>
       </p>
-      <button type="button" onClick={signOut}>Sign out</button>
     </main>
   );
 }
@@ -676,7 +712,10 @@ function AuthenticatorPage() {
 }
 
 function RecoveryGenerationPage() {
-  const { send } = useAuth();
+  const { context, send } = useAuth();
+  const operationStorageKey = context?.account
+    ? `arg-recovery-operation:${context.account.accountId}`
+    : null;
   const [codes, setCodes] = useState<string[] | null>(null);
   const [operationId, setOperationId] = useState('');
   const [saved, setSaved] = useState(false);
@@ -684,13 +723,50 @@ function RecoveryGenerationPage() {
   const [error, setError] = useState<string | null>(null);
   const [stepUp, setStepUp] = useState(false);
 
+  useEffect(() => {
+    if (!operationStorageKey) {
+      return;
+    }
+    const storedId = sessionStorage.getItem(operationStorageKey);
+    if (!storedId) {
+      return;
+    }
+    let active = true;
+    void send<Operation>(`/api/v1/account/security/operations/${storedId}`, 'GET')
+      .then((operation) => {
+        if (!active) {
+          return;
+        }
+        setOperationId(operation.operationId);
+        if (operation.state === 'COMPLETED') {
+          setStatus('New recovery codes are active. Other sessions were signed out.');
+        } else if (operation.state === 'PENDING') {
+          setError('These setup values were already shown. Start a new attempt.');
+        } else {
+          sessionStorage.removeItem(operationStorageKey);
+        }
+      })
+      .catch((caught: unknown) => {
+        if (active) {
+          setError(errorText(caught));
+        }
+      });
+    return () => { active = false; };
+  }, [operationStorageKey, send]);
+
   async function start() {
     setError(null);
+    setStatus('');
+    setSaved(false);
+    const nextId = crypto.randomUUID();
     try {
+      if (operationStorageKey) {
+        sessionStorage.setItem(operationStorageKey, nextId);
+      }
       const value = await send<{ operation: Operation; recoveryCodes: string[] }>(
         '/api/v1/account/recovery-code-generations',
         'POST',
-        { operationId: crypto.randomUUID() },
+        { operationId: nextId },
       );
       setCodes(value.recoveryCodes);
       setOperationId(value.operation.operationId);
@@ -704,17 +780,30 @@ function RecoveryGenerationPage() {
   }
 
   async function complete() {
-    await send(`/api/v1/account/recovery-code-generations/${operationId}/complete`, 'POST', {
-      recoveryCodesSaved: saved,
-    });
-    setStatus('New recovery codes are active. Other sessions were signed out.');
-    setCodes(null);
+    setError(null);
+    try {
+      await send(`/api/v1/account/recovery-code-generations/${operationId}/complete`, 'POST', {
+        recoveryCodesSaved: saved,
+      });
+      setStatus('New recovery codes are active. Other sessions were signed out.');
+      setCodes(null);
+    } catch (caught) {
+      setError(errorText(caught));
+    }
   }
 
   async function cancel() {
-    await send(`/api/v1/account/security/operations/${operationId}`, 'DELETE');
-    setStatus('Pending codes cancelled. Your previous codes still work.');
-    setCodes(null);
+    setError(null);
+    try {
+      await send(`/api/v1/account/security/operations/${operationId}`, 'DELETE');
+      if (operationStorageKey) {
+        sessionStorage.removeItem(operationStorageKey);
+      }
+      setStatus('Pending codes cancelled. Your previous codes still work.');
+      setCodes(null);
+    } catch (caught) {
+      setError(errorText(caught));
+    }
   }
 
   return (

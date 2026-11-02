@@ -6,6 +6,9 @@ import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -17,6 +20,12 @@ import org.springframework.stereotype.Component;
 public class TestFaults {
 
     private final Path file;
+    private final ConcurrentHashMap<String, PauseGate> pauseGates = new ConcurrentHashMap<>();
+
+    private static final class PauseGate {
+        private final CountDownLatch reached = new CountDownLatch(1);
+        private final CountDownLatch released = new CountDownLatch(1);
+    }
 
     public TestFaults(@Value("${governance.test-faults-file:.local-cache/test-faults.properties}") String file) {
         this.file = Path.of(file);
@@ -31,10 +40,50 @@ public class TestFaults {
         Properties properties = read();
         properties.setProperty(name, Boolean.toString(enabled));
         write(properties);
+        if (!enabled) {
+            release(name);
+        }
     }
 
     public synchronized void clear() {
         write(new Properties());
+        pauseGates.forEach((name, gate) -> gate.released.countDown());
+        pauseGates.clear();
+    }
+
+    public void pauseIfEnabled(String name) {
+        if (!enabled(name)) {
+            return;
+        }
+        PauseGate gate = pauseGates.computeIfAbsent(name, ignored -> new PauseGate());
+        if (!enabled(name)) {
+            gate.released.countDown();
+            pauseGates.remove(name, gate);
+            return;
+        }
+        gate.reached.countDown();
+        try {
+            if (!gate.released.await(10, TimeUnit.SECONDS)) {
+                throw local.governance.api.ApiException.unavailable();
+            }
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw local.governance.api.ApiException.unavailable();
+        } finally {
+            pauseGates.remove(name, gate);
+        }
+    }
+
+    public boolean isPaused(String name) {
+        PauseGate gate = pauseGates.get(name);
+        return gate != null && gate.reached.getCount() == 0 && gate.released.getCount() > 0;
+    }
+
+    private void release(String name) {
+        PauseGate gate = pauseGates.get(name);
+        if (gate != null) {
+            gate.released.countDown();
+        }
     }
 
     private Properties read() {

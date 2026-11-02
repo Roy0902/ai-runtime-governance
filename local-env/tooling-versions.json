@@ -1,0 +1,21 @@
+{
+  "scope": "Project-local reproduction of the DR-039/DR-042 native-auth baseline",
+  "java": { "version": "25.0.5+8", "existingLayouts": [".local-tools\\jdk-25.0.5+8", ".local-tools\\java\\jdk-25.0.5+8"] },
+  "maven": { "version": "3.9.16", "existingLayouts": [".local-tools\\apache-maven-3.9.16", ".local-tools\\maven\\apache-maven-3.9.16"] },
+  "node": {
+    "version": "24.22.0",
+    "archiveUrl": "https://nodejs.org/dist/v24.22.0/node-v24.22.0-win-x64.zip",
+    "checksumUrl": "https://nodejs.org/dist/v24.22.0/SHASUMS256.txt"
+  },
+  "postgresql": {
+    "version": "17.6",
+    "archiveUrl": "https://get.enterprisedb.com/postgresql/postgresql-17.6-1-windows-x64-binaries.zip",
+    "checksumPolicy": "Use a vendor checksum if available; record actual archive SHA-256 and native version. Do not call a self-recorded hash an authenticated vendor checksum.",
+    "localDeviation": "DR-042; production 18.6 compatibility remains unverified"
+  },
+  "mailpit": {
+    "version": "1.32.0",
+    "archiveUrl": "https://github.com/axllent/mailpit/releases/download/v1.32.0/mailpit-windows-amd64.zip",
+    "sha256": "16915767a6c95dca569336e8f561f91cf355e9a33c57b91deedcc10a4bba7fd4"
+  }
+}

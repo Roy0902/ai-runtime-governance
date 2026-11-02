@@ -1,6 +1,12 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
+type NodeRuntimeGlobal = typeof globalThis & {
+  process?: { env?: Record<string, string | undefined> };
+};
+const backendTarget = (globalThis as NodeRuntimeGlobal).process?.env?.GOVERNANCE_BACKEND_URL
+  ?? 'http://127.0.0.1:8080';
+
 export default defineConfig({
   plugins: [react()],
   server: {
@@ -9,7 +15,7 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:8080',
+        target: backendTarget,
         changeOrigin: false,
       },
     },

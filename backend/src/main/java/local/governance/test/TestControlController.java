@@ -4,6 +4,9 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +31,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.transaction.annotation.Transactional;
 
 @RestController
 @RequestMapping("/__test")
@@ -71,6 +75,7 @@ public class TestControlController {
         check(token);
         MutableClock mutable = mutableClock();
         mutable.set(Instant.parse(String.valueOf(body.get("now"))));
+        writeClockSnapshot(mutable.instant());
         return Map.of("now", mutable.instant().toString());
     }
 
@@ -80,6 +85,7 @@ public class TestControlController {
         check(token);
         MutableClock mutable = mutableClock();
         mutable.advanceMillis(((Number) body.get("milliseconds")).longValue());
+        writeClockSnapshot(mutable.instant());
         return Map.of("now", mutable.instant().toString());
     }
 
@@ -89,6 +95,28 @@ public class TestControlController {
         check(token);
         faults.set(String.valueOf(body.get("name")), Boolean.TRUE.equals(body.get("enabled")));
         return Map.of("ok", true);
+    }
+
+    @PostMapping("/verifier/predecessor")
+    @Transactional
+    public Map<String, Object> seedPredecessorVerifier(
+            @RequestHeader(value = "X-Test-Token", required = false) String token,
+            @RequestBody Map<String, Object> body) {
+        check(token);
+        String email = local.governance.auth.domain.EmailIdentity.normalize(String.valueOf(body.get("email")));
+        String password = String.valueOf(body.get("password"));
+        AccountRow account = repository.accountByEmail(email)
+                .filter(row -> row.emailVerifiedAt() != null
+                        && "VERIFIED".equals(row.status())
+                        && "ENROLLED".equals(row.mfaState()))
+                .orElseThrow(ApiException::signInFailed);
+        if (passwords.verify(password, account.passwordHash()) != Passwords.Verification.CURRENT) {
+            throw ApiException.signInFailed();
+        }
+        String predecessor = hashLimiter.submit(() -> passwords.hashPredecessorForTest(password));
+        repository.updatePassword(account.id(), predecessor, clock.instant());
+        repository.revokeAllSessions(account.id(), clock.instant());
+        return Map.of("seeded", true);
     }
 
     @PostMapping("/cleanup")
@@ -106,6 +134,7 @@ public class TestControlController {
         dispatchState.clear();
         if (clock instanceof MutableClock mutable) {
             mutable.set(Instant.now());
+            writeClockSnapshot(mutable.instant());
         }
         return Map.of("ok", true);
     }
@@ -162,7 +191,8 @@ public class TestControlController {
     public Map<String, Object> inspect(@RequestHeader(value = "X-Test-Token", required = false) String token,
             @RequestParam String what,
             @RequestParam(required = false) String email,
-            @RequestParam(required = false) String accountId) {
+            @RequestParam(required = false) String accountId,
+            @RequestParam(required = false) String name) {
         check(token);
         return switch (what) {
             case "account" -> account(email);
@@ -170,6 +200,7 @@ public class TestControlController {
             case "audit" -> audit(accountId, email);
             case "verifier" -> verifier(email);
             case "cooldown" -> cooldown(email);
+            case "barrier" -> barrier(name);
             case "buckets" -> Map.of("evictedLive", false);
             case "dispatch" -> Map.of(
                     "dispatched", dispatchState.dispatched(email),
@@ -184,6 +215,13 @@ public class TestControlController {
                     "malformed", Map.of("failure", "explicit"));
             default -> throw new ApiException("NOT_FOUND", "Unknown inspection.");
         };
+    }
+
+    private Map<String, Object> barrier(String name) {
+        if (!"predecessor-rehash-after-derive".equals(name)) {
+            throw new ApiException("NOT_FOUND", "Unknown inspection.");
+        }
+        return Map.of("waiting", faults.isPaused(name));
     }
 
     private Map<String, Object> account(String email) {
@@ -268,6 +306,23 @@ public class TestControlController {
             return mutable;
         }
         throw ApiException.unavailable();
+    }
+
+    private void writeClockSnapshot(Instant instant) {
+        String configured = properties.getTestControl().getClockFile();
+        if (configured == null || configured.isBlank()) {
+            return;
+        }
+        Path file = Path.of(configured);
+        try {
+            Path parent = file.toAbsolutePath().getParent();
+            if (parent != null) {
+                Files.createDirectories(parent);
+            }
+            Files.writeString(file, instant.toString());
+        } catch (IOException exception) {
+            throw ApiException.unavailable();
+        }
     }
 
     private void check(String token) {

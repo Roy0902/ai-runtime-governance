@@ -27,12 +27,23 @@ public class Passwords {
     private final SecureRandom random = new SecureRandom();
 
     public String hash(String password) {
+        return encode(password, CURRENT_MEMORY_KIB, CURRENT_ITERATIONS);
+    }
+
+    public String hashPredecessorForTest(String password) {
+        return encode(password, PREDECESSOR_MEMORY_KIB, PREDECESSOR_ITERATIONS);
+    }
+
+    private String encode(String password, int memoryKib, int iterations) {
         byte[] salt = new byte[SALT_BYTES];
         random.nextBytes(salt);
-        byte[] hash = derive(password, salt, CURRENT_MEMORY_KIB, CURRENT_ITERATIONS);
+        byte[] hash = derive(password, salt, memoryKib, iterations);
         Base64.Encoder encoder = Base64.getEncoder().withoutPadding();
-        return "$argon2id$v=19$m=" + CURRENT_MEMORY_KIB + ",t=" + CURRENT_ITERATIONS + ",p=1$"
+        String encoded = "$argon2id$v=19$m=" + memoryKib + ",t=" + iterations + ",p=1$"
                 + encoder.encodeToString(salt) + "$" + encoder.encodeToString(hash);
+        java.util.Arrays.fill(salt, (byte) 0);
+        java.util.Arrays.fill(hash, (byte) 0);
+        return encoded;
     }
 
     public Verification verify(String password, String encoded) {

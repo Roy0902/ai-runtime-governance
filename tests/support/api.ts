@@ -3,8 +3,10 @@ import { join } from 'node:path';
 import { expect, type APIRequestContext, type Playwright } from '@playwright/test';
 import { PASSWORD, advanceClockOffset, setClockOffset, totp, uniqueEmail } from './native-auth';
 
-export const API_ORIGIN = 'http://127.0.0.1:8080';
-export const CONTROL = process.env.TEST_CONTROL_URL ?? 'http://127.0.0.1:8081/__test';
+export const API_ORIGIN = process.env.API_BASE_URL
+  ?? `http://127.0.0.1:${process.env.GOVERNANCE_PORT ?? '8080'}`;
+export const CONTROL = process.env.TEST_CONTROL_URL
+  ?? `${API_ORIGIN}/__test`;
 const CONTROL_TOKEN = process.env.TEST_CLOCK_TOKEN ?? '';
 
 export function uuid(): string {
@@ -52,6 +54,31 @@ export async function inspect(
   });
   expect(response.status()).toBe(200);
   return (await response.json()) as Record<string, unknown>;
+}
+
+export async function seedPredecessorVerifier(
+  request: APIRequestContext,
+  email: string,
+  password: string,
+): Promise<void> {
+  const response = await control(request, 'verifier/predecessor', { email, password });
+  expect(response.status).toBe(200);
+}
+
+export async function waitForTestBarrier(
+  request: APIRequestContext,
+  name: string,
+  timeoutMs = 8_000,
+): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const state = await inspect(request, 'barrier', { name });
+    if (state.waiting === true) {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  throw new Error(`test barrier '${name}' was not reached within ${timeoutMs}ms`);
 }
 
 export async function registerApi(
@@ -105,15 +132,19 @@ export async function enrollApi(
   request: APIRequestContext,
   email = uniqueEmail(),
   password = PASSWORD,
+  resetState = true,
 ): Promise<{
   email: string;
   password: string;
+  accountId: string;
+  scopeId: string;
   manualKey: string;
   recoveryCodes: string[];
   operationId: string;
 }> {
-  await control(request, 'reset');
-  setClockOffset(0);
+  if (resetState) {
+    await control(request, 'reset');
+  }
   const registration = await registerApi(request, email, password);
   expect(registration.response.status()).toBe(202);
   const token = await mailToken(request, email, 'verify');
@@ -132,8 +163,19 @@ export async function enrollApi(
     },
   });
   expect(completed.status()).toBe(200);
+  const completedContext = await completed.json() as {
+    account: { accountId: string; scopeId: string };
+  };
   await advanceClock(request, 30_000);
-  return { email, password, manualKey: secrets.manualKey, recoveryCodes: secrets.recoveryCodes, operationId };
+  return {
+    email,
+    password,
+    accountId: completedContext.account.accountId,
+    scopeId: completedContext.account.scopeId,
+    manualKey: secrets.manualKey,
+    recoveryCodes: secrets.recoveryCodes,
+    operationId,
+  };
 }
 
 export async function signInApi(

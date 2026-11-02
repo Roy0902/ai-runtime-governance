@@ -95,6 +95,14 @@ public class SessionService {
             default -> ANONYMOUS_ABSOLUTE;
         };
         Duration idle = context.equals("HUMAN") ? HUMAN_IDLE : absolute;
+        return issue(response, context, accountId, purpose, now, now,
+                now.plus(absolute), now.plus(idle), recentAuthAt,
+                recentAuthAt == null ? null : recentAuthAt.plus(RECENT_AUTH));
+    }
+
+    private Current issue(HttpServletResponse response, String context, UUID accountId, String purpose,
+            Instant createdAt, Instant activityAt, Instant absoluteExpiresAt, Instant idleExpiresAt,
+            Instant recentAuthAt, Instant recentAuthExpiresAt) {
         String token = tokens.issue();
         String csrf = tokens.issue();
         SessionRow row = new SessionRow(
@@ -104,20 +112,38 @@ public class SessionService {
                 accountId,
                 purpose,
                 csrf,
-                now,                now,
-                now.plus(absolute),
-                now.plus(idle),
+                createdAt,
+                activityAt,
+                absoluteExpiresAt,
+                idleExpiresAt,
                 recentAuthAt,
-                recentAuthAt == null ? null : recentAuthAt.plus(RECENT_AUTH),
+                recentAuthExpiresAt,
                 "ACTIVE");
         repository.insertSession(row);
-        writeCookie(response, token, absolute);
+        writeCookie(response, token, Duration.between(clock.instant(), absoluteExpiresAt));
         return new Current(row.id(), accountId, context, purpose, row.csrfToken(), row);
     }
 
     public Current rotate(HttpServletResponse response, Current previous, String context, UUID accountId, String purpose, Instant recentAuthAt) {
         repository.endSession(previous.sessionId(), "ENDED", clock.instant());
         return create(response, context, accountId, purpose, recentAuthAt);
+    }
+
+    public Current rotateForSettings(HttpServletResponse response, Current previous) {
+        Instant now = clock.instant();
+        SessionRow row = previous.row();
+        if (!"HUMAN".equals(previous.context()) || !"ACTIVE".equals(row.state())
+                || !now.isBefore(row.absoluteExpiresAt()) || !now.isBefore(row.idleExpiresAt())) {
+            throw ApiException.signInRequired();
+        }
+        requireRecentAuth(previous);
+        Instant idleExpiresAt = now.plus(HUMAN_IDLE);
+        if (idleExpiresAt.isAfter(row.absoluteExpiresAt())) {
+            idleExpiresAt = row.absoluteExpiresAt();
+        }
+        repository.endSession(previous.sessionId(), "ENDED", now);
+        return issue(response, "HUMAN", previous.accountId(), null, row.createdAt(), now,
+                row.absoluteExpiresAt(), idleExpiresAt, row.recentAuthAt(), row.recentAuthExpiresAt());
     }
 
     public void end(HttpServletResponse response, Current current) {
@@ -167,7 +193,7 @@ public class SessionService {
 
     public boolean hasRecentAuth(Current current) {
         Instant expires = current.row().recentAuthExpiresAt();
-        return expires != null && clock.instant().isBefore(expires);
+        return expires != null && !clock.instant().isAfter(expires);
     }
 
     public void requireRecentAuth(Current current) {

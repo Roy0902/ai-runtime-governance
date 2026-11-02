@@ -4,6 +4,102 @@ Mutable execution record outside the frozen plan. Preserve chronological entries
 append corrections instead of overwriting red history. No secrets or raw
 sensitive payloads are recorded here.
 
+## Continuation verification: 2026-11-02
+
+This section records a focused continuation, not a new whole-suite pass or
+completion of native auth. Historical runs below remain unchanged.
+
+### Environment actually restored on this checkout
+
+- Used the existing checksum-verified nested Temurin 25.0.5+8/Maven 3.9.16
+  installations; `local-env/env.ps1` now discovers either reviewed local layout.
+- Restored project-local Node 24.22.0 against its published SHA-256
+  `f9683a19877e12a9b167305c8db71040d812876359de21f0d2e97c3f321f80c3`.
+- Restored existing root/frontend lockfiles with `npm ci`; did not update
+  dependency versions or manifests to bypass checks.
+- Restored Mailpit 1.32.0 against its release SHA-256
+  `16915767a6c95dca569336e8f561f91cf355e9a33c57b91deedcc10a4bba7fd4`;
+  native version command passed.
+- Restored approved local PostgreSQL 17.6 from the vendor HTTPS binary archive.
+  Recorded archive SHA-256
+  `D378882ABD001A186735ACD6F6BA716BCA6CCD192E800412D4FD15ED25376B3E`
+  is an observed archive hash, not independently authenticated vendor metadata.
+  Extracted runtime bin/lib/share; no global installation.
+- Initialized only the new task-owned
+  `local-env/runtime/resume-20261102/pgdata`, loopback port 55434, 20 connections,
+  64 MiB shared buffers. Native readiness and database/version queries passed.
+  Existing unrelated databases were not reset.
+
+### Reproduced defects and surgical fixes
+
+1. Native JUnit baseline for session handling: five tests, three failures.
+   Settings rotation created a fresh original lifetime/recent confirmation;
+   expired human authority could be rotated; exact ten-minute confirmation was
+   rejected. Added a distinct `rotateForSettings` path preserving original
+   creation/absolute/recent timestamps, bounding renewed idle/cookie lifetime and
+   rejecting expired authority. Fresh sign-in/initial enrollment retains its
+   separate new-lifetime transition. Wired password, authenticator replacement
+   and standalone regeneration to the retaining path.
+2. Initial browser run did not reach any scenario: backend aggregate health
+   waited for SMTP, but Playwright started Mailpit only after backend readiness.
+   Direct backend startup returned health 503 before Mailpit and 200 after it.
+   Fixed Mailpit-before-backend ordering and absolute local tool paths; no health
+   check was suppressed. Backend reuse is disabled so the generated per-run
+   control token cannot accidentally bind to an older server.
+3. Focused locked browser baseline: 038/059 failed; 056/058 passed. Cancellation
+   left no sign-out control outside Account; bodyless sign-out lacked the JSON
+   content type and returned 415. Reproduced the client header failure in a
+   supporting test, then fixed mutation headers and shared authenticated
+   navigation with explicit sign-out error presentation/context refresh.
+4. Regeneration baseline: 046/047/050 passed; 048 failed because reload discarded
+   completion status. Persisted only an account-namespaced nonsecret operation
+   ID in session storage; reload obtains actual own-operation metadata. No seed,
+   provisioning URI, recovery code, credential or human-session token is stored
+   there. Completion/cancellation errors are explicitly presented.
+
+### Commands and final focused results
+
+Working directory: `D:\Personal\ai-runtime-governance`, unless noted. Dot-source
+`local-env/env.ps1` in each new shell. Maven uses the project-local installation,
+isolated `local-env/measurements/settings.xml` and `.local-cache/m2`.
+
+| Check | Command / selector | Actual result |
+|---|---|---|
+| Supporting session regression | Maven `-f backend/pom.xml -Dtest=SessionServiceTest test` | **7/7 passed** after fixes; includes initial enrollment, retained lifetime/recent auth, exact ten-minute boundary and expired authority |
+| Backend package | Maven `-f backend/pom.xml package` | **Passed**, with 7 supporting tests; Java 25/Boot 4.1.2 |
+| Client supporting tests | Node 24 `--test tests/supporting/api-client.test.mjs` | **2/2 passed**; mutation headers versus nonmutating context request |
+| Locked session/settings browser cases | Playwright browser grep `SCN-native-auth-(038\|056\|058\|059)` | **4/4 passed** |
+| Locked regeneration browser cases | Playwright browser grep `SCN-native-auth-(046\|047\|048\|050)` | **4/4 passed** |
+| Existing locked pacing follow-up | Playwright API `tests/api/native-auth-followup-01.spec.ts` | **3/3 passed** |
+| Real-database supporting session invariants | Playwright `--project=supporting-api` | **3/3 passed**: password change/replacement/regeneration retain exact creation/absolute/recent timestamps and revoke an independently authenticated second session |
+| Frontend native quality | `npm run lint`, `npm run build` in frontend | **Passed**; build includes `tsc --noEmit` |
+| Existing workflow guard tests | Node `--test tests/freeze-guard.test.mjs` | **22/22 passed** |
+
+These are eight selected original Browser SCNs, not a rerun of all 49. The three
+new API checks are supporting tests outside locked acceptance paths and have no
+SCN tags; they do not supply missing acceptance coverage.
+
+### Still blocked, not made green
+
+- Reproduced locked 039: completion succeeded, but the subsequent fresh login
+  reuses its consumed TOTP step. Preserve strict replay; use DR-043's reviewed
+  follow-up path, not a product exemption.
+- Reproduced locked 041: its local clock advance does not synchronize the shared
+  TOTP helper; step-up cannot receive the intended current code. Do not remove
+  the reauthentication requirement or widen TOTP windows to pass the setup.
+- Locked 037/092 and other source-confirmed fixture/locator/input issues retain
+  their review/follow-up requirements. No original plan, manifest or locked test
+  was modified, skipped in source, re-frozen or re-locked.
+- The test profile's relaxed mail limits were NOT corrected or presented as
+  verification of default production rates in this focused batch.
+- The predecessor-rehash/reset race and latest-state commit checks remain
+  unfinished. Successful session regression checks do not prove every concurrent
+  account/factor transition.
+- Mockito on Java 25 reports dynamic-agent self-attachment warnings. Supporting
+  tests pass; no warning suppression or global JVM configuration was added.
+- No full acceptance result, accessibility completion, as-built review or
+  entire-Phase-1 readiness is claimed.
+
 ## Identity
 
 - Frozen plan: [specs/native-auth.md](../../../../specs/native-auth.md) @ `3929c8570bb2ad6b2409f95b75393a43851521f9aff42261e7ca9e696cc699b5` (re-frozen under DR-041; previous hash `d03e6470b12957cef0794dd7601784a0f63c476bbdfee68b60a33c3af7d0b7b5`; previous manifest preserved as `native-auth.freeze.v1.json`)
@@ -143,3 +239,95 @@ Manifest: `specs/native-auth.freeze.json`, locked at 2026-11-01T11:38:50.416Z.
 - As-built comparison: not yet applicable.
 - Final status: **API complete for product behavior; frontend at 31/49. No full
   acceptance pass. Do not edit frozen plans or locked tests.**
+
+## Follow-up 03 and focused regression: 2026-11-02
+
+The November 1 totals remain historical and are not replaced with a claim that
+the original frozen plan is wholly green. All frozen artifacts were verified
+unchanged before/after this work.
+
+### Frozen follow-up 03
+
+- Plan: `specs/native-auth-followup-03.md`.
+- Plan normalized SHA-256:
+  `4ab64c2c787d4de88a5fc2b68447a1d356e69ed2463ee47b952b45c49acf6905`.
+- Frozen at `2026-11-02T08:34:30.375Z`; locked at `2026-11-02T09:48:48.371Z`.
+- Locked API test normalized SHA-256:
+  `06748abe67ce3073966a2ee21a9d8ef8818661f11ccb915d149d0df52f5b830a`.
+- Locked browser test normalized SHA-256:
+  `ea61fc9e6aa7ee321e40a5a21f9f88761ee5dac4ebaf563947a45f512a27c927`.
+- Full F03 API run: **6/6 passed**: 007, 036, 037, 062, 092 and 094.
+- Full F03 browser run: **6/6 passed**: 001, 015, 039, 041, 054 and 058.
+- Canonical `ai:verify`: native-auth and follow-ups 01/02/03 all `OK`.
+
+These are corrected post-freeze setups/framework evidence and regression checks.
+They are not falsely represented as a new feature-missing red baseline because
+the native-auth implementation already existed. Existing original/follow-up plan
+and test bytes were not edited.
+
+### Additional focused evidence
+
+| Check | Result |
+|---|---|
+| Maven backend package/supporting tests | Pass; 10 JUnit tests, including 3 stale-account/session-finalizer cases and 7 session boundary/rotation cases |
+| Frontend lint/typecheck/build | Pass |
+| Root workflow/freeze guard plus API client tests | 24/24 pass |
+| OpenAPI contract validation/type generation | Redocly 0 errors/0 warnings; 57,292 generated TypeScript bytes |
+| Real-PostgreSQL session lifecycle supporting checks | 3/3 pass for password change, factor replacement and recovery-code regeneration |
+| Real-PostgreSQL multi-account supporting check | 1/1 pass |
+| Earlier focused locked browser regressions | 12 passes across settings/sign-out and recovery/regeneration clusters, including original 038/046/047/048/050/056/058/059 |
+| Existing locked TOTP pacing follow-up 01 | 3/3 pass |
+
+### Product fixes verified
+
+- Settings-session rotation retains the original creation/absolute/recent-auth
+  timestamps, renews only idle time and clips the cookie lifetime to the original
+  absolute deadline. An expired session or confirmation cannot be revived.
+- The final authentication step locks/rechecks account version and eligibility
+  before consuming the factor and creating authority. A lost predecessor rehash
+  CAS returns a generic sign-in failure rather than continuing to a session.
+  The F03 test-profile barrier deterministically raced a real verified-email
+  reset against the old credential attempt; reset remained current and only the
+  new password/fresh factor created a session.
+- Settings pages have shared sign-out navigation; bodyless sign-out uses the
+  required JSON content type and explicit error handling.
+- Recovery-code generation uses only the nonsecret operation ID in session
+  storage and reads real own-operation metadata after reload. Raw codes remain
+  one-display-only.
+- Initial enrollment reload first reads the existing pending operation. Existing
+  secret-bearing operations show the approved already-shown state; they are not
+  re-created/redelivered.
+- Duplicate registration helper no longer resets the account under test.
+
+### Local test infrastructure
+
+- PostgreSQL 17.6/PostgreSQL 17.6 database, Mailpit and the application/frontend
+  use the isolated local runtime and dynamic free ports. An unrelated local
+  Tomcat on port 8080 was preserved; tests used separate loopback ports.
+- The test profile is loopback-only. A nonsecret test-clock snapshot in ignored
+  runtime files keeps Node TOTP calculation synchronized with browser-driven
+  server-clock changes. Per-run control token is random; backend reuse is off.
+- F03 acceptance controls are test-profile-only and absent from product OpenAPI.
+  The predecessor race barrier pauses at most ten seconds, exposes only boolean
+  wait status, and is released on reset/release.
+- Task-owned services were stopped after verification. No global installation,
+  production credential, real outbound email, secret export, commit or push.
+
+### Remaining work and honest limits
+
+- Full original `native-auth` Browser/API suites have **not** been rerun after
+  follow-up 03; do not aggregate selected follow-up green into a whole original-
+  plan pass.
+- Original SCN-094's browser setup is still historically defective; F03 tests its
+  raw line-break boundary through the API. Browser-native sanitization is not
+  claimed to have submitted the original line-break value.
+- Original/follow-up 02 locked files remain immutable; F03 provides corrected
+  separate cases. Preserve the earlier red/run results.
+- The test profile still raises mail identity limits to 100/minute and 1,000/hour.
+  F03 does not establish real default 1/minute and 5/hour policy coverage.
+- `ResetReporter.onTestBegin` is asynchronous and warns on reset failure; this
+  remains a test-isolation risk for broad suite runs. F03 uses an awaited
+  per-test reset. Full original-suite reset determinism still needs review.
+- Whole-suite approved-default-policy verification, code review, accessibility,
+  as-built diagrams and non-auth Phase 1 work remain incomplete. Windows/WSL
+  client feasibility remains user-performed and externally blocked.

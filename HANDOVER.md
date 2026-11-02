@@ -1,8 +1,110 @@
 # Cross-session handover
 
-Updated: 2026-11-01. Use this as the first file in a new session.
-Status: **API implementation complete for product behavior; frontend implemented;
-acceptance suites partially green. Nothing is pushed.**
+Updated: 2026-11-02. Use this as the first file in a new session.
+Status: **Native-auth continuation prepared. Backend/frontend implementation
+exists, but acceptance and invariant verification remain incomplete. No feature
+code, frozen plan or locked test was changed during this preparation.**
+
+## 0. Current continuation checkpoint: 2026-11-02
+
+The November 1 counts below are historical run results, not a fresh acceptance
+run on this checkout. Current read-only guard verification passes for
+`native-auth`, `native-auth-followup-01` and `native-auth-followup-02`.
+The preparation changes are confined to this handover and the mutable
+[gap register](./spec-to-test-workflow/phase-1/native-auth/evidence/gap-register.md).
+
+### Actual local prerequisites
+
+The repository was clean at `923b63d` when preparation started; the local
+`origin/main` tracking reference matched HEAD. No remote fetch/push was performed.
+Ignored tool/data directories from the other host did not arrive with Git.
+
+| Prerequisite | Current checkout |
+|---|---|
+| JDK used by current Playwright config | Missing at `.local-tools\jdk-25.0.5+8` |
+| Available earlier JDK | Present at `.local-tools\java\jdk-25.0.5+8` |
+| Maven used by `env.ps1` | Missing at `.local-tools\apache-maven-3.9.16` |
+| Available earlier Maven | Present at `.local-tools\maven\apache-maven-3.9.16` |
+| PostgreSQL 17.6 binary/data directory | Not present at the configured paths |
+| Mailpit binary | Not present at the configured path |
+| Root Playwright/frontend dependencies | Not restored |
+| Backend application jar | Not built |
+| Node/npm on this host | 22.19.0 / 10.9.3, not the other host's recorded 24.22.0 / 11.19.1 |
+
+Restore/verify project-local prerequisites and reconcile configuration paths
+before interpreting a test failure as a product defect. Keep PostgreSQL 17.6 as
+the DR-042 local baseline; never reset an unverified existing database or use
+global installation to repair this checkout. No service was started in this
+preparation.
+
+### Correct continuation order
+
+1. **Harness correctness first:** establish awaited per-test reset, preserve data
+   during duplicate signup, align the fixed server clock and TOTP inputs, use
+   real independent sessions, and make prerequisite failures explicit.
+2. **Invariant-first product verification:** reproduce original-deadline/recent-
+   confirmation preservation on rotation, then the actual predecessor-rehash/
+   concurrent-reset race. Do not equate the current API pass count with proof of
+   those invariants.
+3. **Reviewed test-only follow-up:** use the draft scope below; preserve all
+   three existing frozen plans/manifests and every locked test.
+4. **UI product fixes:** reproduce replacement/regeneration, step-up, status and
+   sign-out behavior against sound fixtures before changing product code.
+5. **Full verification:** approved default-policy tests, complete browser/API
+   evidence, accessibility and as-built review. Timeline remains downstream.
+
+### Draft scope for follow-up 03: not a frozen plan
+
+This is preparation for a reviewable follow-up, not permission to author/lock
+corrected tests or change product expectations.
+
+| SCN | Proposed correction preserving the approved rule |
+|---|---|
+| 001 | Keep exact account/entitlement assertions; locate the `term` by role plus anchored text instead of unsupported accessible-name lookup |
+| 007 | Prove the same verified account survives expired setup and can reacquire legitimate setup access; do not assert an unsupported expiry message from an expired session |
+| 036 | Keep a valid setup context and synchronize candidate TOTP to the controlled server instant before the 24-hour boundary; do not let an unrelated context/clock failure stand in for operation validity |
+| 037 | Acquire a fresh legitimate SETUP context before the original operation deadline without restarting/extending the operation; verify the same pending operation and a still-valid context, then assert `410 OPERATION_EXPIRED` at the original deadline |
+| 054 | Establish the password page and last deliberate activity before the idle interval; submit invalid input without an intervening successful protected navigation that would legitimately renew inactivity |
+| 058 | Authenticate a genuinely separate second session, not a copied cookie; assert current-session `createdAt`, `absoluteExpiresAt` and original `recentAuthExpiresAt` remain unchanged after the approved settings rotation while the other session is revoked |
+| 062 | Create actual A/B account ownership and B's operation; assert the approved JSON `404 NOT_FOUND` when A attempts B's operation and inspect A's unchanged own-account view; do not expect an HTML message from an API URL |
+| 092 | Use a real reviewed predecessor verifier and a deterministic interleaving: old authentication verified, reset commits a new credential revision, stale rehash resumes; assert no overwrite or stale session authority, and fresh-factor authentication succeeds only with the new password |
+| 094 | Exercise observable raw paste before native sanitization and direct service rejection; setting `input.value` cannot prove rejection of original CR/LF already removed by the browser |
+
+The proposed 037 data recipe uses normal credential-verified setup access, not
+cookie forgery or secret readback. Its preconditions must be checked explicitly.
+The 092 case still needs a reviewed test-only predecessor fixture and deterministic
+barrier contract; `Promise.all` or a sequential reset is not that proof.
+
+SCN-002/003 are **not named-term locator cases in the current source**. Their
+duplicate-signup action calls the shared `register` helper, which resets all
+test state and deletes the very account whose preservation is being asserted.
+Prepare a behavior-preserving unlocked-helper correction with actual per-test
+isolation; do not rewrite their locked expectations or reset on each user action.
+
+If a corrected test is already green, record it as an existing-behavior baseline.
+Never break the product or manufacture a feature-missing red result. Do not
+claim the follow-up freeze/red/lock gate passed until the proper disposition of
+test-only corrections versus new product-gap assertions has been reviewed.
+
+### Concrete source-backed review risks
+
+- `SessionService.rotate` currently ends the old session then calls `create`,
+  which initializes fresh creation/deadline timestamps. The settings path also
+  supplies a new recent-authentication time. This conflicts with preservation
+  requirements and needs a focused runtime regression, not a cosmetic UI fix.
+- The rehash update is conditional on account version, but its affected-row
+  outcome is not returned to the sign-in flow, which proceeds toward session
+  creation. The exact race must be reproduced before declaring it correct or
+  deciding its fix.
+- `ResetReporter.onTestBegin` is asynchronous and only warns on reset failure.
+  Reporter callbacks must not be assumed to provide an awaited fixture barrier.
+- The test profile sets mail-identity limits to 100/minute and 1,000/hour.
+  Approved default-policy evidence must exercise 1/minute and 5/hour; pace reset
+  setup instead of weakening those limits to make SCN-092 green.
+
+These are preparation findings, not new runtime pass/fail results. The
+[gap register](./spec-to-test-workflow/phase-1/native-auth/evidence/gap-register.md)
+records them as GAP-NA-022 through GAP-NA-027.
 
 ## 1. Read first
 
@@ -15,16 +117,16 @@ acceptance suites partially green. Nothing is pushed.**
 
 ## 2. Repository state
 
-- Branch `main`, clean working tree.
-- `ahead 11` of `origin/main`; **do not push** unless explicitly asked.
-- Last local commit: `4dcac68 [Docs]Record the session outcome and remaining gaps`.
+- Branch `main`; clean before this documentation-only preparation.
+- Local `origin/main` tracking ref matches HEAD; **do not push** unless asked.
+- Last local commit: `923b63d [Docs]Create handover list`.
 - First commit `38d6727` is already on `origin/main`; do not amend or force-push it.
 - Commit style: `[TaskType]Goal-oriented title`, e.g.
   `[Test]Correct the TOTP pacing and remaining test oracles`.
 - No secrets are committed. `.local-cache/`, `.local-tools/`, `local-env/runtime/`
   and `frontend/dist/` are ignored.
 
-## 3. Current results
+## 3. Last recorded application results: 2026-11-01
 
 | Suite | Result |
 |---|---|
@@ -65,9 +167,10 @@ The Playwright config starts the backend with the `test` profile, test token
 `test-token`, DB `jdbc:postgresql://127.0.0.1:55434/governance`, and the shared
 fault/dispatch files. Do not expose `__test` in production.
 
-## 5. Immediate browser work (18 failures)
+## 5. Recorded browser failure groups (18 failures on November 1)
 
-Fix in this order — highest count first.
+These are historical failure counts, not a fresh reproduction or a declaration
+that every failure is a UI bug. Use section 0's fixture/invariant-first order.
 
 ### 5.1 Replacement and regeneration (7)
 
@@ -102,29 +205,35 @@ Check the verify/setup status regions and the "already shown" path when
 
 ### 5.4 Line-break input (1)
 
-`SCN-094`: the test sets `input.value` directly. React's controlled input may not
-observe that value. Use `onInput` and read the native value, or an uncontrolled
-input, without weakening the server rule.
+`SCN-094`: the test sets `input.value` directly, after which native password
+sanitization has already removed CR/LF. Changing React to `onInput` cannot
+recover the unobservable original. Use a reviewed follow-up for raw paste before
+sanitization and keep direct server rejection; do not weaken the server rule.
 
 ### 5.5 API URL assertion (1)
 
 `SCN-062`: the test navigates to the JSON API and expects “Not found”. This is a
 test defect; correct it in a follow-up rather than shaping the API response.
 
-### 5.6 Term locator (3)
+### 5.6 Term locator and duplicate-signup fixtures (3)
 
-`SCN-001`, `002`, `003`: Playwright 1.64.1 `getByRole('term', { name })` returns
-zero even with exact text and `aria-label` (`GAP-NA-020`). Use
-`getByRole('term').filter({ hasText })` in a test follow-up.
+`SCN-001` uses the named-term locator. Playwright 1.64.1
+`getByRole('term', { name })` was recorded as matching zero even with exact text
+and `aria-label` (`GAP-NA-020`); use the reviewed role/text follow-up.
+
+`SCN-002/003` have a distinct source-backed fixture problem: the duplicate signup
+calls `register`, which resets the existing account. Do not presume a locator
+change fixes those cases.
 
 ## 6. Immediate API/test-oracle work
 
 - **037:** advancing 24h expires the `SETUP` session, so completion returns 401
   before the operation 410. Correct the setup (refresh the session or shorten the
   operation deadline) in a follow-up.
-- **092:** reset immediately after registration hits the mail-identity limit.
-  The test-profile limit is now 100/min, so rerun first; if it still fails,
-  advance the clock before the reset request.
+- **092:** respect the normal mail window before requesting reset. The sequential
+  follow-up-02 case is not proof of the required concurrent predecessor rehash;
+  prepare the deterministic race case described above. Relaxed test-profile
+  limits do not prove the approved production policy.
 - **057:** the original is superseded by follow-up 01.
 - **073:** passes in follow-up 02.
 
@@ -170,9 +279,11 @@ with its own freeze/lock, or retire the superseded originals in a reviewed way.
 
 ## 10. Suggested first three actions
 
-1. Start PostgreSQL 17.6 and Mailpit, then run the replacement/regeneration
-   cluster (`038/039/041/046/047/048/050`) and fix the UI transitions.
-2. Rerun follow-up 02 and the remaining API cases; confirm whether the mail-limit
-   change fixed 092.
-3. Create a test-only follow-up for 037, 062 and the `term` locator, then return
-   to the browser suite.
+1. Restore and verify this checkout's project-local tools, dependencies and
+   isolated PostgreSQL 17.6/Mailpit before starting acceptance.
+2. Review fixture-isolation and invariant regressions, then finalize the
+   follow-up-03 scope and its test-only race controls. Do not freeze it while
+   its gate/precondition questions remain unresolved.
+3. Reproduce the remaining UI clusters against sound fixtures; fix only proven
+   product defects, preserve locked artifacts and proceed through full native/
+   browser/API, accessibility and as-built verification.

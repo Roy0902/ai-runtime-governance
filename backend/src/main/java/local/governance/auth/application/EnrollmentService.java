@@ -181,7 +181,7 @@ public class EnrollmentService {
         repository.activateRecoverySet(operation.recoverySetId(), now);
         repository.completeOperation(operation.id(), now);
         repository.revokeOtherSessions(account.id(), current.sessionId(), now);
-        SessionService.Current rotated = sessions.rotate(response, current, "HUMAN", account.id(), null, now);
+        SessionService.Current rotated = sessions.rotateForSettings(response, current);
         AccountRow updated = repository.accountById(account.id()).orElse(account);
         return contexts.context(rotated, updated);
     }
@@ -231,7 +231,7 @@ public class EnrollmentService {
             throw ApiException.unavailable();
         }
         repository.revokeOtherSessions(account.id(), current.sessionId(), now);
-        SessionService.Current rotated = sessions.rotate(response, current, "HUMAN", account.id(), null, now);
+        SessionService.Current rotated = sessions.rotateForSettings(response, current);
         AccountRow updated = repository.accountById(account.id()).orElse(account);
         return contexts.context(rotated, updated);
     }
