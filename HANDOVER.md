@@ -1,11 +1,9 @@
 # Cross-session handover
 
-Updated: 2026-11-02, after the split, the reset/suite rerun, and the approved
-default mail-policy evidence. Read the next section first.
-Status: **All native-auth gates are closed: reset determinism, whole-suite
-rerun, default mail policy, Phase 10 review, Phase 11 accessibility and Phase 12
-as-built are recorded. Timeline remains downstream pending its Phase 6
-decisions.**
+Updated: 2026-11-02, after native-auth closed (Phase 10–12), the frontend split
+and the backend naming/DTO refactor. Read this section first.
+Status: **Native-auth is complete and verified. The next feature is the activity
+timeline, which is blocked only by its Phase 6 decisions.**
 
 ## Next-agent follow-up list: authoritative resume checkpoint
 
@@ -17,18 +15,23 @@ lists below. Keep those sections as history, not current instructions.
 - Working folder: `C:\Users\pigcr\Documents\Workspace\ai-runtime-governance`,
   branch `main`. The application code is in sibling repositories:
   `../ai-runtime-governance-frontend` and `../ai-runtime-governance-backend`.
-- Latest commit: `251a057 Update handover`; the last implementation checkpoint is
-  `b946e99 [Fix]Correct native-auth session handling and acceptance harness`.
-- The frontend/backend split and the reset/suite work are committed and pushed.
-  The approved default mail-policy evidence is the current increment. The local
-  branches `split/frontend` and `split/backend` remain in the docs repository.
-- No push was performed. Do not commit, amend or push unless explicitly asked.
-  When asked, use `[TaskType]Goal-oriented title`.
-- Read [latest execution evidence](./spec-to-test-workflow/phase-1/native-auth/evidence/execution-evidence.md),
-  especially **Follow-up 03 and focused regression: 2026-11-02** and
-  **Reset determinism and whole-suite rerun: 2026-11-02 (second continuation)**.
-  Earlier unfinished-race statements and November 1 totals are historical.
-- Then read the [gap register](./spec-to-test-workflow/phase-1/native-auth/evidence/gap-register.md),
+- Current commits and push state:
+  - docs: last implementation commit `f7d97f8 [Docs]Record the backend naming
+    and DTO refactor`; the docs repo is ahead of `origin/main` (`bbbe1fa`).
+  - frontend: `7437262 [Fix]Make the step-up dialog modal and trap focus`,
+    pushed.
+  - backend: `b5fad17 [Refactor]Uppercase acronym type names and split API DTOs`,
+    pushed.
+- All three worktrees are clean. PostgreSQL is stopped. The local branches
+  `split/frontend` and `split/backend` remain in the docs repository.
+- Push only when asked. Commit with `[TaskType]Goal-oriented title`.
+- Read [latest execution evidence](./spec-to-test-workflow/phase-1/native-auth/evidence/execution-evidence.md)
+  from **Phase 10** onward: reset determinism, whole-suite rerun, default
+  mail-policy, Phase 10 review, Phase 11 accessibility and Phase 12 as-built.
+  November 1 totals and earlier unfinished-race statements are historical.
+- Then read the [as-built review](./spec-to-test-workflow/phase-1/native-auth/as-built/README.md),
+  the [gap register](./spec-to-test-workflow/phase-1/native-auth/evidence/gap-register.md),
+  the [timeline Phase 6 review](./spec-to-test-workflow/phase-1/timeline/08-review.md),
   applicable [decision records](./spec-to-test-workflow/phase-1/05-decision-record.md),
   and only the frozen requirements/contracts needed for the assigned work.
 - Graph coverage checked for the handover/evidence/F03/config paths was
@@ -73,6 +76,16 @@ lists below. Keep those sections as history, not current instructions.
   `spec-to-test-workflow/phase-1/native-auth/as-built/README.md` records the
   component/flows/state/ERD diagrams and drift AB-001–AB-009. No approved or
   frozen artifact was edited.
+- Backend naming/DTO refactor `b5fad17`: acronyms in type names are uppercase
+  (`AdminCLI`, `APIException`, `APIErrorHandler`, `TOTP`, `*DTO`) and each of the
+  21 API request/response records has its own file under
+  `local/governance/api`. Packages, methods and fields keep Java conventions.
+  JUnit 10/10, API smoke and `arg-admin totp-key status` passed.
+- Phase 12 drift to review: `web_session.csrf_token` is plaintext while the
+  design says `csrf_hash` (AB-001); the frontend is a compact `App.tsx`; there is
+  no `SecurityConfig`; the harness layout differs from design §14; virtual
+  threads are not explicitly configured; PostgreSQL 17.6 is the local baseline.
+  These are recorded, not silently accepted.
 - Do not redo the fixed session-deadline/recent-auth preservation, deterministic
   predecessor-rehash/reset race, sign-out headers, enrollment reload or
   regeneration status fixes unless a regression provides new evidence.
@@ -108,9 +121,9 @@ lists below. Keep those sections as history, not current instructions.
    `spec-to-test-workflow/phase-1/native-auth/as-built/README.md` records the
    architecture, flows, states, ERD and drift AB-001–AB-009. No approved intent
    or frozen artifact was changed.
-8. **Return to timeline Phase 6 review.** Native-auth gates are closed; the
-   timeline still needs R-TL-001/003/004/005 decisions before freeze/lock/code.
-   WSL/client integration remains separate, user-performed and externally blocked.
+8. **Timeline Phase 6: the next work.** See section 5 below for the decisions
+   and the recommended sequence. WSL/client integration remains separate,
+   user-performed and externally blocked.
 
 ### 4. Starting commands and exit conditions
 
@@ -120,18 +133,22 @@ From the docs repository root, after checking tools/environment and safe ports:
 . .\local-env\env.ps1
 npm run ai:verify
 node --test tests\freeze-guard.test.mjs tests\supporting\api-client.test.mjs
-# Run live suites only after PostgreSQL readiness:
+# Start PostgreSQL 17.6 in its own window/process on 55434:
+.\.local-tools\pgsql17\bin\postgres.exe -D .\.local-cache\pgdata17 -p 55434
+# Run live suites after PostgreSQL readiness:
 npm run test:acceptance -- --project=api
 npm run test:acceptance -- --project=browser
 npm run test:acceptance -- --project=supporting-api
 # Native checks across the sibling repositories:
 mvn -f ..\ai-runtime-governance-backend\pom.xml test
+mvn -f ..\ai-runtime-governance-backend\pom.xml -DskipTests package
 npm --prefix ..\ai-runtime-governance-frontend run lint
 npm --prefix ..\ai-runtime-governance-frontend run typecheck
 npm --prefix ..\ai-runtime-governance-frontend run build
 npm run ai:contract
 npm run test:mail-policy
 npm run test:a11y
+.\local-env\bin\arg-admin.cmd totp-key status
 ```
 
 Ports are configurable through the current
@@ -146,6 +163,45 @@ checkpoint. Completion requires truthful whole-suite dispositions, approved
 default-policy coverage, native checks/review, accessibility and as-built review.
 If a real product/review decision blocks progress, ask the user rather than
 inventing approval or weakening an oracle.
+
+### 5. Timeline Phase 6: the next work
+
+The timeline review verdict is **not ready to freeze or code** until these
+findings are resolved. Recommended decisions:
+
+| Finding | Recommended decision |
+|---|---|
+| R-TL-001 traversal membership | Server-managed bounded traversal records. Snapshot committed event IDs at the first successful read; reauthorize every page; 5-minute expiry; 10,000 records and 5 active traversals per account; explicit `TRAVERSAL_EXPIRED` / `TRAVERSAL_LIMIT` errors; no long-lived DB transaction; tombstones for deleted members. |
+| R-TL-003 harness | Extend the existing `/__test` surface with a token-protected, loopback-only timeline ingestion/inspection boundary. Exercise real validation, deduplication and producer authority; no public seed/write endpoint; record service-level versus browser assertions. |
+| R-TL-005 schema | One machine-readable JSON Schema/OpenAPI component with UUID IDs. Add an explicit test-only alias map for `evt-001` fixtures. Define enums, nullability, timestamp rules and producer permissions; close AMB-004/005. |
+| R-TL-004 cases | Append SCN-031+ for concurrent cursor arrival, traversal expiry/limit, refresh failure, navigation race, pending load-more and accessibility. Do not renumber existing SCNs; approve exact copy first. |
+
+R-TL-002 is closed by the completed native-auth prerequisite. R-TL-008 needs
+only a baseline refresh to Java 25 / Maven 3.9.16 / Node 24.22 / Playwright
+1.64.1 / PostgreSQL 17.6 and the sibling-repo layout.
+
+After the user approves the decisions:
+
+1. Write the Phase 6 decision record (mutable; do not edit approved intent).
+2. Revise the timeline design, scenarios and frontend/backend task lists.
+3. Review, freeze and lock the revised plan; author genuine feature-missing red
+   acceptance before implementation.
+4. Implement the timeline backend read model/ingestion and the React read UI.
+5. Verify with real browser/backend/persisted data; update the execution
+   evidence, gap register and this handover.
+
+Do not start coding against the current draft: its cursor membership, harness,
+event shape and missing accessibility/race cases are unresolved.
+
+### 6. Backend conventions (introduced 2026-11-02)
+
+- Acronyms in type names are uppercase: `AdminCLI`, `APIException`,
+  `APIErrorHandler`, `TOTP`, `SessionDTO`, `AccountDTO`.
+- Do not recreate an `ApiDtos` container. Each API request/response record has
+  its own file under `local/governance/api`.
+- Packages, methods and fields keep Java lower-camel/lowercase conventions
+  (`local.governance.api`, `requireCsrf`, `csrfToken`).
+- New backend code should follow these conventions.
 
 ## 0. Historical preparation checkpoint: 2026-11-02, before implementation continuation
 
@@ -259,14 +315,12 @@ records them as GAP-NA-022 through GAP-NA-027.
 
 ## 2. Repository state
 
-- Branch `main`; the split, reset/suite, mail-policy, Phase 10–12, frontend
-  modal fix, and backend naming/DTO refactor are committed. The docs repo,
-  frontend repo, and backend repo each have local commits awaiting your push.
+- Branch `main`; all work is committed. Frontend and backend are pushed; the
+  docs repo has local commits ahead of `origin/main` (`bbbe1fa`) awaiting push.
 - **Do not push** unless asked.
-- Last implementation commits: docs `63e1ba8 [Test]Prove approved default
-  mail-identity policy`; frontend `7437262 [Fix]Make the step-up dialog modal
-  and trap focus`; backend `b5fad17 [Refactor]Uppercase acronym type names and
-  split API DTOs`.
+- Last commits: docs `f7d97f8 [Docs]Record the backend naming and DTO refactor`;
+  frontend `7437262 [Fix]Make the step-up dialog modal and trap focus`; backend
+  `b5fad17 [Refactor]Uppercase acronym type names and split API DTOs`.
 - First commit `38d6727` is already on `origin/main`; do not amend or force-push it.
 - Commit style: `[TaskType]Goal-oriented title`, e.g.
   `[Test]Correct the TOTP pacing and remaining test oracles`.
