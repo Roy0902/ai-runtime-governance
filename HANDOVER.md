@@ -3,8 +3,8 @@
 Updated: 2026-11-02, after the split, the reset/suite rerun, and the approved
 default mail-policy evidence. Read the next section first.
 Status: **Reset determinism, the whole-suite rerun, the approved default
-mail-policy evidence, and the Phase 10 review are recorded. Accessibility and
-as-built work remain. Timeline stays downstream.**
+mail-policy evidence, the Phase 10 review, and Phase 11 accessibility are
+recorded. Phase 12 as-built remains. Timeline stays downstream.**
 
 ## Next-agent follow-up list: authoritative resume checkpoint
 
@@ -64,6 +64,10 @@ lists below. Keep those sections as history, not current instructions.
   review found no proven product defect. Narrow residual concurrency risks
   (concurrent settings rotation or admin disable, last-writer-wins password
   change) are documented, not silently declared safe.
+- Phase 11 accessibility: `npm run test:a11y` **4/4**. Found and fixed a
+  non-modal step-up dialog (focus escaped behind it, Escape did not cancel,
+  duplicate h1); the dialog now uses `showModal()`, an explicit focus loop and
+  Escape/cancel handling.
 - Do not redo the fixed session-deadline/recent-auth preservation, deterministic
   predecessor-rehash/reset race, sign-out headers, enrollment reload or
   regeneration status fixes unless a regression provides new evidence.
@@ -91,8 +95,10 @@ lists below. Keep those sections as history, not current instructions.
    and latest-state findings are recorded in the evidence; no proven product
    defect was found. Residual concurrency risks are documented, not assumed
    safe.
-6. **Finish Phase 11 accessibility** against the real running frontend,
-   including contract locators, keyboard/focus and error/status announcements.
+6. **Phase 11 accessibility: complete (done 2026-11-02).** `npm run test:a11y`
+   covers the register/sign-in/enrollment contracts, keyboard order, live
+   regions, and step-up focus trap/Escape. The non-modal dialog defect is fixed
+   in the frontend repository.
 7. **Finish Phase 12 as-built diagrams and intent comparison.** Keep as-built
    output separate; never overwrite approved intent. Record drift and blockers.
 8. **Only then return to timeline preparation/review.** Native-auth completion
@@ -118,6 +124,7 @@ npm --prefix ..\ai-runtime-governance-frontend run typecheck
 npm --prefix ..\ai-runtime-governance-frontend run build
 npm run ai:contract
 npm run test:mail-policy
+npm run test:a11y
 ```
 
 Ports are configurable through the current
@@ -245,11 +252,13 @@ records them as GAP-NA-022 through GAP-NA-027.
 
 ## 2. Repository state
 
-- Branch `main`; the split, reset/suite, and mail-policy work are committed and
-  pushed.
+- Branch `main`; the split, reset/suite, mail-policy, Phase 10 review, and
+  Phase 11 accessibility work are committed. The frontend modal fix is committed
+  locally and awaits your push.
 - **Do not push** unless asked.
-- Last implementation commit: `63e1ba8 [Test]Prove approved default
-  mail-identity policy`.
+- Last implementation commits: docs `63e1ba8 [Test]Prove approved default
+  mail-identity policy`; frontend `7437262 [Fix]Make the step-up dialog modal
+  and trap focus`.
 - First commit `38d6727` is already on `origin/main`; do not amend or force-push it.
 - Commit style: `[TaskType]Goal-oriented title`, e.g.
   `[Test]Correct the TOTP pacing and remaining test oracles`.
@@ -411,6 +420,7 @@ still use the pre-split `frontend/` and `backend/` paths.
 | Follow-up tests | `tests/api/native-auth-followup-0{1,2}.spec.ts` |
 | Test helpers | `tests/support/` |
 | Mail-policy evidence | `tests/playwright.mail-policy.config.ts`, `tests/supporting/mail-policy.spec.ts` |
+| Accessibility evidence | `tests/playwright.a11y.config.ts`, `tests/supporting/accessibility.spec.ts` |
 | Backend | `../ai-runtime-governance-backend/` |
 | Frontend | `../ai-runtime-governance-frontend/src/` |
 | Session evidence | `spec-to-test-workflow/phase-1/native-auth/evidence/` |

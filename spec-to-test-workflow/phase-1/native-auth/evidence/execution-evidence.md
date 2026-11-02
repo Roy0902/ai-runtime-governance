@@ -492,3 +492,35 @@ new behavioral run.
 - The mail-policy sequence uses 9 of the separate 10/hour source-admission
   events; the test documents that budget so future additions split the case
   rather than hit an unrelated 429.
+
+## Phase 11 accessibility: 2026-11-02
+
+Scope: real browser against the running frontend, covering the approved role/name
+contract, keyboard order, live error/status regions, and the step-up dialog.
+
+- Config: `tests/playwright.a11y.config.ts` (imports the main config; one `a11y`
+  project, desktop Chrome, frontend base URL).
+- Test: `tests/supporting/accessibility.spec.ts` (supporting, no SCN tags).
+- Command: `npm run test:a11y`.
+- Result: **4/4 passed**.
+
+Covered:
+
+- register page: h1, named email/password controls, `role=alert` for validation,
+  `role=status` for accepted registration;
+- sign-in: linear Tab order email → password → authenticator → submit, and
+  `role=alert` for sign-in failure;
+- enrollment: h1, labelled manual key, recovery-code list, saved-codes checkbox,
+  complete button;
+- step-up: dialog is modal, focus starts on password, Shift+Tab wraps to Cancel,
+  Escape cancels, and the page is usable again.
+
+### Defect found and fixed
+
+The step-up dialog used `<dialog open>`, which is non-modal: focus stayed on the
+page behind, Shift+Tab fell to `<body>`, Escape did nothing, and the dialog
+duplicated the page's h1. Fixed in the frontend repository with `showModal()`, an
+explicit Tab/Shift+Tab focus loop, Escape/`cancel` handling, and an h2 dialog
+heading (frontend commit `7437262`). The existing step-up browser cases
+038/041/058/059 and F03 041/054/058 still pass; original 054 remains the known
+pre-existing setup defect.

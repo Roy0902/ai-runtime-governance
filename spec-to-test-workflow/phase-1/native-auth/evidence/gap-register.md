@@ -46,6 +46,7 @@ remain the recorded November 1 partial runs. See GAP-NA-022 onward and the
 | GAP-NA-033 | The `host()` helper defaulted `GOVERNANCE_TEST_FAULTS_FILE`/`GOVERNANCE_DISPATCH_FILE` to `.local-cache`, while the backend used `local-env/runtime/acceptance`. | 065/071/072 failed even though the product was correct: the CLI and web process read different file-backed state. | Yes for the host/dispatch checks | **Resolved:** the Playwright config exports the same paths to the test process and backend; 065/071/072 now pass. |
 | GAP-NA-034 | The frontend webServer assumed `.local-tools/node-v24.22.0-win-x64/node.exe`, absent on this checkout. | Playwright could not start the frontend, so no browser/API acceptance ran. | Yes for live runs | **Resolved:** `tests/playwright.config.ts` falls back to `process.execPath` when the flat local Node is absent. |
 | GAP-NA-035 | Current whole-suite disposition after the reset fix. | Needed to replace the historical 31/49 and 44/48 counts. | No | **Recorded 2026-11-02:** browser 48/55 (original 42/49 + F03 6/6); API 52/57 (original 41/45 + F01 3/3 + F02 2/3 + F03 6/6); supporting 4/4; native checks 10/10 and 24/24. Remaining failures are known test defects/superseded cases, not product defects. |
+| GAP-NA-036 | The step-up dialog was a non-modal `<dialog open>`: focus stayed behind it, Shift+Tab escaped to `<body>`, Escape did not cancel, and the dialog duplicated the page h1. | Keyboard and screen-reader users could not reliably confirm or cancel sensitive changes. | Yes for Phase 11 | **Resolved 2026-11-02:** `showModal()`, explicit Tab/Shift+Tab focus loop, Escape/cancel handling, h2 heading; `npm run test:a11y` 4/4; step-up browser cases pass. |
 
 **2026-11-02 reset/suite update:** GAP-NA-019 is now 2/3 (073 and 092 pass;
 037 remains). GAP-NA-021's original browser suite is 42/49; the seven remaining
@@ -53,7 +54,8 @@ failures are the known framework/setup cases corrected by F03. GAP-NA-023 is
 resolved for the original suites by the awaited per-test reset; the
 duplicate-signup helper no longer resets. GAP-NA-014: 065/071/072 are resolved by
 the harness path alignment; 037/057/073/092 remain known test defects.
-GAP-NA-027 is resolved by the isolated `test:mail-policy` run.
+GAP-NA-027 is resolved by the isolated `test:mail-policy` run. GAP-NA-036 is
+resolved by the modal step-up dialog and the Phase 11 accessibility suite.
 
 ## Notes
 

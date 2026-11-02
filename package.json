@@ -12,6 +12,7 @@
     "ai:contract": "node local-env/contract-tools/run.mjs",
     "test:acceptance": "playwright test --config tests/playwright.config.ts",
     "test:mail-policy": "playwright test --config tests/playwright.mail-policy.config.ts",
+    "test:a11y": "playwright test --config tests/playwright.a11y.config.ts",
     "dev:frontend": "npm --prefix ../ai-runtime-governance-frontend run dev",
     "dev:backend": "mvn -f ../ai-runtime-governance-backend/pom.xml spring-boot:run",
     "build:frontend": "npm --prefix ../ai-runtime-governance-frontend run build",
