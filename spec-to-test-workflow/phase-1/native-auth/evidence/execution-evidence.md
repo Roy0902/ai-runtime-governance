@@ -542,3 +542,15 @@ pre-existing setup defect.
   1/1, accessibility 4/4, backend JUnit 10/10, guards/client 24/24.
 - No product code, approved intent, frozen plan, manifest or locked test was
   changed. Drift findings are recorded for review, not silently accepted.
+
+## Backend naming and DTO refactor: 2026-11-02
+
+- Commit `b5fad17 [Refactor]Uppercase acronym type names and split API DTOs`.
+- Acronyms in type names are uppercase: `AdminCLI`, `APIException`,
+  `APIErrorHandler`, `TOTP`, and the `*DTO` response types. Packages, methods and
+  fields keep Java lower-camel/lowercase conventions.
+- The former `ApiDtos` container is gone; each of the 21 API request/response
+  records now has its own file under `local/governance/api`.
+- Behavior is unchanged: backend JUnit **10/10**, a real API smoke case
+  (`SCN-native-auth-016`) passed, and `arg-admin totp-key status` returned JSON
+  through the renamed `AdminCLI`.

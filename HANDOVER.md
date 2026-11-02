@@ -259,13 +259,14 @@ records them as GAP-NA-022 through GAP-NA-027.
 
 ## 2. Repository state
 
-- Branch `main`; the split, reset/suite, mail-policy, Phase 10 review, and
-  Phase 11 accessibility work are committed. The frontend modal fix is committed
-  locally and awaits your push.
+- Branch `main`; the split, reset/suite, mail-policy, Phase 10–12, frontend
+  modal fix, and backend naming/DTO refactor are committed. The docs repo,
+  frontend repo, and backend repo each have local commits awaiting your push.
 - **Do not push** unless asked.
 - Last implementation commits: docs `63e1ba8 [Test]Prove approved default
   mail-identity policy`; frontend `7437262 [Fix]Make the step-up dialog modal
-  and trap focus`.
+  and trap focus`; backend `b5fad17 [Refactor]Uppercase acronym type names and
+  split API DTOs`.
 - First commit `38d6727` is already on `origin/main`; do not amend or force-push it.
 - Commit style: `[TaskType]Goal-oriented title`, e.g.
   `[Test]Correct the TOTP pacing and remaining test oracles`.
