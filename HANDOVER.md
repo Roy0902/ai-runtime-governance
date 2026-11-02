@@ -1,11 +1,10 @@
 # Cross-session handover
 
-Updated: 2026-11-02, after commit `251a057`, the frontend/backend split, and the
-reset-determinism/whole-suite rerun. Read the next section first.
-Status: **Reset determinism is fixed and a clean whole-suite rerun is recorded
-(browser 48/55, API 52/57; remaining failures are known test defects).
-Default-policy evidence, Phase 10 review completion, accessibility and as-built
-work remain. Timeline stays downstream.**
+Updated: 2026-11-02, after the split, the reset/suite rerun, and the approved
+default mail-policy evidence. Read the next section first.
+Status: **Reset determinism, the whole-suite rerun, and the approved default
+mail-policy evidence are recorded. Phase 10 review completion, accessibility and
+as-built work remain. Timeline stays downstream.**
 
 ## Next-agent follow-up list: authoritative resume checkpoint
 
@@ -19,9 +18,9 @@ lists below. Keep those sections as history, not current instructions.
   `../ai-runtime-governance-frontend` and `../ai-runtime-governance-backend`.
 - Latest commit: `251a057 Update handover`; the last implementation checkpoint is
   `b946e99 [Fix]Correct native-auth session handling and acceptance harness`.
-- The worktree is **not clean**: the frontend/backend split and the 2026-11-02
-  reset/suite work are uncommitted. The split branches `split/frontend` and
-  `split/backend` remain. Review and commit them before starting unrelated work.
+- The frontend/backend split and the reset/suite work are committed and pushed.
+  The approved default mail-policy evidence is the current increment. The local
+  branches `split/frontend` and `split/backend` remain in the docs repository.
 - No push was performed. Do not commit, amend or push unless explicitly asked.
   When asked, use `[TaskType]Goal-oriented title`.
 - Read [latest execution evidence](./spec-to-test-workflow/phase-1/native-auth/evidence/execution-evidence.md),
@@ -57,6 +56,9 @@ lists below. Keep those sections as history, not current instructions.
   037/057/073/092 and follow-up-02 037. No proven product defect remains.
 - The whole-suite rerun did happen on 2026-11-02 after the reset fix; do not
   reuse the older "not rerun" statement.
+- Approved default mail policy: isolated `npm run test:mail-policy` with
+  `GOVERNANCE_MAIL_IDENTITY_PER_MINUTE=1` and `..._PER_HOUR=5` passed **1/1**.
+  The main test profile stays relaxed for setup-heavy suites.
 - Do not redo the fixed session-deadline/recent-auth preservation, deterministic
   predecessor-rehash/reset race, sign-out headers, enrollment reload or
   regeneration status fixes unless a regression provides new evidence.
@@ -71,11 +73,10 @@ lists below. Keep those sections as history, not current instructions.
 2. **Reset determinism: fixed (done 2026-11-02).** `tests/support/reset-hook.ts`
    installs an awaited per-test reset and fails on any non-2xx response; the
    asynchronous reporter was removed. Do not reintroduce a reporter-only reset.
-3. **Prove approved mail-rate policy.** Test-profile limits still use
-   100/minute and 1,000/hour rather than approved 1/minute and 5/hour.
-   Prepare isolated default-policy verification with paced setup; distinguish
-   any reviewed high-limit harness profile from production-policy evidence.
-   Review new observable contracts before writing acceptance expectations.
+3. **Approved mail-rate policy: proven (done 2026-11-02).** `npm run
+   test:mail-policy` runs an isolated backend with 1/minute and 5/hour and
+   passed 1/1. The main test profile stays relaxed for setup-heavy suites; do
+   not treat its green runs as default-policy evidence.
 4. **Whole-suite disposition: recorded (done 2026-11-02).** Browser 48/55 and
    API 52/57; the remaining failures are known test defects/superseded cases.
    Re-run only when a change could affect them; do not edit locked tests or
@@ -110,6 +111,7 @@ npm --prefix ..\ai-runtime-governance-frontend run lint
 npm --prefix ..\ai-runtime-governance-frontend run typecheck
 npm --prefix ..\ai-runtime-governance-frontend run build
 npm run ai:contract
+npm run test:mail-policy
 ```
 
 Ports are configurable through the current
@@ -237,11 +239,10 @@ records them as GAP-NA-022 through GAP-NA-027.
 
 ## 2. Repository state
 
-- Branch `main`; the worktree is **not clean**: the frontend/backend split and
-  the 2026-11-02 reset/suite changes are uncommitted.
-- Local `origin/main` tracking ref matched HEAD before the split; **do not push**
-  unless asked.
-- Last local commit: `251a057 Update handover`.
+- Branch `main`; the split, reset/suite, and mail-policy work are committed and
+  pushed.
+- **Do not push** unless asked.
+- Last local commit: the approved default mail-policy evidence commit.
 - First commit `38d6727` is already on `origin/main`; do not amend or force-push it.
 - Commit style: `[TaskType]Goal-oriented title`, e.g.
   `[Test]Correct the TOTP pacing and remaining test oracles`.
@@ -402,6 +403,7 @@ still use the pre-split `frontend/` and `backend/` paths.
 | API tests | `tests/api/native-auth.spec.ts` |
 | Follow-up tests | `tests/api/native-auth-followup-0{1,2}.spec.ts` |
 | Test helpers | `tests/support/` |
+| Mail-policy evidence | `tests/playwright.mail-policy.config.ts`, `tests/supporting/mail-policy.spec.ts` |
 | Backend | `../ai-runtime-governance-backend/` |
 | Frontend | `../ai-runtime-governance-frontend/src/` |
 | Session evidence | `spec-to-test-workflow/phase-1/native-auth/evidence/` |

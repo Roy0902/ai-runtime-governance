@@ -405,10 +405,34 @@ or locked tests to make these green; use the existing follow-ups.
 
 ### Still open
 
-- Approved default mail policy (1/minute, 5/hour) is still not proven; the test
-  profile remains 100/minute and 1,000/hour (GAP-NA-027).
 - Phase 10 maintainability review is not complete; the native checks above are
   green.
 - Phase 11 accessibility and Phase 12 as-built remain.
-- The docs-repo worktree is not clean: the frontend/backend split and this
-  session's edits are uncommitted. `split/frontend` and `split/backend` remain.
+- The split/reset work is committed and pushed; `split/frontend` and
+  `split/backend` remain in the docs repository as local history.
+
+## Approved default mail-policy evidence: 2026-11-02
+
+The test profile intentionally relaxes mail-identity limits to 100/minute and
+1,000/hour. This run proves the approved default policy separately without
+changing the main suite profile.
+
+- Config: `tests/playwright.mail-policy.config.ts`, which imports the main config
+  and sets the backend env `GOVERNANCE_MAIL_IDENTITY_PER_MINUTE=1` and
+  `GOVERNANCE_MAIL_IDENTITY_PER_HOUR=5`.
+- Test: `tests/supporting/mail-policy.spec.ts` (supporting, no SCN tag).
+- Command: `npm run test:mail-policy` from the docs repository root.
+- Controlled clock: `2026-11-02T00:00:00Z`.
+- Result: **1/1 passed** (22.5s).
+
+Assertions:
+
+- first issuance for the identity: `202`;
+- second issuance in the same minute: `429` (proves 1/minute, not 100/minute);
+- one issuance per minute for five total in the hour: `202` each;
+- sixth issuance inside the rolling hour: `429` (proves 5/hour, not 1,000/hour);
+- a different identity is still admitted: `202`;
+- a case/whitespace variant of the first identity shares the bucket: `429`.
+
+No product code changed. The main `test` profile remains relaxed for setup-heavy
+acceptance; this isolated run is the default-policy evidence.
