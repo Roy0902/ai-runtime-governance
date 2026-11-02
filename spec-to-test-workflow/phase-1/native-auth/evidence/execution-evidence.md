@@ -524,3 +524,21 @@ explicit Tab/Shift+Tab focus loop, Escape/`cancel` handling, and an h2 dialog
 heading (frontend commit `7437262`). The existing step-up browser cases
 038/041/058/059 and F03 041/054/058 still pass; original 054 remains the known
 pre-existing setup defect.
+
+## Phase 12 as-built review: 2026-11-02
+
+- As-built record:
+  `spec-to-test-workflow/phase-1/native-auth/as-built/README.md`.
+- Diagrams: component/context, registration and enrollment sequence, sign-in and
+  sensitive-change sequence, account/MFA/session/operation states, and the core
+  ERD.
+- Drift register AB-001–AB-009. Key items: `web_session.csrf_token` is stored
+  plaintext while the approved design says `csrf_hash`; the frontend is a compact
+  `App.tsx` rather than separate route/copy modules; no Spring Security
+  configuration (session/CSRF checks are explicit); the harness layout differs
+  from design §14; virtual threads are not explicitly configured; PostgreSQL
+  17.6 is the local baseline under DR-042.
+- Verification snapshot: browser 48/55, API 52/57, supporting 4/4, mail policy
+  1/1, accessibility 4/4, backend JUnit 10/10, guards/client 24/24.
+- No product code, approved intent, frozen plan, manifest or locked test was
+  changed. Drift findings are recorded for review, not silently accepted.

@@ -2,9 +2,10 @@
 
 Updated: 2026-11-02, after the split, the reset/suite rerun, and the approved
 default mail-policy evidence. Read the next section first.
-Status: **Reset determinism, the whole-suite rerun, the approved default
-mail-policy evidence, the Phase 10 review, and Phase 11 accessibility are
-recorded. Phase 12 as-built remains. Timeline stays downstream.**
+Status: **All native-auth gates are closed: reset determinism, whole-suite
+rerun, default mail policy, Phase 10 review, Phase 11 accessibility and Phase 12
+as-built are recorded. Timeline remains downstream pending its Phase 6
+decisions.**
 
 ## Next-agent follow-up list: authoritative resume checkpoint
 
@@ -68,6 +69,10 @@ lists below. Keep those sections as history, not current instructions.
   non-modal step-up dialog (focus escaped behind it, Escape did not cancel,
   duplicate h1); the dialog now uses `showModal()`, an explicit focus loop and
   Escape/cancel handling.
+- Phase 12 as-built:
+  `spec-to-test-workflow/phase-1/native-auth/as-built/README.md` records the
+  component/flows/state/ERD diagrams and drift AB-001–AB-009. No approved or
+  frozen artifact was edited.
 - Do not redo the fixed session-deadline/recent-auth preservation, deterministic
   predecessor-rehash/reset race, sign-out headers, enrollment reload or
   regeneration status fixes unless a regression provides new evidence.
@@ -99,10 +104,12 @@ lists below. Keep those sections as history, not current instructions.
    covers the register/sign-in/enrollment contracts, keyboard order, live
    regions, and step-up focus trap/Escape. The non-modal dialog defect is fixed
    in the frontend repository.
-7. **Finish Phase 12 as-built diagrams and intent comparison.** Keep as-built
-   output separate; never overwrite approved intent. Record drift and blockers.
-8. **Only then return to timeline preparation/review.** Native-auth completion
-   must be supported by all applicable gates, not selected green cases.
+7. **Phase 12 as-built: complete (done 2026-11-02).**
+   `spec-to-test-workflow/phase-1/native-auth/as-built/README.md` records the
+   architecture, flows, states, ERD and drift AB-001–AB-009. No approved intent
+   or frozen artifact was changed.
+8. **Return to timeline Phase 6 review.** Native-auth gates are closed; the
+   timeline still needs R-TL-001/003/004/005 decisions before freeze/lock/code.
    WSL/client integration remains separate, user-performed and externally blocked.
 
 ### 4. Starting commands and exit conditions
@@ -397,11 +404,10 @@ with its own freeze/lock, or retire the superseded originals in a reviewed way.
 
 ## 8. Remaining phases
 
-1. Finish the 18 browser failures and the remaining API test setup.
-2. Phase 10 verification: full acceptance, supporting tests, native checks,
-   maintainability review.
-3. Phase 11 accessibility: contract locators against the running build.
-4. Phase 12 as-built diagrams and intent comparison.
+1. Native-auth gates: complete; Phase 10–12 are recorded above.
+2. Timeline Phase 6: resolve R-TL-001/003/004/005, then revise/freeze/lock.
+3. Timeline implementation: only after its own freeze/red/lock gate.
+4. WSL/client integration: separate, user-performed, externally blocked.
 
 ## 9. Useful file map
 
@@ -421,6 +427,7 @@ still use the pre-split `frontend/` and `backend/` paths.
 | Test helpers | `tests/support/` |
 | Mail-policy evidence | `tests/playwright.mail-policy.config.ts`, `tests/supporting/mail-policy.spec.ts` |
 | Accessibility evidence | `tests/playwright.a11y.config.ts`, `tests/supporting/accessibility.spec.ts` |
+| As-built review | `spec-to-test-workflow/phase-1/native-auth/as-built/README.md` |
 | Backend | `../ai-runtime-governance-backend/` |
 | Frontend | `../ai-runtime-governance-frontend/src/` |
 | Session evidence | `spec-to-test-workflow/phase-1/native-auth/evidence/` |
