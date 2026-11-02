@@ -37,9 +37,13 @@ test.beforeEach(async ({ request }) => {
 declare const __filename: string;
 declare const require: { cache: Record<string, unknown> };
 
-if (typeof __filename !== 'undefined' && typeof require !== 'undefined') {
-  const self = __filename;
-  process.nextTick(() => {
-    delete require.cache[self];
-  });
+if (typeof __filename === 'undefined' || typeof require === 'undefined') {
+  throw new Error(
+    'reset-hook requires Playwright to load test helpers as CommonJS; update the reset strategy before switching to ESM.',
+  );
 }
+
+const self = __filename;
+process.nextTick(() => {
+  delete require.cache[self];
+});

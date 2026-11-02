@@ -21,6 +21,8 @@ async function register(request: APIRequestContext, email: string) {
   });
 }
 
+// This sequence uses 9 of the separate 10/hour source-admission events. Keep
+// new assertions within that budget or split them into a fresh test.
 test('approved default mail-identity policy is 1 per minute and 5 per hour', async ({ request }) => {
   await control(request, 'clock', { now: '2026-11-02T00:00:00Z' });
 

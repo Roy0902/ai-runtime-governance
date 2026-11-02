@@ -436,3 +436,59 @@ Assertions:
 
 No product code changed. The main `test` profile remains relaxed for setup-heavy
 acceptance; this isolated run is the default-policy evidence.
+
+## Phase 10 maintainability review: 2026-11-02
+
+Scope: native-auth backend/frontend, test-only controls, and the acceptance
+harness. This is a static review plus the green native checks below; it is not a
+new behavioral run.
+
+### Checks
+
+- Backend: `mvn -f ../ai-runtime-governance-backend/pom.xml test` → **10/10**.
+- Frontend: lint, typecheck, build pass.
+- Contract: Redocly valid; 57,292 bytes generated.
+- Guards: `npm run ai:verify` all four features `OK`; `node --test` **24/24**.
+- Live: browser 48/55, API 52/57, supporting 4/4, mail policy 1/1 (recorded
+  above).
+
+### Test-only control isolation
+
+- `TestControlController` is guarded by
+  `@ConditionalOnProperty(governance.test-control.enabled=true)`.
+- Production defaults to disabled; the test profile enables it and binds
+  `server.address=127.0.0.1`.
+- Every control route checks the per-run `X-Test-Token`; Playwright generates a
+  random token and disables backend reuse.
+- The reset route is destructive but test-only; the awaited `beforeEach` runs it
+  before each test and fails on any non-2xx response.
+- No control route appears in the OpenAPI contract.
+
+### Latest-state/concurrency review
+
+- `AuthenticationFinalizer.complete` locks the account row (`FOR UPDATE`) and
+  rechecks `version`, status, verified email, MFA state and recovery flag before
+  factor verification and session creation. Good.
+- `SessionService.rotateForSettings` preserves original creation/absolute/recent
+  timestamps, clips idle to the absolute deadline and rejects expired authority.
+  It reads the request-time session row rather than re-locking it, so a
+  concurrent admin disable or two simultaneous settings rotations remain a
+  narrow residual race. No deterministic repro was found; current tests do not
+  prove every such interleaving.
+- `AuthService.changePassword` performs an unconditional password update after
+  recent-auth; concurrent changes are last-writer-wins. The account remains
+  subject to the same session/status rules. No proven product defect.
+- Controllers enforce CSRF and sensitive changes require recent auth; step-up is
+  not bypassed.
+- No product code changed in this review.
+
+### Harness maintainability
+
+- `tests/support/reset-hook.ts` relies on Playwright's CommonJS helper loading and
+  drops itself from `require.cache` per file. A fail-fast guard now rejects an
+  ESM migration instead of silently reducing isolation.
+- `tests/playwright.mail-policy.config.ts` fails fast if it cannot find the
+  test-profile backend server.
+- The mail-policy sequence uses 9 of the separate 10/hour source-admission
+  events; the test documents that budget so future additions split the case
+  rather than hit an unrelated 429.

@@ -2,8 +2,8 @@
 
 Updated: 2026-11-02, after the split, the reset/suite rerun, and the approved
 default mail-policy evidence. Read the next section first.
-Status: **Reset determinism, the whole-suite rerun, and the approved default
-mail-policy evidence are recorded. Phase 10 review completion, accessibility and
+Status: **Reset determinism, the whole-suite rerun, the approved default
+mail-policy evidence, and the Phase 10 review are recorded. Accessibility and
 as-built work remain. Timeline stays downstream.**
 
 ## Next-agent follow-up list: authoritative resume checkpoint
@@ -59,6 +59,11 @@ lists below. Keep those sections as history, not current instructions.
 - Approved default mail policy: isolated `npm run test:mail-policy` with
   `GOVERNANCE_MAIL_IDENTITY_PER_MINUTE=1` and `..._PER_HOUR=5` passed **1/1**.
   The main test profile stays relaxed for setup-heavy suites.
+- Phase 10 review: recorded in the evidence. Test-only controls remain
+  disabled-by-default, loopback-only and token-protected; the latest-state
+  review found no proven product defect. Narrow residual concurrency risks
+  (concurrent settings rotation or admin disable, last-writer-wins password
+  change) are documented, not silently declared safe.
 - Do not redo the fixed session-deadline/recent-auth preservation, deterministic
   predecessor-rehash/reset race, sign-out headers, enrollment reload or
   regeneration status fixes unless a regression provides new evidence.
@@ -81,10 +86,11 @@ lists below. Keep those sections as history, not current instructions.
    API 52/57; the remaining failures are known test defects/superseded cases.
    Re-run only when a change could affect them; do not edit locked tests or
    relax oracles.
-5. **Finish Phase 10 review and native checks.** Run backend supporting tests/
-   build, frontend lint/typecheck/build, contract checks and workflow guards.
-   Review changes for latest-state/concurrency correctness and test-only
-   control isolation. Prior focused success does not prove every race.
+5. **Phase 10 review: complete (done 2026-11-02).** Backend 10/10, frontend
+   lint/typecheck/build, contract, guards and live suites are green. Isolation
+   and latest-state findings are recorded in the evidence; no proven product
+   defect was found. Residual concurrency risks are documented, not assumed
+   safe.
 6. **Finish Phase 11 accessibility** against the real running frontend,
    including contract locators, keyboard/focus and error/status announcements.
 7. **Finish Phase 12 as-built diagrams and intent comparison.** Keep as-built
@@ -242,7 +248,8 @@ records them as GAP-NA-022 through GAP-NA-027.
 - Branch `main`; the split, reset/suite, and mail-policy work are committed and
   pushed.
 - **Do not push** unless asked.
-- Last local commit: the approved default mail-policy evidence commit.
+- Last implementation commit: `63e1ba8 [Test]Prove approved default
+  mail-identity policy`.
 - First commit `38d6727` is already on `origin/main`; do not amend or force-push it.
 - Commit style: `[TaskType]Goal-oriented title`, e.g.
   `[Test]Correct the TOTP pacing and remaining test oracles`.

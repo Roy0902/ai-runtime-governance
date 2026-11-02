@@ -9,10 +9,13 @@ const rawServers = Array.isArray(base.webServer)
     ? [base.webServer]
     : [];
 
+let testBackendFound = false;
+
 const servers = rawServers.map((server) => {
   if (server.env?.SPRING_PROFILES_ACTIVE !== 'test') {
     return server;
   }
+  testBackendFound = true;
   return {
     ...server,
     env: {
@@ -22,6 +25,10 @@ const servers = rawServers.map((server) => {
     },
   };
 });
+
+if (!testBackendFound) {
+  throw new Error('mail-policy config could not find the test-profile backend webServer');
+}
 
 export default {
   ...base,
