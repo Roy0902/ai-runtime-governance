@@ -1,11 +1,127 @@
 # Cross-session handover
 
-Updated: 2026-11-02. Use this as the first file in a new session.
-Status: **Native-auth continuation prepared. Backend/frontend implementation
-exists, but acceptance and invariant verification remain incomplete. No feature
-code, frozen plan or locked test was changed during this preparation.**
+Updated: 2026-11-02, after commit `b946e99`. Read the next section first.
+Status: **Native-auth fixes and follow-up 03 are committed. Focused verification
+is recorded; whole-suite verification, default-policy evidence, review,
+accessibility and as-built work remain incomplete. Timeline stays downstream.**
 
-## 0. Current continuation checkpoint: 2026-11-02
+## Next-agent follow-up list: authoritative resume checkpoint
+
+This section supersedes the older preparation checkpoint and its next-action
+lists below. Keep those sections as history, not current instructions.
+
+### 1. Establish the checkpoint and load only relevant inputs
+
+- Working folder: `D:\Personal\ai-runtime-governance`, branch `main`.
+- Latest implementation checkpoint:
+  `b946e99 [Fix]Correct native-auth session handling and acceptance harness`.
+  This replaced `db80663` solely to remove its Copilot co-author trailer.
+- The worktree was clean after that commit. This handover update is subsequent
+  documentation and is not included in that commit.
+- No push was performed. Do not commit, amend or push unless explicitly asked.
+  When asked, use `[TaskType]Goal-oriented title`; the user requested removal
+  of Copilot attribution from the latest commit.
+- Read [latest execution evidence](./spec-to-test-workflow/phase-1/native-auth/evidence/execution-evidence.md),
+  especially **Follow-up 03 and focused regression: 2026-11-02**; earlier
+  unfinished-race statements and November 1 totals are historical.
+- Then read the [gap register](./spec-to-test-workflow/phase-1/native-auth/evidence/gap-register.md),
+  applicable [decision records](./spec-to-test-workflow/phase-1/05-decision-record.md),
+  and only the frozen requirements/contracts needed for the assigned work.
+- Graph coverage checked for the handover/evidence/F03/config paths was
+  unavailable with Windows absolute paths; no current graph completeness is
+  claimed. The known graph generation is October 27. Use project-relative
+  coverage queries and current source fallback before making code claims.
+
+### 2. Preserve completed work and frozen artifacts
+
+- Follow-up 03 is actually frozen and locked. Its
+  [manifest](./specs/native-auth-followup-03.freeze.json) and execution evidence
+  record this, although the [plan](./specs/native-auth-followup-03.md) retains
+  stale draft/review wording. **Do not edit the frozen plan to repair that
+  wording.** Review provenance/approval evidence and record any discrepancy in
+  mutable evidence; hash verification alone does not prove review approval.
+- Preserve all four feature plans/manifests and locked Browser/API test files.
+  Incorrect locked tests require a separately reviewed follow-up, not edits,
+  silent skips, weaker assertions or product exceptions.
+- Recorded November 2 results: F03 API **6/6**, F03 Browser **6/6**, backend
+  supporting tests **10/10**, real-DB session checks **3/3**, multi-account
+  check **1/1**, workflow/client checks **24/24**, frontend quality and contract
+  generation passed. These are recorded focused results, not fresh full-suite
+  results.
+- At commit time, all four freeze guards and the two API-client tests were
+  rerun successfully. The full acceptance suite was not rerun.
+- Do not redo the fixed session-deadline/recent-auth preservation, deterministic
+  predecessor-rehash/reset race, sign-out headers, enrollment reload or
+  regeneration status fixes unless a regression provides new evidence.
+
+### 3. Ordered remaining work
+
+1. **Verify local readiness without disturbing other services.** Source
+   [env.ps1](./local-env/env.ps1) in each fresh shell and check the pinned
+   [tooling inventory](./local-env/tooling-versions.json). November 2 evidence
+   records restored local tools, PostgreSQL 17.6 and Mailpit; do not assume they
+   are still present/running on another host. Use isolated data/free ports.
+   Playwright starts Mailpit/backend/frontend; PostgreSQL needs separate
+   readiness. Do not reuse or terminate unrelated services. Stop task-owned
+   services by specific PID after verification.
+2. **Resolve broad-suite reset determinism before trusting totals.** The
+   asynchronous reset reporter still warns on failure and is not an awaited
+   fixture barrier. F03 uses awaited per-test reset. Inspect the reporter,
+   unlocked helpers and test-control contract; establish deterministic,
+   fail-explicit isolation for the original suites without editing locked
+   tests or resetting during a duplicate-signup action. If this requires a
+   locked-test change, stop for the reviewed follow-up path.
+3. **Prove approved mail-rate policy.** Test-profile limits still use
+   100/minute and 1,000/hour rather than approved 1/minute and 5/hour.
+   Prepare isolated default-policy verification with paced setup; distinguish
+   any reviewed high-limit harness profile from production-policy evidence.
+   Review new observable contracts before writing acceptance expectations.
+4. **Run and classify complete original Browser/API suites and follow-ups.**
+   Preserve original results and report per-plan outcomes. Known superseded
+   fixture/locator/TOTP/input failures are not automatically product defects.
+   F03 green does not make the original plan wholly green. Reproduce remaining
+   product failures with sound data, fix only proven defects and record exact
+   commands/counts/baseline dispositions outside frozen artifacts.
+5. **Finish Phase 10 review and native checks.** Run backend supporting tests/
+   build, frontend lint/typecheck/build, contract checks and workflow guards.
+   Review changes for latest-state/concurrency correctness and test-only
+   control isolation. Prior focused success does not prove every race.
+6. **Finish Phase 11 accessibility** against the real running frontend,
+   including contract locators, keyboard/focus and error/status announcements.
+7. **Finish Phase 12 as-built diagrams and intent comparison.** Keep as-built
+   output separate; never overwrite approved intent. Record drift and blockers.
+8. **Only then return to timeline preparation/review.** Native-auth completion
+   must be supported by all applicable gates, not selected green cases.
+   WSL/client integration remains separate, user-performed and externally blocked.
+
+### 4. Starting commands and exit conditions
+
+From the repository root, after checking tools/environment and safe ports:
+
+```powershell
+. .\local-env\env.ps1
+npm run ai:verify
+node --test tests\freeze-guard.test.mjs tests\supporting\api-client.test.mjs
+# Run live suites only after isolation/readiness checks above:
+npm run test:acceptance -- --project=api
+npm run test:acceptance -- --project=browser
+npm run test:acceptance -- --project=supporting-api
+```
+
+Ports are configurable through the current
+[Playwright config](./tests/playwright.config.ts); do not copy old fixed
+ports/control tokens from historical instructions below. Keep screenshots,
+traces and videos secret-safe; do not export seeds/codes/passwords. Do not
+install globally, send real email, touch ignored runtime data in Git, or edit
+anything under `node_modules`.
+
+Persist next-session results in mutable execution evidence and update this
+checkpoint. Completion requires truthful whole-suite dispositions, approved
+default-policy coverage, native checks/review, accessibility and as-built review.
+If a real product/review decision blocks progress, ask the user rather than
+inventing approval or weakening an oracle.
+
+## 0. Historical preparation checkpoint: 2026-11-02, before implementation continuation
 
 The November 1 counts below are historical run results, not a fresh acceptance
 run on this checkout. Current read-only guard verification passes for
