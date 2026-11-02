@@ -15,13 +15,12 @@ lists below. Keep those sections as history, not current instructions.
 - Working folder: `C:\Users\pigcr\Documents\Workspace\ai-runtime-governance`,
   branch `main`. The application code is in sibling repositories:
   `../ai-runtime-governance-frontend` and `../ai-runtime-governance-backend`.
-- Current commits and push state:
+- Current commits:
   - docs: last implementation commit `f7d97f8 [Docs]Record the backend naming
-    and DTO refactor`; the docs repo is ahead of `origin/main` (`bbbe1fa`).
-  - frontend: `7437262 [Fix]Make the step-up dialog modal and trap focus`,
-    pushed.
-  - backend: `b5fad17 [Refactor]Uppercase acronym type names and split API DTOs`,
-    pushed.
+    and DTO refactor`; the handover checkpoint is the current docs `HEAD`.
+    Check `git log origin/main..HEAD` before pushing.
+  - frontend: `7437262 [Fix]Make the step-up dialog modal and trap focus`.
+  - backend: `b5fad17 [Refactor]Uppercase acronym type names and split API DTOs`.
 - All three worktrees are clean. PostgreSQL is stopped. The local branches
   `split/frontend` and `split/backend` remain in the docs repository.
 - Push only when asked. Commit with `[TaskType]Goal-oriented title`.
@@ -315,8 +314,8 @@ records them as GAP-NA-022 through GAP-NA-027.
 
 ## 2. Repository state
 
-- Branch `main`; all work is committed. Frontend and backend are pushed; the
-  docs repo has local commits ahead of `origin/main` (`bbbe1fa`) awaiting push.
+- Branch `main`; all work is committed. Check each repository's
+  `git log origin/main..HEAD`; push only when asked.
 - **Do not push** unless asked.
 - Last commits: docs `f7d97f8 [Docs]Record the backend naming and DTO refactor`;
   frontend `7437262 [Fix]Make the step-up dialog modal and trap focus`; backend
