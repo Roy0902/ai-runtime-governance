@@ -1,8 +1,13 @@
 import { defineConfig, devices } from '@playwright/test';
 import { randomBytes } from 'node:crypto';
+import { existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 const root = resolve(__dirname, '..');
+const frontendDir = process.env.GOVERNANCE_FRONTEND_DIR
+  ?? resolve(root, '..', 'ai-runtime-governance-frontend');
+const backendDir = process.env.GOVERNANCE_BACKEND_DIR
+  ?? resolve(root, '..', 'ai-runtime-governance-backend');
 const backendPort = Number(process.env.GOVERNANCE_PORT ?? 8080);
 const frontendPort = Number(process.env.FRONTEND_PORT ?? 5173);
 const mailHttpPort = Number(process.env.MAILPIT_HTTP_PORT ?? 8025);
@@ -23,8 +28,11 @@ process.env.TEST_CLOCK_FILE ??= testClockFile;
 
 const java = process.env.JAVA_HOME
   ? join(process.env.JAVA_HOME, 'bin', 'java.exe')
-  : '..\\.local-tools\\jdk-25.0.5+8\\bin\\java.exe';
-const jar = 'target\\ai-runtime-governance-backend-0.1.0-SNAPSHOT.jar';
+  : join(root, '.local-tools', 'jdk-25.0.5+8', 'bin', 'java.exe');
+const localNode = join(root, '.local-tools', 'node-v24.22.0-win-x64', 'node.exe');
+const node = process.env.NODE_EXE
+  ?? (existsSync(localNode) ? localNode : process.execPath);
+const jar = join(backendDir, 'target', 'ai-runtime-governance-backend-0.1.0-SNAPSHOT.jar');
 
 export default defineConfig({
   testDir: '.',
@@ -79,7 +87,7 @@ export default defineConfig({
     },
     {
       command: `"${java}" -jar "${jar}"`,
-      cwd: '../backend',
+      cwd: backendDir,
       url: `${backendOrigin}/actuator/health`,
       reuseExistingServer: false,
       timeout: 120_000,
@@ -105,8 +113,8 @@ export default defineConfig({
       },
     },
     {
-      command: `"${join(root, '.local-tools', 'node-v24.22.0-win-x64', 'node.exe')}" "${join(root, 'frontend', 'node_modules', 'vite', 'bin', 'vite.js')}" --host 127.0.0.1 --port ${frontendPort} --strictPort`,
-      cwd: '../frontend',
+      command: `"${node}" "${join(frontendDir, 'node_modules', 'vite', 'bin', 'vite.js')}" --host 127.0.0.1 --port ${frontendPort} --strictPort`,
+      cwd: frontendDir,
       url: frontendOrigin,
       reuseExistingServer: false,
       timeout: 120_000,

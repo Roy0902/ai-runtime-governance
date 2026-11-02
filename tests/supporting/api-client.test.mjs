@@ -1,6 +1,14 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { api, setCsrf } from '../../frontend/src/api.ts';
+import { join, resolve } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+
+const here = fileURLToPath(new URL('.', import.meta.url));
+const frontendDir = process.env.GOVERNANCE_FRONTEND_DIR
+  ?? resolve(here, '..', '..', '..', 'ai-runtime-governance-frontend');
+const { api, setCsrf } = await import(
+  pathToFileURL(join(frontendDir, 'src', 'api.ts')).href
+);
 
 test('bodyless sign-out declares JSON and carries the current CSRF token', async (t) => {
   let observed;

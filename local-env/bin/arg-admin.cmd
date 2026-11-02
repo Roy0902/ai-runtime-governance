@@ -7,5 +7,6 @@ if not exist "%JAVA_EXE%" (
   echo Project-local Java is unavailable; load local-env\env.ps1 first. 1>&2
   exit /b 5
 )
-"%JAVA_EXE%" -jar "%ROOT%\backend\target\ai-runtime-governance-backend-0.1.0-SNAPSHOT.jar" admin %*
+if not defined GOVERNANCE_BACKEND_DIR set "GOVERNANCE_BACKEND_DIR=%ROOT%\..\ai-runtime-governance-backend"
+"%JAVA_EXE%" -jar "%GOVERNANCE_BACKEND_DIR%\target\ai-runtime-governance-backend-0.1.0-SNAPSHOT.jar" admin %*
 exit /b %ERRORLEVEL%
