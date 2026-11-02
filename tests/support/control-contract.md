@@ -13,6 +13,7 @@ part of the product API and must not appear in the OpenAPI contract.
 |---|---|---|
 | Clock set | `POST /__test/clock` `{now}` | Set the test server clock |
 | Clock advance | `POST /__test/clock/advance` `{milliseconds}` | Advance the test clock |
+| Reset | `POST /__test/reset` | Clear test-owned accounts, rate buckets, faults and dispatch state; reset the controlled clock; runs once before each test |
 | Fault | `POST /__test/faults` `{name, enabled}` | Enable/disable a named fault |
 | Barrier state | `GET /__test/inspect?what=barrier&name=predecessor-rehash-after-derive` | Return only whether the bounded predecessor-rehash barrier is currently reached |
 | Predecessor verifier | `POST /__test/verifier/predecessor` `{email, password}` | Verify a generated current password, replace only its verifier with the approved predecessor profile and revoke sessions for deterministic race setup |
@@ -21,6 +22,10 @@ part of the product API and must not appear in the OpenAPI contract.
 | Dispatch | `POST /__test/dispatch` `{accountId}` | Exercise the gateway admission/dispatch path |
 | Inspect | `GET /__test/inspect?what=...` | Read nonsecret state: account, link, mail_request, audit, verifier, seed, evidence, buckets |
 | Export evidence | `POST /__test/evidence/export` | Produce the declared metadata-only evidence inventory |
+
+`/reset` is destructive and is enforced as an awaited per-test fixture barrier in
+`tests/support/reset-hook.ts`. It must complete before the test body and must
+never be issued during a scenario action or duplicate-signup step.
 
 Fault names: `mail-admission`, `smtp`, `consume-rollback`, `hash-service`,
 `recovery-verifier`, `totp-key-missing`, `db-commit`, `account-disable`,

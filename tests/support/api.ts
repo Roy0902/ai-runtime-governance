@@ -1,6 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
 import { expect, type APIRequestContext, type Playwright } from '@playwright/test';
+import './reset-hook';
 import { PASSWORD, advanceClockOffset, setClockOffset, totp, uniqueEmail } from './native-auth';
 
 export const API_ORIGIN = process.env.API_BASE_URL
@@ -212,4 +213,16 @@ export function host(args: string[], operatorUser?: string): {
     encoding: 'utf8',
   });
   return { status: result.status, stdout: result.stdout ?? '', stderr: result.stderr ?? '' };
+}
+
+// Re-evaluate this module for every test file so the reset hook is not frozen
+// to the first file in a Playwright worker. See reset-hook.ts.
+declare const __filename: string;
+declare const require: { cache: Record<string, unknown> };
+
+if (typeof __filename !== 'undefined' && typeof require !== 'undefined') {
+  const self = __filename;
+  process.nextTick(() => {
+    delete require.cache[self];
+  });
 }

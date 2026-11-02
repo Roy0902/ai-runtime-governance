@@ -1,9 +1,11 @@
 # Cross-session handover
 
-Updated: 2026-11-02, after commit `b946e99`. Read the next section first.
-Status: **Native-auth fixes and follow-up 03 are committed. Focused verification
-is recorded; whole-suite verification, default-policy evidence, review,
-accessibility and as-built work remain incomplete. Timeline stays downstream.**
+Updated: 2026-11-02, after commit `251a057`, the frontend/backend split, and the
+reset-determinism/whole-suite rerun. Read the next section first.
+Status: **Reset determinism is fixed and a clean whole-suite rerun is recorded
+(browser 48/55, API 52/57; remaining failures are known test defects).
+Default-policy evidence, Phase 10 review completion, accessibility and as-built
+work remain. Timeline stays downstream.**
 
 ## Next-agent follow-up list: authoritative resume checkpoint
 
@@ -12,18 +14,20 @@ lists below. Keep those sections as history, not current instructions.
 
 ### 1. Establish the checkpoint and load only relevant inputs
 
-- Working folder: `D:\Personal\ai-runtime-governance`, branch `main`.
-- Latest implementation checkpoint:
+- Working folder: `C:\Users\pigcr\Documents\Workspace\ai-runtime-governance`,
+  branch `main`. The application code is in sibling repositories:
+  `../ai-runtime-governance-frontend` and `../ai-runtime-governance-backend`.
+- Latest commit: `251a057 Update handover`; the last implementation checkpoint is
   `b946e99 [Fix]Correct native-auth session handling and acceptance harness`.
-  This replaced `db80663` solely to remove its Copilot co-author trailer.
-- The worktree was clean after that commit. This handover update is subsequent
-  documentation and is not included in that commit.
+- The worktree is **not clean**: the frontend/backend split and the 2026-11-02
+  reset/suite work are uncommitted. The split branches `split/frontend` and
+  `split/backend` remain. Review and commit them before starting unrelated work.
 - No push was performed. Do not commit, amend or push unless explicitly asked.
-  When asked, use `[TaskType]Goal-oriented title`; the user requested removal
-  of Copilot attribution from the latest commit.
+  When asked, use `[TaskType]Goal-oriented title`.
 - Read [latest execution evidence](./spec-to-test-workflow/phase-1/native-auth/evidence/execution-evidence.md),
-  especially **Follow-up 03 and focused regression: 2026-11-02**; earlier
-  unfinished-race statements and November 1 totals are historical.
+  especially **Follow-up 03 and focused regression: 2026-11-02** and
+  **Reset determinism and whole-suite rerun: 2026-11-02 (second continuation)**.
+  Earlier unfinished-race statements and November 1 totals are historical.
 - Then read the [gap register](./spec-to-test-workflow/phase-1/native-auth/evidence/gap-register.md),
   applicable [decision records](./spec-to-test-workflow/phase-1/05-decision-record.md),
   and only the frozen requirements/contracts needed for the assigned work.
@@ -43,45 +47,39 @@ lists below. Keep those sections as history, not current instructions.
 - Preserve all four feature plans/manifests and locked Browser/API test files.
   Incorrect locked tests require a separately reviewed follow-up, not edits,
   silent skips, weaker assertions or product exceptions.
-- Recorded November 2 results: F03 API **6/6**, F03 Browser **6/6**, backend
-  supporting tests **10/10**, real-DB session checks **3/3**, multi-account
-  check **1/1**, workflow/client checks **24/24**, frontend quality and contract
-  generation passed. These are recorded focused results, not fresh full-suite
-  results.
-- At commit time, all four freeze guards and the two API-client tests were
-  rerun successfully. The full acceptance suite was not rerun.
+- Recorded November 2 results after the reset fix: Browser **48/55** (original
+  **42/49** + F03 **6/6**); API **52/57** (original **41/45** + F01 **3/3** +
+  F02 **2/3** + F03 **6/6**); supporting-api **4/4**; backend JUnit **10/10**;
+  workflow/client **24/24**; frontend lint/typecheck/build pass; contract valid
+  and 57,292 bytes generated. See the evidence for the exact remaining failures.
+- The remaining failures are the known locked-test defects corrected by the
+  follow-ups: browser 001, 007, 015, 039, 054, 062, 094; API original
+  037/057/073/092 and follow-up-02 037. No proven product defect remains.
+- The whole-suite rerun did happen on 2026-11-02 after the reset fix; do not
+  reuse the older "not rerun" statement.
 - Do not redo the fixed session-deadline/recent-auth preservation, deterministic
   predecessor-rehash/reset race, sign-out headers, enrollment reload or
   regeneration status fixes unless a regression provides new evidence.
 
 ### 3. Ordered remaining work
 
-1. **Verify local readiness without disturbing other services.** Source
-   [env.ps1](./local-env/env.ps1) in each fresh shell and check the pinned
-   [tooling inventory](./local-env/tooling-versions.json). November 2 evidence
-   records restored local tools, PostgreSQL 17.6 and Mailpit; do not assume they
-   are still present/running on another host. Use isolated data/free ports.
-   Playwright starts Mailpit/backend/frontend; PostgreSQL needs separate
-   readiness. Do not reuse or terminate unrelated services. Stop task-owned
-   services by specific PID after verification.
-2. **Resolve broad-suite reset determinism before trusting totals.** The
-   asynchronous reset reporter still warns on failure and is not an awaited
-   fixture barrier. F03 uses awaited per-test reset. Inspect the reporter,
-   unlocked helpers and test-control contract; establish deterministic,
-   fail-explicit isolation for the original suites without editing locked
-   tests or resetting during a duplicate-signup action. If this requires a
-   locked-test change, stop for the reviewed follow-up path.
+1. **Local readiness: verified on this checkout (done 2026-11-02).** PostgreSQL
+   17.6 is available on `127.0.0.1:55434` (`.local-cache/pgdata17`); Playwright
+   starts Mailpit/backend/frontend; the config falls back to `process.execPath`
+   when the flat local Node is absent. Re-check on a different host. Stop
+   task-owned services by specific PID after verification.
+2. **Reset determinism: fixed (done 2026-11-02).** `tests/support/reset-hook.ts`
+   installs an awaited per-test reset and fails on any non-2xx response; the
+   asynchronous reporter was removed. Do not reintroduce a reporter-only reset.
 3. **Prove approved mail-rate policy.** Test-profile limits still use
    100/minute and 1,000/hour rather than approved 1/minute and 5/hour.
    Prepare isolated default-policy verification with paced setup; distinguish
    any reviewed high-limit harness profile from production-policy evidence.
    Review new observable contracts before writing acceptance expectations.
-4. **Run and classify complete original Browser/API suites and follow-ups.**
-   Preserve original results and report per-plan outcomes. Known superseded
-   fixture/locator/TOTP/input failures are not automatically product defects.
-   F03 green does not make the original plan wholly green. Reproduce remaining
-   product failures with sound data, fix only proven defects and record exact
-   commands/counts/baseline dispositions outside frozen artifacts.
+4. **Whole-suite disposition: recorded (done 2026-11-02).** Browser 48/55 and
+   API 52/57; the remaining failures are known test defects/superseded cases.
+   Re-run only when a change could affect them; do not edit locked tests or
+   relax oracles.
 5. **Finish Phase 10 review and native checks.** Run backend supporting tests/
    build, frontend lint/typecheck/build, contract checks and workflow guards.
    Review changes for latest-state/concurrency correctness and test-only
@@ -96,16 +94,22 @@ lists below. Keep those sections as history, not current instructions.
 
 ### 4. Starting commands and exit conditions
 
-From the repository root, after checking tools/environment and safe ports:
+From the docs repository root, after checking tools/environment and safe ports:
 
 ```powershell
 . .\local-env\env.ps1
 npm run ai:verify
 node --test tests\freeze-guard.test.mjs tests\supporting\api-client.test.mjs
-# Run live suites only after isolation/readiness checks above:
+# Run live suites only after PostgreSQL readiness:
 npm run test:acceptance -- --project=api
 npm run test:acceptance -- --project=browser
 npm run test:acceptance -- --project=supporting-api
+# Native checks across the sibling repositories:
+mvn -f ..\ai-runtime-governance-backend\pom.xml test
+npm --prefix ..\ai-runtime-governance-frontend run lint
+npm --prefix ..\ai-runtime-governance-frontend run typecheck
+npm --prefix ..\ai-runtime-governance-frontend run build
+npm run ai:contract
 ```
 
 Ports are configurable through the current
@@ -233,16 +237,22 @@ records them as GAP-NA-022 through GAP-NA-027.
 
 ## 2. Repository state
 
-- Branch `main`; clean before this documentation-only preparation.
-- Local `origin/main` tracking ref matches HEAD; **do not push** unless asked.
-- Last local commit: `923b63d [Docs]Create handover list`.
+- Branch `main`; the worktree is **not clean**: the frontend/backend split and
+  the 2026-11-02 reset/suite changes are uncommitted.
+- Local `origin/main` tracking ref matched HEAD before the split; **do not push**
+  unless asked.
+- Last local commit: `251a057 Update handover`.
 - First commit `38d6727` is already on `origin/main`; do not amend or force-push it.
 - Commit style: `[TaskType]Goal-oriented title`, e.g.
   `[Test]Correct the TOTP pacing and remaining test oracles`.
-- No secrets are committed. `.local-cache/`, `.local-tools/`, `local-env/runtime/`
-  and `frontend/dist/` are ignored.
+- No secrets are committed. `.local-cache/`, `.local-tools/` and
+  `local-env/runtime/` are ignored here; `node_modules/`, `dist/` and `target/`
+  are ignored in the sibling application repositories.
 
 ## 3. Last recorded application results: 2026-11-01
+
+These are historical. The current 2026-11-02 whole-suite disposition is in the
+authoritative section above and in the execution evidence.
 
 | Suite | Result |
 |---|---|
@@ -294,7 +304,7 @@ that every failure is a UI bug. Use section 0's fixture/invariant-first order.
 
 Symptoms: step-up/transition loops and list/ack flows. Check:
 
-- `frontend/src/App.tsx` → `AuthenticatorPage`, `RecoveryGenerationPage`,
+- `../ai-runtime-governance-frontend/src/App.tsx` → `AuthenticatorPage`, `RecoveryGenerationPage`,
   `StepUpDialog`.
 - `Start replacement` / `Complete replacement` / `Cancel replacement` request
   paths and recents.
@@ -365,8 +375,8 @@ with its own freeze/lock, or retire the superseded originals in a reviewed way.
   titles.
 - Do not add real outbound email, production credentials or global tool installs.
 - Keep PostgreSQL 17.6 as the local verification DB until 18.6 is fixed.
-- Never commit `.local-cache`, `.local-tools`, `local-env/runtime` or
-  `frontend/dist`.
+- Never commit `.local-cache`, `.local-tools` or `local-env/runtime` here, or
+  `node_modules`, `dist` and `target` in the application repositories.
 
 ## 8. Remaining phases
 
@@ -378,6 +388,11 @@ with its own freeze/lock, or retire the superseded originals in a reviewed way.
 
 ## 9. Useful file map
 
+The application code lives in two sibling repositories next to this one:
+`../ai-runtime-governance-frontend/` and `../ai-runtime-governance-backend/`.
+Historical documents under `specs/`, `spec-to-test-workflow/` and `activity-log/`
+still use the pre-split `frontend/` and `backend/` paths.
+
 | Area | Path |
 |---|---|
 | Frozen plan | `specs/native-auth.md` |
@@ -387,8 +402,8 @@ with its own freeze/lock, or retire the superseded originals in a reviewed way.
 | API tests | `tests/api/native-auth.spec.ts` |
 | Follow-up tests | `tests/api/native-auth-followup-0{1,2}.spec.ts` |
 | Test helpers | `tests/support/` |
-| Backend | `backend/` |
-| Frontend | `frontend/src/` |
+| Backend | `../ai-runtime-governance-backend/` |
+| Frontend | `../ai-runtime-governance-frontend/src/` |
 | Session evidence | `spec-to-test-workflow/phase-1/native-auth/evidence/` |
 | Gap register | `spec-to-test-workflow/phase-1/native-auth/evidence/gap-register.md` |
 | Activity log | `activity-log/2026-11-01-session-summary.md` |

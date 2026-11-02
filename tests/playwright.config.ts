@@ -14,6 +14,10 @@ const mailHttpPort = Number(process.env.MAILPIT_HTTP_PORT ?? 8025);
 const mailSmtpPort = Number(process.env.MAILPIT_SMTP_PORT ?? 1025);
 const testClockFile = process.env.TEST_CLOCK_FILE
   ?? join(root, 'local-env', 'runtime', 'acceptance', 'clock-now.txt');
+const testFaultsFile = process.env.GOVERNANCE_TEST_FAULTS_FILE
+  ?? join(root, 'local-env', 'runtime', 'acceptance', 'test-faults.properties');
+const dispatchFile = process.env.GOVERNANCE_DISPATCH_FILE
+  ?? join(root, 'local-env', 'runtime', 'acceptance', 'dispatch.properties');
 const backendOrigin = `http://127.0.0.1:${backendPort}`;
 const frontendOrigin = `http://127.0.0.1:${frontendPort}`;
 const mailOrigin = `http://127.0.0.1:${mailHttpPort}`;
@@ -25,6 +29,8 @@ process.env.MAILPIT_URL ??= mailOrigin;
 process.env.API_BASE_URL ??= backendOrigin;
 process.env.GOVERNANCE_BACKEND_URL ??= backendOrigin;
 process.env.TEST_CLOCK_FILE ??= testClockFile;
+process.env.GOVERNANCE_TEST_FAULTS_FILE ??= testFaultsFile;
+process.env.GOVERNANCE_DISPATCH_FILE ??= dispatchFile;
 
 const java = process.env.JAVA_HOME
   ? join(process.env.JAVA_HOME, 'bin', 'java.exe')
@@ -44,7 +50,6 @@ export default defineConfig({
   reporter: [
     ['list'],
     ['json', { outputFile: '../.local-cache/playwright-report.json' }],
-    ['./support/reset-reporter.ts'],
   ],
   use: {
     trace: 'off',
@@ -106,10 +111,8 @@ export default defineConfig({
           ?? join(root, 'local-env', 'runtime', 'acceptance', 'seed-keys'),
         GOVERNANCE_SMTP_HOST: '127.0.0.1',
         GOVERNANCE_SMTP_PORT: String(mailSmtpPort),
-        GOVERNANCE_TEST_FAULTS_FILE: process.env.GOVERNANCE_TEST_FAULTS_FILE
-          ?? join(root, 'local-env', 'runtime', 'acceptance', 'test-faults.properties'),
-        GOVERNANCE_DISPATCH_FILE: process.env.GOVERNANCE_DISPATCH_FILE
-          ?? join(root, 'local-env', 'runtime', 'acceptance', 'dispatch.properties'),
+        GOVERNANCE_TEST_FAULTS_FILE: testFaultsFile,
+        GOVERNANCE_DISPATCH_FILE: dispatchFile,
       },
     },
     {

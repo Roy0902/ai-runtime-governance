@@ -1,6 +1,7 @@
 import { createHmac } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { expect, type Page } from '@playwright/test';
+import './reset-hook';
 
 export const PASSWORD = 'Correct horse battery staple';
 export const NEW_PASSWORD = 'Another correct horse staple';
@@ -176,4 +177,16 @@ export function totp(secret: string, offset = 0): string {
     ((digest[start + 2] & 0xff) << 8) |
     (digest[start + 3] & 0xff);
   return String(binary % 1_000_000).padStart(6, '0');
+}
+
+// Re-evaluate this module for every test file so the reset hook and clock state
+// are not frozen to the first file in a Playwright worker. See reset-hook.ts.
+declare const __filename: string;
+declare const require: { cache: Record<string, unknown> };
+
+if (typeof __filename !== 'undefined' && typeof require !== 'undefined') {
+  const self = __filename;
+  process.nextTick(() => {
+    delete require.cache[self];
+  });
 }

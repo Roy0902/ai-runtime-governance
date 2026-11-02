@@ -42,6 +42,18 @@ remain the recorded November 1 partial runs. See GAP-NA-022 onward and the
 | GAP-NA-029 | Settings rotation extended original lifetime/recent auth; recent confirmation excluded exact ten-minute equality. | Violated approved session boundaries | Yes until repaired | **Resolved for covered paths:** 7 JUnit checks and 3 real-database supporting checks pass for password/replacement/regeneration and independent-session revocation; latest-state commit races remain separate |
 | GAP-NA-030 | Bodyless frontend sign-out omitted JSON content type (415), and settings/replacement pages lacked shared sign-out access. | Locked 038/059 failed on actual product behavior | Yes until repaired | **Resolved in focused Nov 2 runs:** 2 supporting client checks; locked 038/056/058/059 all pass; shared navigation handles errors explicitly |
 | GAP-NA-031 | Regeneration completion status disappeared after reload despite real nonsecret operation metadata. | Locked 048 failed | Yes until repaired | **Resolved in focused Nov 2 runs:** account-namespaced nonsecret operation ID plus real status lookup; locked 046/047/048/050 pass; no raw code/seed/token persisted in browser storage |
+| GAP-NA-032 | The per-test reset was an asynchronous reporter callback that only warned on failure, so it was not an awaited fixture barrier. | Original-suite isolation could race with the test body. | Yes for trusted whole-suite results | **Resolved:** replaced with an awaited `test.beforeEach` in `tests/support/reset-hook.ts`, imported by both unlocked helpers and cache-busted per test file; failures are explicit. Original and follow-up suites rerun. |
+| GAP-NA-033 | The `host()` helper defaulted `GOVERNANCE_TEST_FAULTS_FILE`/`GOVERNANCE_DISPATCH_FILE` to `.local-cache`, while the backend used `local-env/runtime/acceptance`. | 065/071/072 failed even though the product was correct: the CLI and web process read different file-backed state. | Yes for the host/dispatch checks | **Resolved:** the Playwright config exports the same paths to the test process and backend; 065/071/072 now pass. |
+| GAP-NA-034 | The frontend webServer assumed `.local-tools/node-v24.22.0-win-x64/node.exe`, absent on this checkout. | Playwright could not start the frontend, so no browser/API acceptance ran. | Yes for live runs | **Resolved:** `tests/playwright.config.ts` falls back to `process.execPath` when the flat local Node is absent. |
+| GAP-NA-035 | Current whole-suite disposition after the reset fix. | Needed to replace the historical 31/49 and 44/48 counts. | No | **Recorded 2026-11-02:** browser 48/55 (original 42/49 + F03 6/6); API 52/57 (original 41/45 + F01 3/3 + F02 2/3 + F03 6/6); supporting 4/4; native checks 10/10 and 24/24. Remaining failures are known test defects/superseded cases, not product defects. |
+
+**2026-11-02 reset/suite update:** GAP-NA-019 is now 2/3 (073 and 092 pass;
+037 remains). GAP-NA-021's original browser suite is 42/49; the seven remaining
+failures are the known framework/setup cases corrected by F03. GAP-NA-023 is
+resolved for the original suites by the awaited per-test reset; the
+duplicate-signup helper no longer resets. GAP-NA-014: 065/071/072 are resolved by
+the harness path alignment; 037/057/073/092 remain known test defects.
+GAP-NA-027 (default mail policy) remains open.
 
 ## Notes
 

@@ -331,3 +331,84 @@ and test bytes were not edited.
 - Whole-suite approved-default-policy verification, code review, accessibility,
   as-built diagrams and non-auth Phase 1 work remain incomplete. Windows/WSL
   client feasibility remains user-performed and externally blocked.
+
+## Reset determinism and whole-suite rerun: 2026-11-02 (second continuation)
+
+This section records the deterministic-isolation fix and the first clean
+whole-suite rerun after follow-up 03. Historical results above remain unchanged.
+
+### Harness changes
+
+- Replaced the fire-and-forget `ResetReporter` with an awaited `test.beforeEach`
+  in `tests/support/reset-hook.ts`. It calls `POST /__test/reset`, resets the
+  controlled clock, and throws on any non-2xx response, so a dirty fixture fails
+  the test instead of warning. `native-auth.ts` and `api.ts` import it; both
+  modules drop themselves from the CommonJS module cache after each file loads so
+  the hook registers for every test file in a worker. No locked test was edited;
+  F03's explicit `beforeEach` remains and is idempotent.
+- `tests/playwright.config.ts` now uses `process.execPath` when the flat
+  `.local-tools/node-v24.22.0-win-x64/node.exe` is absent, so the frontend
+  webServer starts on this checkout.
+- The config exports `GOVERNANCE_TEST_FAULTS_FILE` and
+  `GOVERNANCE_DISPATCH_FILE` to the test process and passes the same paths to the
+  backend. `host()` now uses the same file-backed fault/dispatch state as the web
+  process. This resolved 065, 071 and 072; they were harness path mismatches, not
+  product defects.
+- `tests/support/control-contract.md` documents `POST /__test/reset` and its
+  destructive per-test barrier. `tests/support/reset-reporter.ts` was removed.
+
+### Environment
+
+- PostgreSQL 17.6 on `127.0.0.1:55434`, data `.local-cache/pgdata17`.
+- Playwright started Mailpit, backend and frontend; per-run random control token.
+- Backend built from `../ai-runtime-governance-backend`; frontend from
+  `../ai-runtime-governance-frontend`.
+
+### Results on this checkout
+
+| Project / check | Result | Disposition |
+|---|---|---|
+| browser | **48 passed / 7 failed** (55) | original 42/49 + F03 6/6 |
+| api | **52 passed / 5 failed** (57) | original 41/45 + F01 3/3 + F02 2/3 + F03 6/6 |
+| supporting-api | **4/4** | multi-account 1/1 + session lifetime 3/3 |
+| backend JUnit | **10/10** | AuthenticationFinalizer 3, SessionService 7 |
+| guards/client | **24/24** | freeze guard + API client |
+| frontend | lint, typecheck, build pass | — |
+| contract | valid; 57,292 bytes generated | — |
+| `npm run ai:verify` | all four features `OK` | — |
+
+### Remaining failures and classification
+
+Browser (all original locked cases):
+
+- 001: `getByRole('term', { name })` limitation; F03 001 passes.
+- 007: expired SETUP context; F03 007 passes.
+- 015: mail supersession pacing; F03 015 passes.
+- 039: consumed TOTP step reused; F03 039 passes.
+- 054: recent-auth/idle setup; F03 054 passes.
+- 062: HTML expectation on a JSON API; F03 062 passes.
+- 094: the browser sanitizes CR/LF before the app observes it; F03 tests the raw
+  API boundary. The original browser case remains invalid.
+
+API:
+
+- original 037 and follow-up-02 037: the SETUP session expires at the same
+  24-hour deadline; F03 037 passes with a reacquired SETUP context.
+- original 057: consumed TOTP step; follow-up 01 057 passes.
+- original 073: reuses the authenticated `request` context; follow-up 02 073 uses
+  a fresh session and passes.
+- original 092: sequential, not the deterministic predecessor race; follow-up 02
+  and F03 092 pass.
+
+No remaining failure is a proven product defect. Do not edit the original plans
+or locked tests to make these green; use the existing follow-ups.
+
+### Still open
+
+- Approved default mail policy (1/minute, 5/hour) is still not proven; the test
+  profile remains 100/minute and 1,000/hour (GAP-NA-027).
+- Phase 10 maintainability review is not complete; the native checks above are
+  green.
+- Phase 11 accessibility and Phase 12 as-built remain.
+- The docs-repo worktree is not clean: the frontend/backend split and this
+  session's edits are uncommitted. `split/frontend` and `split/backend` remain.
