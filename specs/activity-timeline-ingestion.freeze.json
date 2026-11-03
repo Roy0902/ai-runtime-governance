@@ -1,0 +1,9 @@
+{
+  "feature": "activity-timeline-ingestion",
+  "planSha256": "3863bad3ca54e7dd2a549b618417e381957eab26f634d08b5963195e6b3e9b62",
+  "frozenAt": "2026-11-03T14:15:49.630Z",
+  "tests": {
+    "tests/api/activity-timeline-ingestion.spec.ts": "c4e674b51560b9f9031ecb627c95e34f691d47a91d678bb3ffc8457f7d307030"
+  },
+  "testsLockedAt": "2026-11-03T14:16:29.094Z"
+}

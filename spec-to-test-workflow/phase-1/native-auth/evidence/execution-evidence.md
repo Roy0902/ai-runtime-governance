@@ -847,3 +847,40 @@ refreshed *first* page, but ELATE is the 201st event and the 200-event bound put
 it on the following page. The product behavior is correct; follow-up 01 asserts
 refreshed-traversal membership across pages. The original test is not edited or
 weakened and remains red by design.
+
+## Activity timeline ingestion authority: 2026-11-03
+
+Fourth slice. Plan frozen at `specs/activity-timeline-ingestion.md` (4
+scenarios) and its API tests locked.
+
+Red-first evidence: all four tests failed on the absent ingest surface before
+implementation.
+
+Results after implementation:
+
+| Gate | Result |
+|---|---|
+| Ingestion API acceptance (019, 020, 021, 022) | **4/4** |
+| Full timeline API regression | **19/20** — only the known locked SCN-031 defect |
+| Browser acceptance (original 10) | **9/10** — SCN-037 flaky locator, see below |
+| Read-UI follow-up 01 (SCN-037) | **1/1** |
+| Backend JUnit | 19/19 |
+| `npm run ai:verify` | all frozen features OK |
+| Flyway V4 | applied against PostgreSQL 17.6 |
+
+Behaviors added:
+
+- The test-only ingest path captures and rejects unknown/content-bearing fields
+  as a whole with `400 REQUEST_INVALID`, no value echo and no persistence.
+- Producer authority: `agent_reporter` cannot set guard or approval facts;
+  `guard_service` and `approval_service` are limited to their own facts; unknown
+  producers are forbidden.
+- Identical `(scope, eventId)` reports are idempotent and keep the first receipt
+  time; conflicting content returns `409 EVENT_CONFLICT` without overwrite.
+- `activity_event` now has a `(scope_id, id)` primary key and a content hash.
+
+Known locked-test defect: the original SCN-037 assertion uses
+`getByText('event 200')`, which can also match an `Expand event 200...` UUID
+button. `specs/activity-timeline-read-ui-followup-01.md` asserts the event
+heading by role and exact name. The original test is not edited and may pass or
+fail depending on generated UUIDs.

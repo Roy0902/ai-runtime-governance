@@ -155,3 +155,9 @@ tombstones and cursor privacy. Results: traversal API 6/7 + follow-up 1/1,
 original API 8/8, browser 10/10, backend 19/19, frontend gates pass. The one
 API failure is a locked SCN-031 test-authoring defect (refreshed first page vs
 201st event); follow-up 01 proves the correct refreshed-traversal membership.
+
+**2026-11-03 — ingestion authority complete.** A fourth frozen slice added
+allowlist rejection, producer authority, idempotent duplicates and conflict
+rejection on the test-only ingest path. Results: ingestion API 4/4, full API
+19/20 (known SCN-031), browser 9/10 plus a follow-up for the flaky SCN-037
+locator, backend 19/19. No frontend change was needed.
