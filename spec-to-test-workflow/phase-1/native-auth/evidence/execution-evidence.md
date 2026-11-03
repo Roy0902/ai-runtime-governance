@@ -743,10 +743,10 @@ Disposition and honest limits:
   pending continuation, approval history, duplicate-history conflicts, full
   coverage/loss presentation, refresh-failure retention, signed cursor
   hardening.
-- Pre-existing frontend enrollment regression discovered: the reorganized
-  enrollment form does not send the password the backend requires, so UI
-  enrollment fails. The timeline browser tests therefore enroll through the real
-  API on the same browser context. The user-owned auth UI was not modified.
+- Pre-existing frontend enrollment regression discovered during the read-UI
+  slice: the reorganized enrollment form did not send the password the backend
+  requires. The timeline browser tests enrolled through the real API on the same
+  browser context; the UI regression was fixed separately below.
 - Untracked backend/frontend `README.md` files appeared during the session from
   a concurrent process; they are not part of this slice's commits.
 
@@ -790,3 +790,17 @@ Behaviors added or corrected:
 Still deferred and unchanged: traversal expiry/caps/tombstones, production
 ingestion, duplicate-history conflicts, approval actions, payload archives,
 filters and search.
+
+## Native-auth enrollment regression fix: 2026-11-03
+
+- The reorganized enrollment form omitted the password required by
+  `CompleteEnrollmentRequest`, so the backend returned a field error and no
+  HUMAN session was rotated. The form now has a password field and sends it;
+  the restart-setup completion path sends it too.
+- The docs test helper now fills that password and waits for the
+  `/enrollment/complete` response before checking the account. It also waits for
+  the post-enrollment `/activity` landing before navigating to `/account`, since
+  a premature navigation aborted the completion request.
+- Focused browser checks: SCN-native-auth-002, 003, 004 and 008 pass (4/4).
+  Frontend typecheck and lint pass.
+- No locked test or frozen plan was edited. The helper is unlocked test support.

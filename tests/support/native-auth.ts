@@ -57,6 +57,12 @@ export async function signIn(
 }
 
 export async function expectAccount(page: Page): Promise<void> {
+  // Enrollment now lands on /activity after the frontend reorganization; wait
+  // for that transition to finish before opening the account oracle.
+  await page.waitForURL(/\/(activity|account)$/, { timeout: 10_000 }).catch(() => {});
+  if (!new URL(page.url()).pathname.startsWith('/account')) {
+    await page.goto('/account');
+  }
   await expect(page.getByRole('heading', { name: 'Account', level: 1 })).toBeVisible();
 }
 
@@ -119,9 +125,14 @@ export async function completeEnrollment(
     .getByRole('list', { name: 'Recovery codes' })
     .getByRole('listitem')
     .allTextContents();
+  await page.getByRole('textbox', { name: 'Password' }).fill(password);
   await page.getByRole('textbox', { name: 'Six-digit code' }).fill(totp(manualKey));
   await page.getByRole('checkbox', { name: 'I have saved my recovery codes' }).check();
+  const completion = page.waitForResponse(
+    (response) => response.url().includes('/api/v1/auth/enrollment/complete'),
+  );
   await page.getByRole('button', { name: 'Complete setup' }).click();
+  expect((await completion).ok()).toBeTruthy();
   await expectAccount(page);
   const control = process.env.TEST_CLOCK_URL ?? 'http://127.0.0.1:8080/__test';
   const token = process.env.TEST_CLOCK_TOKEN ?? 'test-token';
