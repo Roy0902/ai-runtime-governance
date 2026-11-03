@@ -161,7 +161,9 @@ loading/empty/error/session copy.
 DR-048 approved prototype metadata labels and polite load-more/refresh status
 messages. DR-049 approved generic 400 `REQUEST_INVALID` for malformed, tampered,
 or wrong-scope cursors; the user subsequently approved SCN-040 wording as
-written. All SCN-031–040 wording is now approved but remains unfrozen.
+written. DR-050 selected rejection for unsupported/content-bearing metadata and
+an extensible constrained cause-code pattern. All SCN-031–040 wording is now
+approved but remains unfrozen.
 These decisions close those review questions but do not freeze the plan or prove
 the preview behavior. Trace-list membership uses the same server-managed
 snapshot and caps as event pages, including the shared five-active-traversal

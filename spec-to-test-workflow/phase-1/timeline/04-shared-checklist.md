@@ -285,7 +285,8 @@ pass from native-auth checks.
 The mutable implementation design and frontend/backend task lists now target the
 existing sibling applications. DR-044/046 resolve R-TL-001, R-TL-003 and
 R-TL-005 directions; DR-045–048 approve SCN-031–039 and selected route/copy/UI
-details; DR-049 approves invalid-cursor behavior and SCN-040 wording.
+details; DR-049 approves invalid-cursor behavior and SCN-040 wording; DR-050
+approves metadata rejection and cause-code policy.
 Remaining wire/focus behavior still needs review and source/scenario
 reconciliation. Native-auth exists and is verified; timeline integration, tool
 versions/commands and test setup remain separate gates. The synthetic preview is

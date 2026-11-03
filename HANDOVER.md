@@ -4,10 +4,11 @@ Updated: 2026-11-03, after the user approved timeline Phase 6 directions for
 traversal membership, the test harness and the shared schema. Read this section
 first.
 Status: **Native-auth is complete and verified. Timeline directions R-TL-001,
-R-TL-003 and R-TL-005 are recorded in DR-044. DR-045–049 approve SCN-031–040
-wording, the `/activity` route family, missing-value copy, and trace/event
-traversal semantics/statuses, including generic 400 invalid-cursor errors.
-DR-047/048 approve core page copy, direct trace
+R-TL-003 and R-TL-005 are recorded in DR-044; DR-045/046 and DR-049 approve
+SCN-031–040 wording. DR-045–050 record the `/activity` route family, missing-
+value copy, trace/event traversal semantics/statuses, generic 400 invalid-cursor
+errors, unsupported-field rejection and cause-code policy. DR-047/048 approve
+core page copy, direct trace
 links, collapsed event disclosure, UTC display, metadata labels and loading/error/
 status copy. Remaining UI details and setup gates
 remain open. The user-owned frontend has a synthetic timeline preview, not
@@ -223,7 +224,7 @@ Recorded directions:
 | R-TL-003 harness | **Approved in DR-044.** Extend the existing `/__test` surface with token-protected, loopback-only timeline ingestion/inspection controls that exercise real validation, deduplication and producer authority. No public seed/write endpoint; classify service assertions separately from browser acceptance. |
 | R-TL-005 schema | **Direction approved in DR-044.** One machine-readable OpenAPI component with UUID IDs, explicit test-only aliases for `evt-*` fixtures, and defined enums/nullability/timestamp/producer rules. Exact schema and remaining wire/error details are in the mutable draft for review. |
 | R-TL-004 cases | **SCN-031–040 wording approved in DR-045–049, not frozen or executed.** They cover concurrent event/trace arrivals, traversal expiry/limits, refresh failure, navigation race, pending load-more, accessibility, and invalid cursors. Do not renumber existing SCNs. |
-| UI/error details | **Partially approved in DR-045–049.** `/activity` list and `/activity/:traceId` detail; direct links; collapsed event disclosure; localized UTC timestamps; prototype page headings/intro and metadata labels; “Not reported” for omitted values and “Unavailable” for unavailable details; loading/empty/error/session copy and polite load/refresh announcements; trace/event statuses 410 `TRAVERSAL_EXPIRED`, 429 `TRAVERSAL_LIMIT` with `Retry-After`, 422 `TRAVERSAL_TOO_LARGE`, invalid cursors generic 400 `REQUEST_INVALID`. Unsupported metadata reject-versus-omit and cause-code vocabulary remain open, as do other focus/error details. |
+| UI/error details | **Partially approved in DR-045–050.** `/activity` list and `/activity/:traceId` detail; direct links; collapsed event disclosure; localized UTC timestamps; prototype page headings/intro and metadata labels; “Not reported” for omitted values and “Unavailable” for unavailable details; loading/empty/error/session copy and polite load/refresh announcements; trace/event statuses 410 `TRAVERSAL_EXPIRED`, 429 `TRAVERSAL_LIMIT` with `Retry-After`, 422 `TRAVERSAL_TOO_LARGE`, invalid cursors generic 400 `REQUEST_INVALID`; unsupported fields rejected with no echo/persistence; constrained extensible cause codes map unknown values to “Other reported cause”. Remaining error/focus details beyond scenarios remain open. |
 
 R-TL-002 is closed by the completed native-auth prerequisite. R-TL-008 needs
 only a baseline refresh to Java 25 / Maven 3.9.16 / Node 24.22 / Playwright

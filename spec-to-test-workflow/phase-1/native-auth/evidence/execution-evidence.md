@@ -674,7 +674,7 @@ pre-existing setup defect.
 - Redocly lint of the OpenAPI draft passed.
 - `npm run ai:verify` passed for all frozen native-auth features.
 - `node --test tests/freeze-guard.test.mjs` passed **22/22**.
-- Scenario integrity check passed: original 30 scenarios unchanged; SCN-031–039
+- Scenario integrity check passed: original 30 scenarios unchanged; SCN-031–040
   present. The complete plan remains unfrozen/unexecuted.
 - Current frontend lint and typecheck passed after the user-owned reorganization.
   The focused `tests/supporting/api-client.test.mjs` still fails because it
@@ -694,3 +694,13 @@ pre-existing setup defect.
 - The user approved SCN-040 wording as written. SCN-031–040 are now approved
   wording, but remain unfrozen/unexecuted.
 - No code, tests, freeze, lock, or local runtime process was changed.
+
+## Timeline metadata-boundary decisions: 2026-11-03
+
+- Under DR-050 the user approved rejecting unsupported/content-bearing event
+  fields as a whole with 400 `REQUEST_INVALID`, a generic field-category message,
+  no echo and no persistence.
+- The user approved nullable constrained extensible cause codes matching
+  `[A-Z][A-Z0-9_]{0,63}`; unrecognized codes are labeled “Other reported cause”.
+- Updated the decision record, mutable shared checklist, OpenAPI draft, backend
+  task list, review and handover. No source was changed.
