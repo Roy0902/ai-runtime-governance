@@ -140,3 +140,11 @@ filters/search, polling, payload archives.
 Known deviation: the one locked timestamp assertion required millisecond
 precision; the timeline DTOs now serialize `Instant` with a fixed UTC
 millisecond pattern, matching the contract rather than editing the locked test.
+
+**2026-11-03 — read-UI slice complete.** A second frozen slice
+(`specs/activity-timeline-read-ui.md`, 8 scenarios) added approval history,
+labeled loss/coverage, explicit read failure, stale-refresh retention, navigation
+safety, single pending continuation and keyboard announcements. Results:
+read-UI browser 8/8, original browser 2/2, API 8/8, backend 19/19, frontend
+gates pass, `ai:verify` all six features OK. SCN-036 was an existing-behavior
+baseline; the rest were red-first.

@@ -1,0 +1,9 @@
+{
+  "feature": "activity-timeline-read-ui",
+  "planSha256": "0557aa0b53c0a189440b1172ef5d452e1a941d10a48db9c2ad487483403e3bc7",
+  "frozenAt": "2026-11-03T13:29:31.884Z",
+  "tests": {
+    "tests/specs/activity-timeline-read-ui.spec.ts": "d0ff498204dcb4e3fb611b631fc7db132f886e8e7fb14e59ca165d33f8de3af9"
+  },
+  "testsLockedAt": "2026-11-03T13:32:43.192Z"
+}

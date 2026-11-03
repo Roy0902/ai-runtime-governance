@@ -749,3 +749,44 @@ Disposition and honest limits:
   API on the same browser context. The user-owned auth UI was not modified.
 - Untracked backend/frontend `README.md` files appeared during the session from
   a concurrent process; they are not part of this slice's commits.
+
+## Activity timeline read UI: 2026-11-03
+
+Second read-only slice. Plan frozen at `specs/activity-timeline-read-ui.md`
+(8 scenarios) and the browser test file locked in
+`specs/activity-timeline-read-ui.freeze.json`.
+
+Red-first evidence: 7 of 8 tests failed on the missing behaviors before
+implementation. SCN-036 (late response cannot replace the selected trace)
+already passed and is recorded as an existing-behavior baseline. The SCN-037
+test initially failed on a locator ambiguity; the ambiguous text lookup was
+corrected before locking, then failed on the missing status region.
+
+Results after implementation:
+
+| Gate | Result |
+|---|---|
+| Read-UI browser acceptance (006, 016, 018, 026, 035, 036, 037, 038) | **8/8** |
+| Original slice browser acceptance (004, 030) | **2/2** |
+| API acceptance (001, 002, 003, 005, 012, 023, 025, 030) | **8/8** |
+| Backend JUnit | 19/19 |
+| Frontend typecheck / lint / build | pass |
+| `npm run ai:verify` | all six frozen features OK |
+
+Behaviors added or corrected:
+
+- `Approval history` lists reported states with no approve/reject control.
+- Loss metadata uses `Loss cause`, `Missing events` and `Missing time range`.
+- Coverage is a labeled region with independent `Input`, `Response` and `Tools`.
+- A test-only `timeline-read` fault flag drives an explicit `503`, and the UI
+  shows an alert with retry instead of an empty success.
+- A failed refresh keeps the previously loaded trace and events visible, labels
+  them stale, and retry replaces them without duplicates.
+- Continuation stays single while pending, appends once, announces
+  `Loading more activity…` / `Loaded N more event(s).` through a polite status,
+  and keeps focus by using `aria-disabled` rather than removing focus from a
+  disabled button.
+
+Still deferred and unchanged: traversal expiry/caps/tombstones, production
+ingestion, duplicate-history conflicts, approval actions, payload archives,
+filters and search.
