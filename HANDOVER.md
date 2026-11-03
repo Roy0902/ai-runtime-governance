@@ -25,24 +25,25 @@ lists below. Keep those sections as history, not current instructions.
 - Working folder: `C:\Users\pigcr\Documents\Workspace\ai-runtime-governance`,
   branch `main`. The application code is in sibling repositories:
   `../ai-runtime-governance-frontend` and `../ai-runtime-governance-backend`.
-- Current commits:
-  - docs: `0394139 [Docs]Clarify the handover push state`; this session has
-    uncommitted Phase 6 document updates. Check `git log origin/main..HEAD`
-    before pushing.
-  - frontend: `7437262 [Fix]Make the step-up dialog modal and trap focus`.
-  - backend: `b195692 [Refactor]Refactor filename`.
-- The frontend worktree is in a user-owned reorganization: `index.html` is
-  modified; old `src/App.tsx`, `src/api.ts`, `src/auth.tsx`, `src/main.tsx` and
-  `src/styles.css` are deleted; replacements include
+- Current commits (checked 2026-11-03):
+  - docs: `51a5288 [Docs]Update handover`; it was clean and in sync with
+    `origin/main` at that checkpoint. The Phase 6 document updates are committed
+    in `56fa31b`. A separate uncommitted DR-051 password-verifier re-freeze
+    appeared in the worktree at 20:08 on 2026-11-03; it is not part of this
+    reconciliation and must not be reverted.
+  - frontend: `5671d09 [Refactor]Refactor filename and project structure`;
+    worktree clean.
+  - backend: `b195692 [Refactor]Refactor filename`; one uncommitted
+    whitespace-only line in `HashWorkLimiter.java`.
+- The frontend worktree is clean after the user-owned reorganization: old
+  `src/App.tsx`, `src/api.ts`, `src/auth.tsx`, `src/main.tsx` and
+  `src/styles.css` are gone; the current entry points and modules are
   `src/ApplicationApiClient.ts`, `ApplicationEntry.tsx`, `ApplicationRoutes.tsx`,
-  `ApplicationStyles.css`, `AuthenticationContext.tsx`, `src/api-contracts/`,
-  and `src/components/` / `src/features/`. The latest tree was reviewed
-  read-only; no frontend source was changed by this session. Current lint and
-  typecheck pass; the last build predates the latest rename. The backend worktree
-  is clean. The docs
-  worktree contains the uncommitted Phase 6 document updates and the pre-existing
-  untracked `tests/supporting/operation-conflicts.spec.ts`, which this session
-  left untouched. PostgreSQL is stopped. The local branches
+  `ApplicationStyles.css`, `AuthenticationContext.tsx`, `src/api/`,
+  `src/components/` and `src/features/`. Current lint and typecheck pass; the
+  last build predates the latest rename. The docs worktree was clean at that
+  checkpoint and `tests/supporting/operation-conflicts.spec.ts` is tracked
+  (committed in `56fa31b`). PostgreSQL is stopped. The local branches
   `split/frontend` and `split/backend` remain in the docs repository.
 - Push only when asked. Commit with `[TaskType]Goal-oriented title`.
 - Read [latest execution evidence](./spec-to-test-workflow/phase-1/native-auth/evidence/execution-evidence.md)
@@ -191,7 +192,9 @@ inventing approval or weakening an oracle.
 
 ### 5. Timeline Phase 6: the next work
 
-The timeline review verdict remains **not ready to freeze or code**. DR-044
+The timeline review verdict remains **not ready to freeze or code**. The current
+gate list is the [freeze readiness checklist](./spec-to-test-workflow/phase-1/timeline/08-review.md#freeze-readiness-checklist--2026-11-03);
+it separates freeze, red-acceptance and implementation blockers. DR-044
 records the approved R-TL-001/003/005 directions; DR-045/046 approve SCN-031–039,
 the `/activity` and `/activity/:traceId` routes, missing-value copy, and the
 shared trace/event traversal policy/statuses. Other UI/focus details and
@@ -368,15 +371,14 @@ records them as GAP-NA-022 through GAP-NA-027.
 
 ## 2. Repository state
 
-- Branches are `main`. At the 2026-11-02 checkpoint prior work was committed;
-  as of 2026-11-03 the docs repository has the uncommitted Phase 6 decision,
-  contract and task/document updates described above. The frontend repository
-  has user-owned in-progress changes described in section 1; do not overwrite
-  them. Check each repository's `git log origin/main..HEAD`; push only when asked.
+- Branches are `main`. All three worktrees were checked on 2026-11-03: the docs
+  repository is clean and in sync with `origin/main`; the frontend is clean after
+  the user-owned reorganization; the backend has one whitespace-only uncommitted
+  line. Check each repository's `git log origin/main..HEAD`; push only when asked.
 - **Do not push** unless asked.
-- Last commits: docs `f7d97f8 [Docs]Record the backend naming and DTO refactor`;
-  frontend `7437262 [Fix]Make the step-up dialog modal and trap focus`; backend
-  `b5fad17 [Refactor]Uppercase acronym type names and split API DTOs`.
+- Last commits: docs `51a5288 [Docs]Update handover`; frontend
+  `5671d09 [Refactor]Refactor filename and project structure`; backend
+  `b195692 [Refactor]Refactor filename`.
 - First commit `38d6727` is already on `origin/main`; do not amend or force-push it.
 - Commit style: `[TaskType]Goal-oriented title`, e.g.
   `[Test]Correct the TOTP pacing and remaining test oracles`.

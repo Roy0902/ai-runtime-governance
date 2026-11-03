@@ -178,7 +178,7 @@ fixture/runtime readiness remain open.
   route/client/auth/style files are `ApplicationEntry.tsx`,
   `ApplicationRoutes.tsx`, `ApplicationApiClient.ts`,
   `AuthenticationContext.tsx`, `ApplicationStyles.css`, and
-  `src/api-contracts/`; timeline preview
+  `src/api/`; timeline preview
   files are under `src/features/activity-timeline/`.
 - Current `npm run lint` and `npm run typecheck` pass. The last production build
   predates the latest rename. The focused docs test
@@ -189,3 +189,53 @@ fixture/runtime readiness remain open.
   its model still conflates a validated parent not loaded in this page with an
   unresolved parent. Current implementation checks remain pending until the
   user-owned reorganization stabilizes.
+
+## Freeze readiness checklist — 2026-11-03
+
+Gate list after DR-044–DR-050 and the completed native-auth prerequisite. This
+is **not** an approval to freeze: no timeline plan/manifest, frozen scenario,
+authored acceptance test or timeline code exists. "Blocks" separates document
+freeze from red-acceptance authoring and from implementation/verification.
+
+### Closed or direction-approved
+
+| Gate | Evidence | Still outstanding |
+|---|---|---|
+| R-TL-002 authentication prerequisite | Native-auth plans frozen, tests locked, implementation verified (Browser 48/55, API 52/57, recorded 2026-11-02). A separate DR-051 verifier re-freeze was in progress on 2026-11-03 | Nothing for sequencing; use the real flow, no forged session. Re-confirm the recorded counts after DR-051 |
+| R-TL-001 traversal membership | DR-044/046: server-managed committed-ID snapshots, 5 min, 10,000 members, 5 active per account, tombstones | Implementation and integration proof |
+| R-TL-003 acceptance harness | DR-044: loopback-only, token-protected `/__test` ingestion/inspection on the real validation path | Controls, fixture helpers and assertions do not exist |
+| R-TL-005 shared schema | DR-044: one OpenAPI 3.1 component, UUID IDs, explicit test aliases, producer authority | Draft items still marked for review |
+| R-TL-004 scenario wording | DR-045/046/049 approve SCN-031–040 | Not frozen or executed |
+| R-TL-006 bootstrap ownership | FE-TL-007, BE-TL-010 in the revised task lists | Not implemented |
+| R-TL-007 duration/unloaded-parent cases | SCN-029/030 drafted | SCN-030 preview defect below |
+| Route/copy/error decisions | DR-045/047/048/049/050: `/activity`, `/activity/:traceId`, copy, 400/410/422/429 mapping | Focus/keyboard details beyond approved scenarios |
+
+### Open gates
+
+| ID | Gate | Current evidence (2026-11-03) | Blocks |
+|---|---|---|---|
+| TL-G01 | Target backend runtime identity | Port 8080 answers 404 for `/api/v1/auth/context` and `/actuator/health`; listener is Java 17 / Spring Boot 3.5.5, inconsistent with the intended Java 25 / 4.1.2. User deferred enforcement; do not stop the unknown listener | Red acceptance; real-session verification |
+| TL-G02 | Baseline refresh (R-TL-008) | No timeline baseline run. Recorded native checks: Java 25 / Maven 3.9.16 / Node 24.22 / Playwright 1.64.1 / PostgreSQL 17.6 | Freeze evidence; red acceptance |
+| TL-G03 | Timeline backend | No `local.governance.timeline`, no READ-1/2/3, no `V2__activity_timeline.sql`; only `V1__auth_core.sql` | Implementation; acceptance |
+| TL-G04 | Timeline frontend wiring | `/activity` is protected but renders in-memory fixtures; no `/activity/:traceId`; no timeline API client or request hook | Acceptance |
+| TL-G05 | Test-only timeline harness | No ingestion/inspection controls, fixture helper or `tests/specs/activity-timeline.spec.ts`; scope/cleanup contract unproven | Red acceptance |
+| TL-G06 | SCN-030 model state | `ActivityTimelineModel.ts` treats `relationship: linked` with an unloaded parent as unresolved; UI renders both as "Unlinked activity" | SCN-030 correctness |
+| TL-G07 | Frontend unit runner | `package.json` has no test script; FE-TL-006 has no runner | Supporting tests only |
+| TL-G08 | Docs API-client test | `tests/supporting/api-client.test.mjs` imports the removed `src/api.ts` and fails module-not-found | Green workflow baseline claim |
+| TL-G09 | Unapproved focus/error details | Approved behaviors exist; remaining focus/keyboard and non-scenario error presentation is unreviewed | Freeze, if a scenario relies on it |
+| TL-G10 | Current frontend build | `dist/` is from 2026-11-02 21:38, before `5671d09`; lint/typecheck only are current | Build-green claim |
+| TL-G11 | Freeze integrity | No timeline plan or manifest in `specs/`; guard not wired for a timeline feature | Freeze |
+| TL-G12 | OpenAPI review | `activity-timeline.openapi.json` is v0.1.0 with draft markers for wire/nullability/copy details | Freeze |
+
+### Minimum path
+
+1. **Before freeze:** resolve TL-G02, TL-G06, TL-G08, TL-G09 and TL-G12; record
+   TL-G03–G05 as expected pre-implementation work with owners; then review and
+   separately approve the plan.
+2. **Before red acceptance:** resolve TL-G01 and TL-G05; verify the real
+   backend/frontend/auth stack and fixture isolation.
+3. **Before verification:** complete TL-G03/G04/G07/G10 and run real
+   browser/backend/persisted-data acceptance.
+
+No approved intent, frozen artifact or locked test was changed by this
+reconciliation. No timeline product code, test or freeze was produced.

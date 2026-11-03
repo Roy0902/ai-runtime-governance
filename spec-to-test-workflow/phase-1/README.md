@@ -1,11 +1,17 @@
 # Phase 1 development materials
 
-Version: 0.8. Prepared: 2026-11-01. Feature key: `runtime-governance`.
-Status: **Native-auth Phases 0-8 are complete: contracts approved, design/tasks
-reviewed, plans frozen and the acceptance tests locked. Phase 9 API
-implementation is complete for product behavior (44/48 + follow-up-01). The
-frontend is implemented and 31/49 Browser SCNs pass. Timeline and guard-core stay
-at their review/draft stages.**
+Version: 0.9. Prepared: 2026-11-01; status refreshed 2026-11-03. Feature key:
+`runtime-governance`.
+Status: **Native-auth is complete to its recorded limits: plans frozen, tests
+locked, Phase 9 implementation done, and Phase 10-12 reviews recorded. The
+2026-11-02 whole-suite disposition is Browser 48/55 and API 52/57; the remaining
+failures are classified known locked-test defects, not proven product defects.
+A separate DR-051 password-verifier re-freeze was in progress on 2026-11-03;
+re-confirm those counts after it lands.
+Timeline Phase 6 decisions DR-044-DR-050 are recorded and SCN-031-040 wording is
+approved, but the timeline is not frozen, has no acceptance tests and has no
+implementation. Guard-core remains at its review/draft stage. [HANDOVER](../../HANDOVER.md)
+is the authoritative current checkpoint.**
 
 **Review outcome, 2026-10-30:** timeline requires changes before freeze; see the
 [Phase 6 review](./timeline/08-review.md). DR-018 selects a separately planned
@@ -28,8 +34,9 @@ tags**. Phase 4 drafts exist: [shared checklist](./native-auth/06-shared-checkli
 **approved under DR-039**; the machine contract is `0.2.1` / `reviewed`. Phase 5
 now has a [shared design](./native-auth/12-implementation-design.md) and
 [frontend](./native-auth/13-frontend-tasks.md) /
-[backend](./native-auth/14-backend-tasks.md) task lists, both awaiting Phase 6
-review. Freeze, red acceptance and test lock remain outstanding.
+[backend](./native-auth/14-backend-tasks.md) task lists, both reviewed under
+DR-040. The plans are frozen, the acceptance tests are locked, and the Phase 9-12
+implementation and review results are recorded in the execution evidence.
 
 The current global requirement inventory is 75 rows (43 confirmed, 10 proposed,
 22 deferred). AUTH-007–009 cover password reset, TOTP/recovery lifecycle and

@@ -19,7 +19,7 @@ frontend reorganization has a React/Vite/TypeScript app in
 `ai-runtime-governance-frontend`: `src/ApplicationEntry.tsx` mounts
 `BrowserRouter`, `src/ApplicationRoutes.tsx` registers routes,
 `src/ApplicationApiClient.ts` contains the same-origin API helper,
-`src/api-contracts/` contains auth API types, and `src/AuthenticationContext.tsx`
+`src/api/` contains auth API types, and `src/AuthenticationContext.tsx`
 provides native-auth context. Timeline preview
 modules are under `src/features/activity-timeline/`; app layout is under
 `src/components/layout/`. The backend already has the Spring Boot application and native-auth prerequisite in
