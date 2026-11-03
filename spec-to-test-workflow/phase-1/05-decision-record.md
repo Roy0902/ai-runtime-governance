@@ -1435,3 +1435,30 @@ repository relocation or client configuration changes.
 - **Not authorized:** freezing/locking or implementation.
 - **Evidence:** the user selected whole-event rejection and the extensible safe
   cause-code pattern in the guided confirmation on 2026-11-03.
+
+## DR-051: PBKDF2-HMAC-SHA256 password verifier replaces Argon2id
+
+- **Date / decision owner:** 2026-11-03 / user.
+- **Reason:** the approved Argon2id 64 MiB/three-pass verifier is too expensive
+  for this deployment. No environment stores an existing Argon2id verifier, so
+  no legacy verification path is required.
+- **Decision:** hash new passwords with PBKDF2-HMAC-SHA256 at 210,000 iterations,
+  a fresh 16-byte salt and a 32-byte result, encoded as
+  `$pbkdf2-sha256$i=<iterations>$<salt>$<result>`. The reviewed predecessor
+  profile is 100,000 iterations and still upgrades on successful full
+  authentication with compare-and-set on `account.version`.
+- **Superseded scope:** only the password verifier algorithm and parameters in
+  intent v0.3. Password length/Unicode rules, hash admission/deadlines, TOTP,
+  recovery, sessions, mail and seed encryption are unchanged. The
+  content-addressed intent file is not rewritten.
+- **Evidence:** measured on the pinned JDK 25.0.5+8 toolchain, 210,000 iterations
+  took a 259 ms median (minimum 250 ms, maximum 289 ms) versus 435 ms median for
+  the former 64 MiB/three-pass profile. These are narrow sequential observations,
+  not full-login capacity or a percentile.
+- **Re-freeze:** the user authorized updating the frozen native-auth plan and its
+  locked SCN-native-auth-024/079 expectations directly, then re-freezing. The
+  separate follow-up 04 draft and its test were removed as redundant.
+- **Removed assets:** the Argon2 measurement helper, its runner and the recorded
+  `argon2-baseline.json` evidence, plus the unused measurement-module BouncyCastle
+  dependency. The measured numbers above are retained here as the historical
+  comparison.

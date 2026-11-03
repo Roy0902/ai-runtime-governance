@@ -164,11 +164,15 @@ at raw SHA-256 `5AB84C0B99BDCAB8BF9C419AF6E55C958D1B159E8FFB155F7DE926EA042E6981
 **Current checkpoint (DR-034):** intent v0.2 adds approved deadline equality:
 seven-day pending cleanup eligibility includes equality; pending 24-hour
 completion excludes equality.
-**Current checkpoint (DR-037):** intent v0.3 approves the exact Argon2id profiles,
-bounded hash work, recovery verifiers, authenticated seed encryption/randomness,
-rolling-window admission/cooldown, mail retry/send bounds, trusted-proxy source
-identity and the secret-safe evidence inventory. It replaces the auth-specific
-numerical deferral only; it does not approve global gateway/guard capacity.
+**Current checkpoint (DR-037):** intent v0.3 approved the exact password-verifier
+profiles, bounded hash work, recovery verifiers, authenticated seed
+encryption/randomness, rolling-window admission/cooldown, mail retry/send bounds,
+trusted-proxy source identity and the secret-safe evidence inventory. It replaced
+the auth-specific numerical deferral only; it does not approve global
+gateway/guard capacity.
+**DR-051 (2026-11-03):** replaced the Argon2id profile with
+PBKDF2-HMAC-SHA256 at 210,000 iterations (100,000 predecessor) and re-froze the
+plan's SCN-024/079 expectations.
 **Current checkpoint (DR-038):** intent v0.4 rejects CR/LF in password input as a
 browser-compatibility constraint while retaining 12–128 code points and all other
 allowed content. It is not a composition or strength rule.

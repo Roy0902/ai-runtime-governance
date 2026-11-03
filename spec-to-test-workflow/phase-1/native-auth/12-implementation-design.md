@@ -1,7 +1,10 @@
 # Native-auth implementation design
 
-Version: 0.1. Prepared: 2026-11-01.
-Status: **Reviewed and approved under DR-040 (2026-11-01). Not frozen; no code exists.**
+Version: 0.2. Prepared: 2026-11-01; amended 2026-11-03.
+Status: **Reviewed and approved under DR-040 (2026-11-01). DR-051 (2026-11-03)
+supersedes the password-verifier rows in section 5: PBKDF2-HMAC-SHA256 at
+210,000 iterations current and 100,000 predecessor. Not frozen; implemented code
+is recorded in the Phase 12 as-built review.**
 
 ## 1. Sources and decisions
 
@@ -46,7 +49,7 @@ backend/
     auth/application/  use cases; transaction boundaries
     auth/domain/       records, enums, invariants, policy constants
     auth/persistence/  Spring JDBC repositories, row mappers
-    auth/crypto/       Argon2, token, AES-GCM, TOTP, randomness
+    auth/crypto/       PBKDF2, token, AES-GCM, TOTP, randomness
     auth/mail/         admission, worker, SMTP adapter
     auth/ratelimit/    source identity, rolling windows, cooldown
     auth/session/      context, CSRF, idle/recent auth
@@ -118,8 +121,8 @@ manual DDL is permitted.
 
 | Concern | Design |
 |---|---|
-| Password hash | Argon2id v19, 65,536 KiB, 3 passes, 1 lane, 16-byte salt, 32-byte output, self-describing PHC string |
-| Predecessor | Argon2id v19, 19,456 KiB, 2 passes, 1 lane; verify then rehash to current on successful full auth; compare-and-set on `account.version` so a concurrent reset wins |
+| Password hash | PBKDF2-HMAC-SHA256, 210,000 iterations, 16-byte salt, 32-byte output, self-describing `$pbkdf2-sha256$i=...` string (DR-051; supersedes the former Argon2id v19 profile) |
+| Predecessor | PBKDF2-HMAC-SHA256 at 100,000 iterations; verify then rehash to current on successful full auth; compare-and-set on `account.version` so a concurrent reset wins (DR-051) |
 | Recovery verifier | `SHA-256("arg-recovery-v1" || len(accountId) || accountId || len(setId) || setId || codeBytes)`; constant-time compare; never adaptive hashing |
 | TOTP seed | AES-256-GCM, 12-byte nonce, 16-byte tag, AAD `accountId|seedId|representationVersion`; key id is metadata |
 | Opaque tokens | 32 bytes from `SecureRandom`, base64url (43 chars); store only SHA-256 hash |

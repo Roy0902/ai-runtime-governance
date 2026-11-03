@@ -72,7 +72,7 @@ Project-local only; no system Java/PATH change:
 |---|---|---|
 | JDK | Eclipse Temurin 25.0.5+8, Windows x64 | Official Adoptium ZIP verified against published SHA-256 `636bdc13dc649ddc7d5921c5c7d23cca6e44fd19d662b45cc9c02135a6c96c42`; local version command passed |
 | Maven | 3.9.16 portable | Maven Central ZIP verified against published SHA-512 `ed41650d42485cfc243fad22158caf9cbb5dc408ce7a09ddb94dd42a019de929ca43065bfa450612cf12bf78b5cafa3884b96c090de326ff590448c933454af3`; measurement build passed |
-| Cryptographic dependency | BouncyCastle bcprov-jdk18on 1.86 | Pinned measurement manifest; strict-checksum Maven resolution; compiled and executed on JDK 25 |
+| Cryptographic dependency | BouncyCastle bcprov-jdk18on 1.86 (removed by DR-051) | Pinned measurement manifest; strict-checksum Maven resolution; compiled and executed on JDK 25 |
 | Existing Node/npm | 22.19.0 / 10.9.3 | Read-only version probe; no global package installation |
 
 Installed tool/cache locations are excluded by the project's
@@ -80,14 +80,13 @@ Installed tool/cache locations are excluded by the project's
 No PostgreSQL, mail service, browser/server application or WSL setup is claimed
 by this step. Those runners and exact service versions remain to be established.
 
-## 5. Bounded actual Argon2 observations
+## 5. Bounded Argon2 observations (superseded)
 
-Reproduce with [run-argon2.ps1](../../local-env/measurements/run-argon2.ps1).
-The [measurement manifest](../../local-env/measurements/pom.xml) and
-[hashing helper](../../local-env/measurements/src/main/java/local/governance/measurements/Argon2Measurement.java)
-are tooling for candidate evaluation, not authentication feature implementation.
-Full machine-readable results and source/manifest fingerprints are in
-[argon2-baseline.json](./native-auth/evidence/argon2-baseline.json).
+DR-051 replaced the Argon2id password verifier with PBKDF2-HMAC-SHA256 and
+removed the Argon2 measurement helper, its runner and the recorded
+`argon2-baseline.json` evidence. The observations below are retained as the
+historical comparison that motivated the change; the current PBKDF2 measurement
+is recorded in DR-051.
 
 Conditions: Windows shared host, eight logical processors; one hashing job;
 JVM maximum heap 512 MiB; two warmups and seven samples per profile; generated

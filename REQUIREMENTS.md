@@ -771,6 +771,20 @@ not end-to-end authentication capacity or a production percentile. Concrete
 shared contracts, design/tool baselines, native whole-application verification,
 freeze/red/lock and implementation gates still apply.
 
+### OD-11 amended password verifier algorithm
+
+The password verifier algorithm in the OD-11 profile is amended by DR-051 from
+Argon2id to PBKDF2-HMAC-SHA256 at 210,000 iterations, a fresh 16-byte salt and a
+32-byte result, with 100,000 iterations as the reviewed predecessor profile and
+rehash on successful authentication. The change trades Argon2id's memory-hardness
+for lower hashing cost. Measured on the pinned JDK 25 toolchain, 210,000
+iterations took a 259 ms median (minimum 250 ms, maximum 289 ms) against 435 ms
+median for the former 64 MiB/three-pass profile. This supersedes only the password
+verifier algorithm and parameters in intent v0.3; its other contracts remain in
+force, and the content-addressed intent file is not rewritten. The frozen
+native-auth plan and its locked SCN-native-auth-024/079 expectations were updated
+in the same change and re-frozen.
+
 ### OD-11 approved browser password compatibility refinement
 
 DR-038 and [native-auth intent v0.4](./spec-to-test-workflow/phase-1/native-auth/04-intent-v0.4.md),

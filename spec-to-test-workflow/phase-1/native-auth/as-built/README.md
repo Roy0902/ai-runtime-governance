@@ -1,8 +1,10 @@
 # Native-auth as-built review (Phase 12)
 
-Status: **As-built recorded 2026-11-02.** This document is separate from the
-approved intent, design and frozen plan. It does not modify them; it records what
-was built, where it deviates, and what remains open.
+Status: **As-built recorded 2026-11-02; verifier note added 2026-11-03.** This
+document is separate from the approved intent, design and frozen plan. It does
+not modify them; it records what was built, where it deviates, and what remains
+open. DR-051 later replaced Argon2id with PBKDF2-HMAC-SHA256, so the verifier
+wording below is the 2026-11-02 snapshot.
 
 Sources read for this review:
 

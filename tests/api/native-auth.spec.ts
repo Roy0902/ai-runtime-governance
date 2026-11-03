@@ -112,15 +112,11 @@ test.describe('Verifier, TOTP and recovery boundaries', () => {
   test('[SCN-native-auth-024] Current password verifiers and their native reference match the approved profile', async ({ request }) => {
     await enrollApi(request);
     const profile = await inspect(request, 'verifier');
-    expect(profile.algorithm).toBe('argon2id');
-    expect(profile.version).toBe(19);
-    expect(profile.memoryKib).toBe(65536);
-    expect(profile.iterations).toBe(3);
-    expect(profile.lanes).toBe(1);
+    expect(profile.algorithm).toBe('pbkdf2-sha256');
+    expect(profile.iterations).toBe(210000);
     expect(profile.saltBytes).toBe(16);
     expect(profile.outputBytes).toBe(32);
-    expect(profile.predecessorMemoryKib).toBe(19456);
-    expect(profile.predecessorIterations).toBe(2);
+    expect(profile.predecessorIterations).toBe(100000);
   });
 
   test('[SCN-native-auth-033] Concurrent TOTP acceptance has at most one winner', async ({ request, playwright }) => {

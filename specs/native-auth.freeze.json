@@ -1,10 +1,10 @@
 {
   "feature": "native-auth",
-  "planSha256": "3929c8570bb2ad6b2409f95b75393a43851521f9aff42261e7ca9e696cc699b5",
-  "frozenAt": "2026-11-01T11:33:30.397Z",
+  "planSha256": "358115382325cad9612735d3b6c303037c72f8eea0a3f113fdb858c4cf7ac4c6",
+  "frozenAt": "2026-11-03T12:08:54.836Z",
   "tests": {
-    "tests/api/native-auth.spec.ts": "3e0bf48f34ca1f5dcd3b7041e25e029d9cc8f5ecb3a2b8c173b2787b29ebd631",
+    "tests/api/native-auth.spec.ts": "1ee7958c9736667049d2bbb308bc31847cb1b5e84c0292116e14c36e8f71f2f7",
     "tests/specs/native-auth.spec.ts": "e71a14b6769f4c97e1834d7d8d99a721b91515d1f64c674d629a13230e0793c1"
   },
-  "testsLockedAt": "2026-11-01T11:38:50.416Z"
+  "testsLockedAt": "2026-11-03T12:08:54.946Z"
 }

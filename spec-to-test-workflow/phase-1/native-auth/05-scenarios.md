@@ -313,7 +313,7 @@ Feature: Confirmation authority
   Scenario: Current password verifiers and their native reference match the approved profile
     Given a generated password is established through a real eligible account journey
     When its verifier metadata and the pinned seven-sample native reference are assessed without exporting credentials
-    Then the current verifier is versioned Argon2id v19 with 65536 KiB, three passes, one lane, 16-byte salt and 32-byte result
+    Then the current verifier is PBKDF2-HMAC-SHA256 with 210000 iterations, 16-byte salt and 32-byte result
     And the reference uses one hash job and a 512 MiB maximum JVM heap with median at most 1000 ms and sample maximum at most 2000 ms
     And those narrow observations are not represented as full-login capacity or a percentile
 ```
@@ -887,7 +887,7 @@ Feature: Purpose-bound operational authority
   Scenario: Verifier, entropy and secret-safe evidence have a complete inspected surface
     Given real password, enrollment, recovery and reset journeys use per-case generated secrets
     When supporting evidence inspects verifier storage, random generation and all captured artifacts
-    Then passwords use approved Argon2id verifiers and recovery codes use account-and-set-bound domain-separated SHA-256 verifiers without raw-value readback
+    Then passwords use approved PBKDF2-HMAC-SHA256 verifiers and recovery codes use account-and-set-bound domain-separated SHA-256 verifiers without raw-value readback
     And seeds use versioned AES-256-GCM with unique per-key 96-bit nonce, 128-bit tag and authenticated account, stable seed identity and representation version
     And maintained Java cryptographic randomness supplies 16-byte recovery-code inputs, salts and key material as specified
     And the complete v0.3 export inventory contains only permitted metadata and no raw credentials, links, cookies, QR payloads or stored verifiers
