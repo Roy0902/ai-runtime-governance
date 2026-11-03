@@ -704,3 +704,48 @@ pre-existing setup defect.
   `[A-Z][A-Z0-9_]{0,63}`; unrecognized codes are labeled “Other reported cause”.
 - Updated the decision record, mutable shared checklist, OpenAPI draft, backend
   task list, review and handover. No source was changed.
+
+## Activity timeline vertical slice: 2026-11-03
+
+The user selected the cut-first vertical slice and then approved red-first
+implementation. The slice plan is frozen at
+`specs/activity-timeline-slice.md` (9 scenarios) and both test files are locked
+in `specs/activity-timeline-slice.freeze.json`.
+
+Red-first evidence: before implementation, all 10 new tests failed on the absent
+timeline surface (8 API failures at the missing `/__test/timeline` reset/read
+surface, 2 browser failures at the missing fixture path). The initial browser
+red attempt failed in enrollment setup instead; that attempt was rejected as
+setup-failing red, and the tests were changed to enroll through the real API on
+the same browser context before the lock.
+
+Results on this checkout after implementation:
+
+| Gate | Result |
+|---|---|
+| API acceptance (SCN 001, 002, 003, 005, 012, 023, 025, 030) | **8/8** |
+| Browser acceptance (SCN 004, 030) | **2/2** |
+| Backend JUnit (current package names) | **19/19** |
+| Frontend typecheck / lint / build | pass |
+| `npm run ai:verify` | all frozen features OK |
+| Migration V2 | applied against PostgreSQL 17.6 on 55434 |
+| Page bounds | 50 traces / 200 events |
+| Cursor | scope-bound keyset token; wrong scope/malformed returns 400 |
+
+Disposition and honest limits:
+
+- Traces and events are real persisted PostgreSQL rows read through the real
+  session boundary; A/B isolation, 401, 404 and metadata-only responses are
+  proven by the locked tests.
+- Fixtures still enter only through the token-protected `/__test/timeline`
+  endpoint; there is no production ingestion producer.
+- Deferred and unchanged: traversal expiry/caps/tombstones, navigation races,
+  pending continuation, approval history, duplicate-history conflicts, full
+  coverage/loss presentation, refresh-failure retention, signed cursor
+  hardening.
+- Pre-existing frontend enrollment regression discovered: the reorganized
+  enrollment form does not send the password the backend requires, so UI
+  enrollment fails. The timeline browser tests therefore enroll through the real
+  API on the same browser context. The user-owned auth UI was not modified.
+- Untracked backend/frontend `README.md` files appeared during the session from
+  a concurrent process; they are not part of this slice's commits.

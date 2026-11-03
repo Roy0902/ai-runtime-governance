@@ -1,0 +1,10 @@
+{
+  "feature": "activity-timeline-slice",
+  "planSha256": "0af03950780c5e887cc018da84681e472c5214ffd58db3bea2556406c88e36da",
+  "frozenAt": "2026-11-03T13:13:37.903Z",
+  "tests": {
+    "tests/api/activity-timeline-slice.spec.ts": "a18d9210b29dff35c6144c4fd85936ebb353497bcdc10646b53c8cbff3503d92",
+    "tests/specs/activity-timeline-slice.spec.ts": "9c0d75d59c41441d369763c5d609139d26127a1f4f6733c550a56306a3c86d77"
+  },
+  "testsLockedAt": "2026-11-03T13:17:55.724Z"
+}

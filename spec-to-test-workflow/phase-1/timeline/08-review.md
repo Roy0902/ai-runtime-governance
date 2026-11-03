@@ -229,6 +229,12 @@ freeze from red-acceptance authoring and from implementation/verification.
 
 ### Minimum path
 
+The cut-first preparation is in
+[09-vertical-slice-plan.md](./09-vertical-slice-plan.md): nine core scenarios, a
+minimal three-endpoint read contract and the exact file/test ladder. It is a
+prepared plan, not an approval; the full gate list below still governs any
+deferred scope.
+
 1. **Before freeze:** resolve TL-G02, TL-G06, TL-G08, TL-G09 and TL-G12; record
    TL-G03–G05 as expected pre-implementation work with owners; then review and
    separately approve the plan.
