@@ -180,3 +180,19 @@ acceptance adaptation and Java/Maven setup choices next. Then prepare the shared
 implementation design and backend file-level task list, perform Phase 6 review,
 and only afterward freeze/author genuine red acceptance tests. No implementation,
 dependency installation, WSL setup or acceptance freeze occurs in this document.
+
+### Addendum 2026-11-03: selected acceptance harness and first slice
+
+The superseded subprocess-bridge proposal was not used. The first nine scenarios
+are accepted through the existing test-only surface:
+`POST /__test/guard/evaluate`, loopback-only and token-guarded, calling the real
+Java `GuardDecisionCore`. No production route, subprocess bridge or replacement
+oracle is added.
+
+- Frozen plan: `specs/guard-decision-core.md`.
+- Locked acceptance: `tests/api/guard-decision-core.spec.ts`.
+- Implemented: no-finding allow, six typed markers, connected union/priority,
+  direct tie failure, deny, deny/approval/redaction composition, unknown rule,
+  and the 1,024-finding boundary.
+- Deferred: detector patterns and catalog contents, approval delivery,
+  persistence, dispatch, gateway integration, and the remaining scenarios.

@@ -1,0 +1,9 @@
+{
+  "feature": "guard-decision-core",
+  "planSha256": "5268835bfbcc923f0186cae902e762f9cd0f04b745e873154d9c48e42bc4f92b",
+  "frozenAt": "2026-11-03T14:24:58.351Z",
+  "tests": {
+    "tests/api/guard-decision-core.spec.ts": "97feaed457a1ccb711c3c134359db4dd324892de77b12a2ac6c92c9313b80649"
+  },
+  "testsLockedAt": "2026-11-03T14:25:38.720Z"
+}

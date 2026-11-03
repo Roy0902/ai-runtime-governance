@@ -884,3 +884,40 @@ Known locked-test defect: the original SCN-037 assertion uses
 button. `specs/activity-timeline-read-ui-followup-01.md` asserts the event
 heading by role and exact name. The original test is not edited and may pass or
 fail depending on generated UUIDs.
+
+## Guard decision core: 2026-11-03
+
+First component slice of the approved guard core. Plan frozen at
+`specs/guard-decision-core.md` (9 scenarios) and locked in
+`tests/api/guard-decision-core.spec.ts`.
+
+Harness: the rejected subprocess bridge was not used. Acceptance calls the real
+Java core through the existing test-only, loopback-only, token-guarded
+`POST /__test/guard/evaluate`. No production route or replacement oracle exists.
+
+Red-first evidence: all 9 tests failed on the absent harness before
+implementation.
+
+Results after implementation:
+
+| Gate | Result |
+|---|---|
+| Guard core acceptance (001, 002, 005, 007, 008, 011, 014, 017, 024) | **9/9** |
+| Full API regression | **28/29** — only the known locked SCN-031 defect |
+| Browser regression | **11/11** on this run; the original SCN-037 is still flaky |
+| Backend JUnit | 19/19 |
+| `npm run ai:verify` | all **11** frozen features OK |
+
+Behaviors added:
+
+- No-finding allow with policy attribution.
+- Six exact typed markers.
+- Connected overlap union with highest-priority marker selection.
+- Direct and transitive top-priority ties fail explicitly.
+- Deny and deny/approval/redaction composition; approval is never granted.
+- Unknown catalog rules fail; 1,024 findings accepted, 1,025 fail without
+  partial output.
+- Code-point spans, unpaired-surrogate rejection, UTF-8 byte limit.
+
+Deferred: detector patterns/catalog contents, approval delivery, persistence,
+dispatch, gateway integration and the remaining guard scenarios.
