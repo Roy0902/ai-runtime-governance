@@ -148,3 +148,10 @@ safety, single pending continuation and keyboard announcements. Results:
 read-UI browser 8/8, original browser 2/2, API 8/8, backend 19/19, frontend
 gates pass, `ai:verify` all six features OK. SCN-036 was an existing-behavior
 baseline; the rest were red-first.
+
+**2026-11-03 — traversal lifecycle complete.** A third frozen slice added
+server-managed committed-ID snapshots, five-minute expiry, active/member caps,
+tombstones and cursor privacy. Results: traversal API 6/7 + follow-up 1/1,
+original API 8/8, browser 10/10, backend 19/19, frontend gates pass. The one
+API failure is a locked SCN-031 test-authoring defect (refreshed first page vs
+201st event); follow-up 01 proves the correct refreshed-traversal membership.

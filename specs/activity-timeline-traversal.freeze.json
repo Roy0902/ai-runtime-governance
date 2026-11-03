@@ -1,0 +1,9 @@
+{
+  "feature": "activity-timeline-traversal",
+  "planSha256": "f72c0e63dc5673bf84db1bc39f7a704cbeadb9d0f74bb490917a810175320e16",
+  "frozenAt": "2026-11-03T14:05:35.713Z",
+  "tests": {
+    "tests/api/activity-timeline-traversal.spec.ts": "0ff2321e2d84fed72140a40c6abaa68265052fc58ab2b9d90753e928ecae494b"
+  },
+  "testsLockedAt": "2026-11-03T14:06:43.951Z"
+}

@@ -804,3 +804,46 @@ filters and search.
 - Focused browser checks: SCN-native-auth-002, 003, 004 and 008 pass (4/4).
   Frontend typecheck and lint pass.
 - No locked test or frozen plan was edited. The helper is unlocked test support.
+
+## Activity timeline traversal lifecycle: 2026-11-03
+
+Third read-only slice. Plan frozen at `specs/activity-timeline-traversal.md`
+(6 scenarios) with a one-scenario follow-up at
+`specs/activity-timeline-traversal-followup-01.md`; both test files are locked.
+
+Red-first evidence: 031, 032, 033, 034 and the untagged tombstone check failed on
+the missing traversal behavior/control surface. 039 and 040 already passed and
+are recorded as existing-behavior baselines.
+
+Results after implementation:
+
+| Gate | Result |
+|---|---|
+| Traversal API acceptance | **6/7** — the only failure is a locked test-authoring defect in SCN-031 |
+| Traversal follow-up 01 | **1/1** |
+| Original slice API acceptance | **8/8** |
+| Browser acceptance (slice + read UI) | **10/10** |
+| Backend JUnit | 19/19 |
+| Frontend typecheck / lint / build | pass |
+| `npm run ai:verify` | all frozen features OK |
+| Flyway V3 | applied against PostgreSQL 17.6 |
+
+Behaviors added:
+
+- A `timeline_traversal` row snapshots committed member IDs on the first read;
+  continuations read that membership, so new commits do not enter it.
+- Five-minute expiry returns `410 TRAVERSAL_EXPIRED`.
+- Five unexpired traversals per account return `429 TRAVERSAL_LIMIT` with
+  `Retry-After` on a sixth start.
+- A snapshot above 10,000 members returns `422 TRAVERSAL_TOO_LARGE` with no row.
+- Deleted snapshot members return data-free tombstones at their position.
+- Malformed, tampered, wrong-scope and wrong-trace cursors return
+  `400 REQUEST_INVALID` without echoing the cursor or data.
+- Test controls add bulk trace/event seeding, event seeding into an existing
+  trace, and deletion; reset also clears traversals.
+
+Known locked-test defect: the original SCN-031 test expects ELATE on the
+refreshed *first* page, but ELATE is the 201st event and the 200-event bound puts
+it on the following page. The product behavior is correct; follow-up 01 asserts
+refreshed-traversal membership across pages. The original test is not edited or
+weakened and remains red by design.
