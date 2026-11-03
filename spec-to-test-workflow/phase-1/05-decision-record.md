@@ -1287,3 +1287,151 @@ repository relocation or client configuration changes.
 - **Evidence:** the user selected the follow-up pacing option after the
   SCN-033/039/041/057/089 conflict and the correct `401` replay result were
   presented.
+
+## DR-044: Activity timeline Phase 6 contract directions
+
+- **Date / decision owner:** 2026-11-03 / user.
+- **Scope:** resolve the recommended directions for R-TL-001, R-TL-003 and
+  R-TL-005, and authorize draft acceptance wording for R-TL-004. Approved
+  intent v0.1 and existing scenario IDs remain unchanged.
+- **R-TL-001 — traversal membership:** use server-managed traversal records.
+  Snapshot committed event IDs at the first successful read; reauthorize each
+  page; expire after five minutes; allow at most 10,000 members and five active
+  traversals per account; return explicit `TRAVERSAL_EXPIRED` /
+  `TRAVERSAL_LIMIT` errors; do not hold a long-lived database transaction.
+  Preserve deleted members as data-free tombstones so deletion cannot shift
+  membership or disclose deleted event details.
+- **R-TL-003 — acceptance harness:** extend the existing `/__test` boundary
+  with token-protected, loopback-only timeline ingestion/inspection controls.
+  Exercise the real metadata validation, deduplication and producer-authority
+  service path. Do not add a public seed/write endpoint. Browser acceptance
+  inspects retained results through the real read path; service-level assertions
+  remain separately classified.
+- **R-TL-005 — shared schema:** maintain one machine-readable OpenAPI component
+  with canonical UUID identifiers, explicit test-only aliases for legacy
+  `evt-*` fixtures, and defined enums, nullability, timestamp rules and producer
+  permissions. The mutable schema draft is
+  [activity-timeline.openapi.json](../../contracts/activity-timeline.openapi.json);
+  exact field/copy review remains open where marked in that draft.
+- **R-TL-004 — acceptance cases:** authorize drafting SCN-031+ for concurrent
+  cursor arrival, traversal expiry/limits, refresh failure, navigation races,
+  pending load-more and accessibility. Exact scenario wording remains a draft
+  for separate user approval; existing IDs must not be renumbered.
+- **Not authorized:** freezing or locking the timeline plan/tests, claiming a
+  feature-missing red result, implementing product code, installing tools,
+  changing approved intent, or treating the draft scenario wording as approved.
+- **Evidence:** the user selected the recommended traversal, harness and schema
+  directions and authorized draft scenario wording and mutable Phase 6 document
+  updates in the guided confirmation on 2026-11-03.
+
+## DR-045: Timeline scenario wording and UI/error details
+
+- **Date / decision owner:** 2026-11-03 / user.
+- **SCN-031–038:** approve the exact scenario wording in the mutable
+  [scenario draft](./timeline/03-scenarios.md). This approves those eight
+  scenario oracles only; it does not freeze or lock the feature plan/tests.
+- **Trace routes:** retain `/activity` for the trace list and use
+  `/activity/{traceId}` for direct trace detail links, integrated into the
+  existing authenticated React application.
+- **Missing-value copy:** use “Not reported” when a producer omitted an optional
+  value. Reserve “Unavailable” for retained details that cannot be displayed,
+  such as data-free event tombstones.
+- **Traversal statuses/codes:** an expired traversal returns HTTP 410 with
+  `TRAVERSAL_EXPIRED`; the five-active-traversals-per-account cap returns HTTP
+  429 with `TRAVERSAL_LIMIT` and `Retry-After`; a snapshot exceeding 10,000
+  members returns HTTP 422 with `TRAVERSAL_TOO_LARGE`. These codes/statuses must
+  use the existing safe `FailureResponse` envelope and correlation behavior.
+- **Not authorized:** freezing/locking, changing approved intent, weakening any
+  oracle, or beginning production implementation. The API contract remains a
+  draft where other wire/schema questions are still open.
+- **Evidence:** the user selected approval of SCN-031–038 as written, the
+  `/activity` route family, the missing-value copy, and the recommended
+  traversal status mapping in the guided confirmation on 2026-11-03.
+
+## DR-046: Stable trace-list traversal membership
+
+- **Date / decision owner:** 2026-11-03 / user.
+- **Decision:** apply the DR-044 bounded server-managed snapshot policy to
+  trace-list pages as well as event pages. On the first successful list read,
+  snapshot the committed trace IDs in the approved trace ordering. Reauthorize
+  each continuation. Apply the same five-minute expiry, 10,000-member cap, and
+  shared maximum of five active trace/event traversals per account.
+- **Deletion:** preserve deleted snapshot members as data-free tombstones at
+  their original positions; do not disclose deleted trace details or shift
+  later members.
+- **Acceptance:** approve SCN-039 wording as drafted in the scenario file. It
+  covers a newly committed trace that sorts before the continuation position:
+  the active traversal stays fixed and refresh includes the new trace.
+- **Existing error mapping applies:** 410 `TRAVERSAL_EXPIRED`; 429
+  `TRAVERSAL_LIMIT` with `Retry-After`; 422 `TRAVERSAL_TOO_LARGE`.
+- **Not authorized:** freezing/locking, changing approved intent, or treating
+  the scenario as executed acceptance.
+- **Evidence:** the user selected the recommended same snapshot policy and
+  approved SCN-039 as written in the guided confirmation on 2026-11-03.
+
+## DR-047: Activity timeline UI contract choices
+
+- **Date / decision owner:** 2026-11-03 / user.
+- **Trace navigation:** trace rows are links to `/activity/:traceId`; `/activity`
+  remains the list. This supports direct links and keyboard navigation.
+- **Event disclosure:** events are collapsed initially with keyboard-operable
+  `Expand event {eventId}` / `Collapse event {eventId}` controls. Expansion
+  preserves focus on the activating control.
+- **Timestamps:** use locale-aware medium date/time formatting in UTC and show
+  the UTC designation. The stored/API values remain RFC 3339.
+- **Page copy:** retain the prototype headings “Activity”, “Traces” and
+  “Timeline”, and its metadata-only introduction:
+  “Inspect reported agent, model, tool, guard, and approval activity without
+  exposing payloads.”
+- **Loading/empty/error/session copy:** approve “Loading activity…”,
+  “No traces recorded.”, alert “Activity could not be loaded.” with “Try again”,
+  “Sign in to view activity.” and “Trace is unavailable.”.
+- **Not authorized:** freezing/locking or implementation; other wire-level
+  errors (including malformed/tampered cursor response details) and runtime/test
+  readiness remain open.
+- **Evidence:** the user selected the proposed route interaction, collapsed
+  event disclosure, localized UTC timestamp, prototype page copy and proposed
+  loading/empty/error/session text in the guided confirmation on 2026-11-03.
+
+## DR-048: Timeline metadata labels and status announcements
+
+- **Date / decision owner:** 2026-11-03 / user.
+- **Metadata labels:** use the prototype labels: summary `Execution`,
+  `Telemetry`, `Prompt guard`; coverage `Input`, `Response`, `Tools`; event
+  fields `Received (UTC)`, `Source time (UTC)`, `Duration`, and `Reporter`.
+- **Live status announcements:** use polite status messages `Loading more
+  activity…`, `Loaded {count} more events.`, and `Activity refreshed.`. Keep the
+  DR-047 refresh/read failure alert `Activity could not be loaded.` with retry
+  control `Try again`.
+- **Not authorized:** freezing/locking or implementation. Other focus/keyboard
+  details beyond the approved scenarios and backend/test readiness remain open.
+- **Evidence:** the user approved the prototype metadata labels and proposed
+  load-more/refresh announcements in the guided confirmation on 2026-11-03.
+
+## DR-049: Invalid cursor error behavior
+
+- **Date / decision owner:** 2026-11-03 / user.
+- **Decision:** malformed, tampered, or wrong-account/scope cursors return HTTP
+  400 with code `REQUEST_INVALID` and a generic safe message. Do not echo the
+  cursor, scope, or protected data. Expired traversals remain HTTP 410
+  `TRAVERSAL_EXPIRED`; an unowned/unknown trace identity remains HTTP 404
+  `NOT_FOUND`.
+- **Not authorized:** freezing/locking or implementation; acceptance wording for
+  the cursor-tampering case remains a draft until reviewed.
+- **Evidence:** the user selected the recommended `REQUEST_INVALID` 400 response
+  in the guided confirmation on 2026-11-03.
+- **Subsequent confirmation:** the user approved SCN-040 wording as written on
+  2026-11-03. This does not freeze or lock the feature.
+
+## DR-050: Unsupported metadata and cause-code policy
+
+- **Date / decision owner:** 2026-11-03 / user.
+- **Unsupported metadata:** reject the entire event when it includes unsupported
+  or content-bearing fields. Return HTTP 400 `REQUEST_INVALID` with a generic
+  field-category message, do not echo the submitted value, and persist nothing.
+- **Cause codes:** accept a constrained extensible uppercase code matching
+  `[A-Z][A-Z0-9_]{0,63}` or `null`. Preserve it as a structured code; render
+  codes without a known label as “Other reported cause”, not as arbitrary text.
+- **Not authorized:** freezing/locking or implementation.
+- **Evidence:** the user selected whole-event rejection and the extensible safe
+  cause-code pattern in the guided confirmation on 2026-11-03.

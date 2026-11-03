@@ -1,9 +1,18 @@
 # Cross-session handover
 
-Updated: 2026-11-02, after native-auth closed (Phase 10–12), the frontend split
-and the backend naming/DTO refactor. Read this section first.
-Status: **Native-auth is complete and verified. The next feature is the activity
-timeline, which is blocked only by its Phase 6 decisions.**
+Updated: 2026-11-03, after the user approved timeline Phase 6 directions for
+traversal membership, the test harness and the shared schema. Read this section
+first.
+Status: **Native-auth is complete and verified. Timeline directions R-TL-001,
+R-TL-003 and R-TL-005 are recorded in DR-044. DR-045–049 approve SCN-031–040
+wording, the `/activity` route family, missing-value copy, and trace/event
+traversal semantics/statuses, including generic 400 invalid-cursor errors.
+DR-047/048 approve core page copy, direct trace
+links, collapsed event disclosure, UTC display, metadata labels and loading/error/
+status copy. Remaining UI details and setup gates
+remain open. The user-owned frontend has a synthetic timeline preview, not
+production timeline integration. No feature freeze or real-service acceptance
+has occurred.**
 
 ## Next-agent follow-up list: authoritative resume checkpoint
 
@@ -16,12 +25,23 @@ lists below. Keep those sections as history, not current instructions.
   branch `main`. The application code is in sibling repositories:
   `../ai-runtime-governance-frontend` and `../ai-runtime-governance-backend`.
 - Current commits:
-  - docs: last implementation commit `f7d97f8 [Docs]Record the backend naming
-    and DTO refactor`; the handover checkpoint is the current docs `HEAD`.
-    Check `git log origin/main..HEAD` before pushing.
+  - docs: `0394139 [Docs]Clarify the handover push state`; this session has
+    uncommitted Phase 6 document updates. Check `git log origin/main..HEAD`
+    before pushing.
   - frontend: `7437262 [Fix]Make the step-up dialog modal and trap focus`.
-  - backend: `b5fad17 [Refactor]Uppercase acronym type names and split API DTOs`.
-- All three worktrees are clean. PostgreSQL is stopped. The local branches
+  - backend: `b195692 [Refactor]Refactor filename`.
+- The frontend worktree is in a user-owned reorganization: `index.html` is
+  modified; old `src/App.tsx`, `src/api.ts`, `src/auth.tsx`, `src/main.tsx` and
+  `src/styles.css` are deleted; replacements include
+  `src/ApplicationApiClient.ts`, `ApplicationEntry.tsx`, `ApplicationRoutes.tsx`,
+  `ApplicationStyles.css`, `AuthenticationContext.tsx`, `src/api-contracts/`,
+  and `src/components/` / `src/features/`. The latest tree was reviewed
+  read-only; no frontend source was changed by this session. Current lint and
+  typecheck pass; the last build predates the latest rename. The backend worktree
+  is clean. The docs
+  worktree contains the uncommitted Phase 6 document updates and the pre-existing
+  untracked `tests/supporting/operation-conflicts.spec.ts`, which this session
+  left untouched. PostgreSQL is stopped. The local branches
   `split/frontend` and `split/backend` remain in the docs repository.
 - Push only when asked. Commit with `[TaskType]Goal-oriented title`.
 - Read [latest execution evidence](./spec-to-test-workflow/phase-1/native-auth/evidence/execution-evidence.md)
@@ -120,9 +140,14 @@ lists below. Keep those sections as history, not current instructions.
    `spec-to-test-workflow/phase-1/native-auth/as-built/README.md` records the
    architecture, flows, states, ERD and drift AB-001–AB-009. No approved intent
    or frozen artifact was changed.
-8. **Timeline Phase 6: the next work.** See section 5 below for the decisions
-   and the recommended sequence. WSL/client integration remains separate,
-   user-performed and externally blocked.
+8. **Timeline Phase 6 document review: in progress.** DR-044 records the
+   approved traversal/harness/schema directions. Mutable checklist, schema,
+   design, scenario and task drafts were updated on 2026-11-03 and reconciled to
+   the existing sibling frontend/backend repositories (including `src/App.tsx`,
+   existing native-auth/session integration, V1 migration and test harness).
+   SCN-031–040 wording and traversal decisions are approved. Resolve remaining
+   UI/status/test-setup gates before freeze or coding. WSL/client integration remains
+   separate, user-performed and externally blocked.
 
 ### 4. Starting commands and exit conditions
 
@@ -165,32 +190,60 @@ inventing approval or weakening an oracle.
 
 ### 5. Timeline Phase 6: the next work
 
-The timeline review verdict is **not ready to freeze or code** until these
-findings are resolved. Recommended decisions:
+The timeline review verdict remains **not ready to freeze or code**. DR-044
+records the approved R-TL-001/003/005 directions; DR-045/046 approve SCN-031–039,
+the `/activity` and `/activity/:traceId` routes, missing-value copy, and the
+shared trace/event traversal policy/statuses. Other UI/focus details and
+runtime/test-setup gates remain open.
+
+The user-owned frontend has a dev-only `/activity-preview` screen backed by local
+fixtures. It is not connected to the timeline API or persisted service data.
+Current lint/build were green before the latest source reorganization, which has
+not yet been verified; no timeline unit/browser acceptance exists. The
+`ActivityTimelineModel.ts` preview currently conflates a validated linked parent not
+loaded in the page with a genuinely unresolved parent; see the addendum in
+[timeline review](./spec-to-test-workflow/phase-1/timeline/08-review.md).
+The shared browser page's auth-context request and direct GETs to
+`/actuator/health` and `/api/v1/auth/context` on the intended
+`127.0.0.1:8080` target returned 404; the listener uses Java 17 and Spring Boot
+3.5.5 dependencies, unlike the intended backend's Java 25/Spring Boot 4.1.2.
+The user deferred enforcing this mismatch now. Keep readiness unverified, do not
+stop/change the unidentified service, and verify the target backend before
+real-session acceptance.
+The docs-repository `tests/supporting/api-client.test.mjs` still imports the
+removed frontend `src/api.ts` and failed after the rename. Do not mask or rewrite
+that test until the user-owned API-client move settles. The previous frontend
+lint/build pass predates this latest reorganization.
+
+Recorded directions:
 
 | Finding | Recommended decision |
 |---|---|
-| R-TL-001 traversal membership | Server-managed bounded traversal records. Snapshot committed event IDs at the first successful read; reauthorize every page; 5-minute expiry; 10,000 records and 5 active traversals per account; explicit `TRAVERSAL_EXPIRED` / `TRAVERSAL_LIMIT` errors; no long-lived DB transaction; tombstones for deleted members. |
-| R-TL-003 harness | Extend the existing `/__test` surface with a token-protected, loopback-only timeline ingestion/inspection boundary. Exercise real validation, deduplication and producer authority; no public seed/write endpoint; record service-level versus browser assertions. |
-| R-TL-005 schema | One machine-readable JSON Schema/OpenAPI component with UUID IDs. Add an explicit test-only alias map for `evt-001` fixtures. Define enums, nullability, timestamp rules and producer permissions; close AMB-004/005. |
-| R-TL-004 cases | Append SCN-031+ for concurrent cursor arrival, traversal expiry/limit, refresh failure, navigation race, pending load-more and accessibility. Do not renumber existing SCNs; approve exact copy first. |
+| R-TL-001 traversal membership | **Approved in DR-044/046.** Server-managed bounded records; snapshot committed event IDs and trace IDs on first successful reads; reauthorize every page; 5-minute expiry; 10,000 members and a shared maximum of 5 active traversals per account; data-free tombstones for deleted members; no long-lived DB transaction. |
+| R-TL-003 harness | **Approved in DR-044.** Extend the existing `/__test` surface with token-protected, loopback-only timeline ingestion/inspection controls that exercise real validation, deduplication and producer authority. No public seed/write endpoint; classify service assertions separately from browser acceptance. |
+| R-TL-005 schema | **Direction approved in DR-044.** One machine-readable OpenAPI component with UUID IDs, explicit test-only aliases for `evt-*` fixtures, and defined enums/nullability/timestamp/producer rules. Exact schema and remaining wire/error details are in the mutable draft for review. |
+| R-TL-004 cases | **SCN-031–040 wording approved in DR-045–049, not frozen or executed.** They cover concurrent event/trace arrivals, traversal expiry/limits, refresh failure, navigation race, pending load-more, accessibility, and invalid cursors. Do not renumber existing SCNs. |
+| UI/error details | **Partially approved in DR-045–049.** `/activity` list and `/activity/:traceId` detail; direct links; collapsed event disclosure; localized UTC timestamps; prototype page headings/intro and metadata labels; “Not reported” for omitted values and “Unavailable” for unavailable details; loading/empty/error/session copy and polite load/refresh announcements; trace/event statuses 410 `TRAVERSAL_EXPIRED`, 429 `TRAVERSAL_LIMIT` with `Retry-After`, 422 `TRAVERSAL_TOO_LARGE`, invalid cursors generic 400 `REQUEST_INVALID`. Unsupported metadata reject-versus-omit and cause-code vocabulary remain open, as do other focus/error details. |
 
 R-TL-002 is closed by the completed native-auth prerequisite. R-TL-008 needs
 only a baseline refresh to Java 25 / Maven 3.9.16 / Node 24.22 / Playwright
 1.64.1 / PostgreSQL 17.6 and the sibling-repo layout.
 
-After the user approves the decisions:
+After the user resolves remaining UI/focus details and the backend readiness
+issue is resolved:
 
-1. Write the Phase 6 decision record (mutable; do not edit approved intent).
-2. Revise the timeline design, scenarios and frontend/backend task lists.
-3. Review, freeze and lock the revised plan; author genuine feature-missing red
-   acceptance before implementation.
+1. Complete mutable Phase 6 decision/evidence records; do not edit approved intent.
+2. Finalize the timeline schema, design, scenarios and frontend/backend task lists.
+3. Review and separately approve the revised plan before freeze/lock; then author
+   genuine feature-missing red acceptance before implementation.
 4. Implement the timeline backend read model/ingestion and the React read UI.
 5. Verify with real browser/backend/persisted data; update the execution
    evidence, gap register and this handover.
 
-Do not start coding against the current draft: its cursor membership, harness,
-event shape and missing accessibility/race cases are unresolved.
+Before freeze or implementation, resolve remaining UI/focus/error details and
+the current backend route readiness issue. Trace/event traversal direction,
+test harness/schema direction, cursor error policy and SCN-031–040 wording are
+recorded as approved.
 
 ### 6. Backend conventions (introduced 2026-11-02)
 
@@ -314,8 +367,11 @@ records them as GAP-NA-022 through GAP-NA-027.
 
 ## 2. Repository state
 
-- Branch `main`; all work is committed. Check each repository's
-  `git log origin/main..HEAD`; push only when asked.
+- Branches are `main`. At the 2026-11-02 checkpoint prior work was committed;
+  as of 2026-11-03 the docs repository has the uncommitted Phase 6 decision,
+  contract and task/document updates described above. The frontend repository
+  has user-owned in-progress changes described in section 1; do not overwrite
+  them. Check each repository's `git log origin/main..HEAD`; push only when asked.
 - **Do not push** unless asked.
 - Last commits: docs `f7d97f8 [Docs]Record the backend naming and DTO refactor`;
   frontend `7437262 [Fix]Make the step-up dialog modal and trap focus`; backend
@@ -459,7 +515,10 @@ with its own freeze/lock, or retire the superseded originals in a reviewed way.
 ## 8. Remaining phases
 
 1. Native-auth gates: complete; Phase 10–12 are recorded above.
-2. Timeline Phase 6: resolve R-TL-001/003/004/005, then revise/freeze/lock.
+2. Timeline Phase 6: R-TL-001/003/005 directions are recorded in DR-044/046;
+   the design/task targets point to the existing sibling apps; SCN-031–040 are
+   approved. Resolve remaining UI/status/test-setup gates, then review and
+   separately approve the plan before freeze/lock and red acceptance.
 3. Timeline implementation: only after its own freeze/red/lock gate.
 4. WSL/client integration: separate, user-performed, externally blocked.
 

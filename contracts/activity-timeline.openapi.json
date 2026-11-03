@@ -1,0 +1,838 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "AI Runtime Governance activity timeline",
+    "version": "0.1.0",
+    "description": "Mutable Phase 6 contract draft under DR-044/DR-045 (2026-11-03). Scenario wording, UI routes/copy and event-traversal status mapping are approved; other wire/schema details remain under review. This is not evidence of an implemented endpoint.",
+    "license": {
+      "name": "Proprietary - AI Runtime Governance demo",
+      "identifier": "LicenseRef-Proprietary"
+    }
+  },
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "security": [
+    {
+      "humanSession": []
+    }
+  ],
+  "paths": {
+    "/api/v1/traces": {
+      "get": {
+        "operationId": "listActivityTraces",
+        "summary": "List private activity traces",
+        "description": "Proposed READ-1. Every continuation reauthorizes the private scope. Traversal expiry and limits use the approved status/code mapping.",
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Opaque scope-bound trace-list continuation cursor."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A bounded page of private-scope trace summaries and data-free tombstones for deleted traversal members.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TracePage"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ApiFailure"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApiFailure"
+          },
+          "410": {
+            "$ref": "#/components/responses/ApiFailure"
+          },
+          "422": {
+            "$ref": "#/components/responses/ApiFailure"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApiFailure"
+          },
+          "503": {
+            "$ref": "#/components/responses/ApiFailure"
+          },
+          "default": {
+            "$ref": "#/components/responses/ApiFailure"
+          }
+        }
+      }
+    },
+    "/api/v1/traces/{traceId}": {
+      "parameters": [
+        {
+          "name": "traceId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/UUID"
+          }
+        }
+      ],
+      "get": {
+        "operationId": "readActivityTrace",
+        "summary": "Read one private activity trace",
+        "description": "Proposed READ-2. Ownership is checked against the authenticated private scope.",
+        "responses": {
+          "200": {
+            "description": "Safe metadata for one authorized trace.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TraceDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/ApiFailure"
+          },
+          "404": {
+            "$ref": "#/components/responses/ApiFailure"
+          },
+          "503": {
+            "$ref": "#/components/responses/ApiFailure"
+          },
+          "default": {
+            "$ref": "#/components/responses/ApiFailure"
+          }
+        }
+      }
+    },
+    "/api/v1/traces/{traceId}/events": {
+      "parameters": [
+        {
+          "name": "traceId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/UUID"
+          }
+        }
+      ],
+      "get": {
+        "operationId": "readActivityEvents",
+        "summary": "Read a bounded page of activity events",
+        "description": "Proposed READ-3. Every continuation reauthorizes the private scope. Traversal expiry and limits use the approved status/code mapping.",
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Opaque scope-, trace-, and traversal-bound event cursor."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A bounded event page from a stable traversal membership.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ApiFailure"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApiFailure"
+          },
+          "404": {
+            "$ref": "#/components/responses/ApiFailure"
+          },
+          "410": {
+            "$ref": "#/components/responses/ApiFailure"
+          },
+          "422": {
+            "$ref": "#/components/responses/ApiFailure"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApiFailure"
+          },
+          "503": {
+            "$ref": "#/components/responses/ApiFailure"
+          },
+          "default": {
+            "$ref": "#/components/responses/ApiFailure"
+          }
+        }
+      }
+    }
+  },
+  "x-review-status": "draft",
+  "x-time-policy": {
+    "syntax": "RFC 3339 date-time with an explicit UTC offset",
+    "receivedAt": "Server-assigned UTC timestamp with millisecond precision",
+    "sourceAt": "Nullable producer-reported timestamp; never defaulted to receivedAt"
+  },
+  "x-ordering": {
+    "eventSiblings": "receivedAt ascending, then canonical lowercase event UUID by ordinal string comparison",
+    "traceSummaries": "receivedAt descending, then canonical lowercase trace UUID by ordinal string comparison"
+  },
+  "x-ui-routes": {
+    "traceList": "/activity",
+    "traceDetail": "/activity/{traceId}",
+    "directTraceLinks": true
+  },
+  "x-error-status-mapping": {
+    "REQUEST_INVALID": 400,
+    "SIGN_IN_REQUIRED": 401,
+    "NOT_FOUND": 404,
+    "TRAVERSAL_EXPIRED": 410,
+    "TRAVERSAL_LIMIT": 429,
+    "TRAVERSAL_TOO_LARGE": 422,
+    "TEMPORARILY_UNAVAILABLE": 503
+  },
+  "x-cursor-error-policy": {
+    "malformedTamperedOrWrongScope": {
+      "httpStatus": 400,
+      "errorCode": "REQUEST_INVALID",
+      "message": "Generic safe message; do not echo cursor or scope details"
+    },
+    "expiredTraversal": {
+      "httpStatus": 410,
+      "errorCode": "TRAVERSAL_EXPIRED"
+    },
+    "unownedOrUnknownTrace": {
+      "httpStatus": 404,
+      "errorCode": "NOT_FOUND"
+    }
+  },
+  "x-ingest-metadata-policy": {
+    "unsupportedFields": "Reject the whole event before persistence",
+    "contentBearingFields": "Reject",
+    "errorHttpStatus": 400,
+    "errorCode": "REQUEST_INVALID",
+    "errorMessage": "Generic field-category message with no submitted value",
+    "persistOnFailure": false
+  },
+  "x-cause-code-policy": {
+    "representation": "Nullable structured code; never free-form text",
+    "pattern": "^[A-Z][A-Z0-9_]{0,63}$",
+    "vocabulary": "Extensible",
+    "unknownLabel": "Other reported cause"
+  },
+  "x-event-traversal-policy": {
+    "membership": "Committed event UUIDs snapshotted at the first successful read",
+    "expiresAfter": "PT5M",
+    "maximumMembers": 10000,
+    "maximumActivePerAccount": 5,
+    "activeTraversalQuotaSharedWithTraceList": true,
+    "continuationAuthorization": "Reauthenticate and reauthorize on every page",
+    "deletedMembers": "Retain a data-free tombstone at the original position",
+    "activeTraversalLimit": {
+      "httpStatus": 429,
+      "errorCode": "TRAVERSAL_LIMIT",
+      "retryAfter": "Seconds until an active traversal slot is expected to expire"
+    },
+    "memberLimit": {
+      "httpStatus": 422,
+      "errorCode": "TRAVERSAL_TOO_LARGE"
+    },
+    "expiredTraversal": {
+      "httpStatus": 410,
+      "errorCode": "TRAVERSAL_EXPIRED"
+    },
+    "longLivedDatabaseTransaction": false,
+    "refresh": "Starts a new traversal"
+  },
+  "x-trace-list-traversal-policy": {
+    "membership": "Committed trace UUIDs snapshotted at the first successful read",
+    "expiresAfter": "PT5M",
+    "maximumMembers": 10000,
+    "maximumActivePerAccount": 5,
+    "activeTraversalQuotaSharedWithEventPages": true,
+    "continuationAuthorization": "Reauthenticate and reauthorize on every page",
+    "deletedMembers": "Retain a data-free tombstone at the original position",
+    "activeTraversalLimit": {
+      "httpStatus": 429,
+      "errorCode": "TRAVERSAL_LIMIT",
+      "retryAfter": "Seconds until an active traversal slot is expected to expire"
+    },
+    "memberLimit": {
+      "httpStatus": 422,
+      "errorCode": "TRAVERSAL_TOO_LARGE"
+    },
+    "expiredTraversal": {
+      "httpStatus": 410,
+      "errorCode": "TRAVERSAL_EXPIRED"
+    },
+    "longLivedDatabaseTransaction": false,
+    "refresh": "Starts a new traversal"
+  },
+  "x-producer-authority": {
+    "agent_reporter": {
+      "eventKinds": ["prompt", "agent", "model", "tool"],
+      "mayAssertTrustedGuardFacts": false,
+      "mayAssertApprovalHistory": false,
+      "mayChooseAccountScope": false,
+      "mayChooseReceivedAt": false
+    },
+    "guard_service": {
+      "eventKinds": ["guard"],
+      "mayAssertTrustedGuardFacts": true,
+      "mayAttachPromptGuardMetadata": true,
+      "mayAssertApprovalHistory": false,
+      "mayChooseAccountScope": false,
+      "mayChooseReceivedAt": false
+    },
+    "approval_service": {
+      "eventKinds": ["approval"],
+      "mayAssertTrustedGuardFacts": false,
+      "mayAssertApprovalHistory": true,
+      "mayChooseAccountScope": false,
+      "mayChooseReceivedAt": false
+    },
+    "test_fixture": {
+      "eventKinds": ["prompt", "guard", "approval", "agent", "model", "tool"],
+      "availability": "Test profile only; token-protected and loopback-only",
+      "mayChooseAccountScope": "Explicit isolated fixture scope only",
+      "mayChooseReceivedAt": "Controlled test clock only",
+      "productionAuthority": false
+    }
+  },
+  "x-test-fixture-aliases": {
+    "description": "Test harness only. Translate legacy scenario labels before service validation; production inputs must use UUIDs.",
+    "evt-001": "00000000-0000-4000-8000-000000000001",
+    "evt-002": "00000000-0000-4000-8000-000000000002"
+  },
+  "components": {
+    "securitySchemes": {
+      "humanSession": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "__Host-arg-session"
+      }
+    },
+    "responses": {
+      "ApiFailure": {
+        "description": "Explicit safe read failure using the shared native-auth FailureResponse envelope.",
+        "headers": {
+          "Retry-After": {
+            "description": "Seconds to wait when an account traversal slot is unavailable.",
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9]+$"
+            }
+          },
+          "Cache-Control": {
+            "description": "Sensitive account and timeline responses are not stored.",
+            "schema": {
+              "type": "string",
+              "const": "no-store"
+            }
+          },
+          "X-Correlation-Id": {
+            "description": "Request correlation UUID.",
+            "schema": {
+              "$ref": "#/components/schemas/UUID"
+            }
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiError"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "UUID": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+        "description": "Canonical lowercase UUID. Scenario aliases are translated only by the test fixture boundary."
+      },
+      "ApiError": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "message", "correlationId"],
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": ["REQUEST_INVALID", "SIGN_IN_REQUIRED", "NOT_FOUND", "TRAVERSAL_EXPIRED", "TRAVERSAL_LIMIT", "TRAVERSAL_TOO_LARGE", "TEMPORARILY_UNAVAILABLE", "INTERNAL_ERROR"]
+          },
+          "message": {
+            "type": "string"
+          },
+          "correlationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "retryAfterSeconds": {
+            "type": ["integer", "null"],
+            "minimum": 0
+          },
+          "fieldErrors": {
+            "type": ["array", "null"],
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["field", "message"],
+              "properties": {
+                "field": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "TraceSummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["traceId", "receivedAt", "executionStatus", "telemetryStatus", "guardOutcome"],
+        "properties": {
+          "traceId": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "receivedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "executionStatus": {
+            "type": "string",
+            "enum": ["running", "completed", "failed", "canceled", "unknown"]
+          },
+          "telemetryStatus": {
+            "type": "string",
+            "enum": ["complete", "incomplete", "unknown", "unsupported"]
+          },
+          "guardOutcome": {
+            "type": ["string", "null"],
+            "enum": ["allow", "deny", "redact", "require_approval", null]
+          }
+        }
+      },
+      "TracePage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["items", "nextCursor"],
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/TraceSummary"
+                },
+                {
+                  "$ref": "#/components/schemas/TraceTombstone"
+                }
+              ]
+            }
+          },
+          "nextCursor": {
+            "type": ["string", "null"]
+          }
+        }
+      },
+      "TraceTombstone": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["tombstone", "traceId"],
+        "properties": {
+          "tombstone": {
+            "const": true
+          },
+          "traceId": {
+            "$ref": "#/components/schemas/UUID"
+          }
+        },
+        "description": "Data-free trace-list member retained only to preserve traversal position after deletion."
+      },
+      "Coverage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["input", "response", "tools"],
+        "properties": {
+          "input": {
+            "$ref": "#/components/schemas/InputCoverage"
+          },
+          "response": {
+            "$ref": "#/components/schemas/ObservedCoverage"
+          },
+          "tools": {
+            "$ref": "#/components/schemas/ObservedCoverage"
+          }
+        }
+      },
+      "InputCoverage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["status", "causeCode"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["guarded", "bypassed", "unknown", "unsupported", "degraded"]
+          },
+          "causeCode": {
+            "type": ["string", "null"],
+            "pattern": "^[A-Z][A-Z0-9_]{0,63}$",
+            "description": "Constrained extensible cause identifier; display an unrecognized value as Other reported cause."
+          }
+        }
+      },
+      "ObservedCoverage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["status", "causeCode"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["observed", "unknown", "unsupported", "degraded"]
+          },
+          "causeCode": {
+            "type": ["string", "null"],
+            "pattern": "^[A-Z][A-Z0-9_]{0,63}$",
+            "description": "Constrained extensible cause identifier; display an unrecognized value as Other reported cause."
+          }
+        }
+      },
+      "Loss": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["causeCode", "missingCount", "from", "to"],
+        "properties": {
+          "causeCode": {
+            "type": ["string", "null"],
+            "pattern": "^[A-Z][A-Z0-9_]{0,63}$",
+            "description": "Constrained extensible cause identifier; display an unrecognized value as Other reported cause."
+          },
+          "missingCount": {
+            "type": ["integer", "null"],
+            "minimum": 0
+          },
+          "from": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "to": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          }
+        }
+      },
+      "TraceDetail": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["traceId", "receivedAt", "executionStatus", "telemetryStatus", "guardOutcome", "identity", "coverage", "loss"],
+        "properties": {
+          "traceId": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "receivedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "executionStatus": {
+            "type": "string",
+            "enum": ["running", "completed", "failed", "canceled", "unknown"]
+          },
+          "telemetryStatus": {
+            "type": "string",
+            "enum": ["complete", "incomplete", "unknown", "unsupported"]
+          },
+          "guardOutcome": {
+            "type": ["string", "null"],
+            "enum": ["allow", "deny", "redact", "require_approval", null]
+          },
+          "identity": {
+            "type": ["string", "null"]
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/Coverage"
+          },
+          "loss": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Loss"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "EventMetadata": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/PromptMetadata"
+          },
+          {
+            "$ref": "#/components/schemas/GuardMetadata"
+          },
+          {
+            "$ref": "#/components/schemas/ApprovalMetadata"
+          },
+          {
+            "$ref": "#/components/schemas/ObservedMetadata"
+          }
+        ]
+      },
+      "PromptMetadata": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["guardOutcome", "ruleIds"],
+        "properties": {
+          "guardOutcome": {
+            "type": ["string", "null"],
+            "enum": ["allow", "deny", "redact", "require_approval", null]
+          },
+          "ruleIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        }
+      },
+      "GuardMetadata": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["outcome", "policyId", "policyVersion", "ruleIds"],
+        "properties": {
+          "outcome": {
+            "type": "string",
+            "enum": ["allow", "deny", "redact", "require_approval"]
+          },
+          "policyId": {
+            "type": ["string", "null"],
+            "maxLength": 128
+          },
+          "policyVersion": {
+            "type": ["string", "null"],
+            "maxLength": 64
+          },
+          "ruleIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        }
+      },
+      "ApprovalMetadata": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["approvalId", "state"],
+        "properties": {
+          "approvalId": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "state": {
+            "type": "string",
+            "enum": ["requested", "approved", "rejected", "canceled", "expired"]
+          }
+        }
+      },
+      "ObservedMetadata": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "status"],
+        "properties": {
+          "name": {
+            "type": ["string", "null"],
+            "maxLength": 256
+          },
+          "status": {
+            "type": ["string", "null"],
+            "enum": ["running", "completed", "failed", "canceled", "unknown", null]
+          }
+        }
+      },
+      "ActivityEvent": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["eventId", "traceId", "parentEventId", "relationship", "kind", "receivedAt", "sourceAt", "durationMs", "identity", "metadata"],
+        "properties": {
+          "eventId": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "traceId": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "parentEventId": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/UUID"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "relationship": {
+            "type": "string",
+            "enum": ["root", "linked", "unresolved"]
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["prompt", "guard", "approval", "agent", "model", "tool"]
+          },
+          "receivedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "sourceAt": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "durationMs": {
+            "type": ["integer", "null"],
+            "minimum": 0
+          },
+          "identity": {
+            "type": ["string", "null"],
+            "maxLength": 256
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/EventMetadata"
+          }
+        },
+        "x-kind-metadata": {
+          "prompt": "PromptMetadata",
+          "guard": "GuardMetadata",
+          "approval": "ApprovalMetadata",
+          "agent": "ObservedMetadata",
+          "model": "ObservedMetadata",
+          "tool": "ObservedMetadata"
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "prompt"
+                }
+              },
+              "required": ["kind"]
+            },
+            "then": {
+              "properties": {
+                "metadata": {
+                  "$ref": "#/components/schemas/PromptMetadata"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "guard"
+                }
+              },
+              "required": ["kind"]
+            },
+            "then": {
+              "properties": {
+                "metadata": {
+                  "$ref": "#/components/schemas/GuardMetadata"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "approval"
+                }
+              },
+              "required": ["kind"]
+            },
+            "then": {
+              "properties": {
+                "metadata": {
+                  "$ref": "#/components/schemas/ApprovalMetadata"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "enum": ["agent", "model", "tool"]
+                }
+              },
+              "required": ["kind"]
+            },
+            "then": {
+              "properties": {
+                "metadata": {
+                  "$ref": "#/components/schemas/ObservedMetadata"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "EventPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["items", "nextCursor"],
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 200,
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/ActivityEvent"
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["tombstone", "eventId"],
+                  "properties": {
+                    "tombstone": {
+                      "const": true
+                    },
+                    "eventId": {
+                      "$ref": "#/components/schemas/UUID"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "nextCursor": {
+            "type": ["string", "null"]
+          }
+        }
+      }
+    }
+  }
+}

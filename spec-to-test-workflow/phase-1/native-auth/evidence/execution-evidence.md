@@ -554,3 +554,143 @@ pre-existing setup defect.
 - Behavior is unchanged: backend JUnit **10/10**, a real API smoke case
   (`SCN-native-auth-016`) passed, and `arg-admin totp-key status` returned JSON
   through the renamed `AdminCLI`.
+
+## Timeline Phase 6 decision drafting: 2026-11-03
+
+- The user approved the recommended directions for R-TL-001 traversal
+  membership, R-TL-003 test harness and R-TL-005 shared schema; see DR-044.
+- The user authorized drafting, not approving, exact SCN-031–038 wording for
+  concurrent arrival, traversal expiry/limits, refresh failure, navigation
+  races, pending continuation and accessibility.
+- Updated the mutable timeline checklist, OpenAPI schema draft, implementation
+  design, scenarios and frontend/backend task lists. Approved intent and prior
+  scenario IDs were not changed.
+- Reconciled the timeline design/task targets to the existing sibling app
+  repositories (`src/App.tsx`, native-auth/session integration, backend
+  `local.governance`, Flyway V1 and the existing test-control harness); no
+  product source was changed.
+- No plan freeze/lock, product implementation, application test, live service or
+  acceptance run was performed. Exact scenario wording and remaining UI/status/
+  toolchain/test-setup gates are still open.
+- After the initial clean-worktree check, the user confirmed new frontend
+  `App.tsx`/`styles.css` changes and `src/components/` / `src/features/` folders
+  are their in-progress work. They were not inspected or modified here.
+
+## Timeline preview and local readiness review: 2026-11-03
+
+- Read-only review of the current frontend established a dev-only
+  `/activity-preview` route backed by in-memory fixtures. It does not call
+  timeline APIs or prove real auth/persistence. The authenticated `/activity`
+  route uses the existing `AuthProvider` / `RequireHuman` boundary.
+- Frontend checks against the user-owned worktree: `npm run lint` passed;
+  `npm run build` (including `tsc --noEmit`) passed. No feature behavior or
+  browser acceptance test was run.
+- Found a preview/model discrepancy against SCN-030: a validated `linked`
+  parent absent from the current page is represented/rendered as `unlinked`,
+  conflating it with a genuinely unresolved parent. See the 2026-11-03 addendum
+  in the [timeline review](../timeline/08-review.md).
+- At the time of this review, route/deep-link behavior and absent-value copy
+  were pending. DR-045 below records the user's subsequent decisions.
+- Existing fixture-only continuation does not test the real cursor, pending
+  state, refresh or request-race contracts.
+- Runtime probe: Vite `/api` proxy is configured for `127.0.0.1:8080`. Browser
+  `GET /api/v1/auth/context` returned 404; direct GETs to that endpoint and
+  `/actuator/health` on port 8080 also returned 404. The listener uses Java 17
+  and a Spring Boot 3.5.5 classpath, whereas the intended backend declares
+  Java 25/Spring Boot 4.1.2. The listener was not started/stopped/modified. The
+  user confirmed 8080 remains the target and deferred enforcing the mismatch at
+  this stage; readiness is unverified and must be established before real-session
+  acceptance.
+- The frontend changes belong to the user. No application source was modified;
+  no feature freeze/lock, backend implementation, or real persisted-data
+  acceptance was performed.
+
+## Timeline Phase 6 approvals: 2026-11-03 (continued)
+
+- Under DR-045 the user approved the exact wording of SCN-031–038; the
+  `/activity` list and `/activity/:traceId` detail route pattern; “Not reported”
+  for omitted optional values and “Unavailable” for unavailable details; and
+  traversal status/code mapping: 410 `TRAVERSAL_EXPIRED`, 429
+  `TRAVERSAL_LIMIT` with `Retry-After`, and 422 `TRAVERSAL_TOO_LARGE`.
+- Updated mutable decision, scenario, checklist, design/task documents and the
+  OpenAPI draft accordingly. The full scenario set remains unfrozen/unexecuted.
+- No production implementation, freeze/lock or backend process change was made.
+
+## Timeline trace-list traversal decision: 2026-11-03
+
+- Under DR-046 the user approved applying the same server-managed snapshot
+  semantics, five-minute expiry, 10,000-member cap, shared five-active-per-
+  account quota, and data-free deletion tombstones to trace-list pages.
+- The user approved SCN-039 wording as written. Trace-list cursors now bind
+  committed trace IDs at the first successful read; refresh begins a new
+  traversal. SCN-031–039 remain unfrozen and unexecuted.
+- Updated the decision record, scenario/checklist/design/task documents,
+  OpenAPI draft, handover and review evidence. No product code or local service
+  was changed.
+
+## Timeline UI contract decisions: 2026-11-03
+
+- Under DR-047 the user approved direct trace links for `/activity/:traceId`,
+  collapsed event cards with keyboard-operable expand/collapse, localized
+  medium date/time formatting in UTC, the prototype's “Activity” / “Traces” /
+  “Timeline” headings and intro, and the proposed loading/empty/error/session
+  copy.
+- Updated the mutable UI contract and handover. Remaining metadata labels,
+  error presentation for unspecified cases, focus/announcement details, and
+  local backend readiness remain open.
+- No frontend/backend source, tests, or runtime service were modified; no
+  feature freeze, test lock, or real browser/backend acceptance was performed.
+
+## Timeline remaining UI copy decisions: 2026-11-03
+
+- Under DR-048 the user approved current prototype summary/event metadata labels
+  and polite status messages for pending load-more, successful continuation and
+  successful refresh.
+- Updated the UI contract, decision record, review evidence and handover. Exact
+  focus/keyboard details beyond the scenarios and backend/test readiness remain
+  open. No source was changed.
+
+## Timeline design reconciliation after frontend rename: 2026-11-03
+
+- The user confirmed the frontend reorganization is intentional and requested
+  read-only reconciliation. Current observed structure: `ApplicationEntry.tsx`,
+  `ApplicationRoutes.tsx`, `ApplicationApiClient.ts`,
+  `AuthenticationContext.tsx`, `ApplicationStyles.css`, `api-contracts/`,
+  `components/layout/ApplicationShell.tsx`, and
+  `features/activity-timeline/ActivityTimelinePage.tsx`,
+  `ActivityTimelineModel.ts`, `ActivityTimelineTypes.ts`, and
+  `ActivityTimelineFixtures.ts`.
+- The dev-only preview still uses in-memory fixtures; it issues no timeline API
+  reads. The current model still marks a linked event whose parent is outside
+  the loaded page as unlinked. No source was changed.
+- Current frontend `npm run lint` and `npm run typecheck` pass; the last
+  production build predates the latest rename. The docs-repository
+  `tests/supporting/api-client.test.mjs` still imports the removed `src/api.ts`;
+  its focused run failed with module-not-found during this work. No source or
+  test files were changed to mask that failure.
+
+## Timeline Phase 6 document validation: 2026-11-03
+
+- Redocly lint of the OpenAPI draft passed.
+- `npm run ai:verify` passed for all frozen native-auth features.
+- `node --test tests/freeze-guard.test.mjs` passed **22/22**.
+- Scenario integrity check passed: original 30 scenarios unchanged; SCN-031–039
+  present. The complete plan remains unfrozen/unexecuted.
+- Current frontend lint and typecheck passed after the user-owned reorganization.
+  The focused `tests/supporting/api-client.test.mjs` still fails because it
+  imports the removed `src/api.ts`; it was left untouched.
+
+## Timeline cursor error decision: 2026-11-03
+
+- Under DR-049 the user approved HTTP 400 `REQUEST_INVALID` with a generic
+  no-echo message for malformed, tampered, or wrong-scope cursors. Expired
+  traversals remain 410; unowned/unknown trace identities remain 404.
+- SCN-040 was drafted to assert this behavior and remains unapproved pending
+  exact wording review. The schema and mutable checklists record the error
+  policy; no acceptance tests or code were changed.
+
+## Timeline SCN-040 approval: 2026-11-03
+
+- The user approved SCN-040 wording as written. SCN-031–040 are now approved
+  wording, but remain unfrozen/unexecuted.
+- No code, tests, freeze, lock, or local runtime process was changed.

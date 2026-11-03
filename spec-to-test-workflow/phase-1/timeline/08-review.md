@@ -104,3 +104,86 @@ and ten backend/acceptance tasks cover nine checklist responsibilities, 189 loca
 links/fragments resolve and 43 Markdown tables are structurally consistent.
 Current source and approved-intent fingerprints remain unchanged. No timeline
 freeze manifest exists. These checks do not resolve the open review findings.
+
+## Addendum: application and preview reconciliation — 2026-11-03
+
+This addendum updates current implementation/setup evidence only. It does not
+approve the prototype as product behavior, satisfy browser acceptance, or alter
+the original review verdict.
+
+- The existing frontend worktree now has user-owned timeline preview work under
+  `src/features/activity/` and `src/components/`. The dev-only `/activity-preview`
+  route displays in-memory fixtures; `ActivityPage` slices those fixtures for
+  “load more” and resets local view state. It does not call the timeline API,
+  authenticate a human, or inspect persisted service data. The protected
+  `/activity` route uses the existing auth boundary.
+- Frontend `npm run lint` and `npm run build` (including typecheck) passed against
+  the current worktree. These are source quality checks, not timeline
+  behavior/persistence/accessibility acceptance. No frontend unit-test runner
+  or timeline browser suite exists yet.
+- Source-backed SCN-030 mismatch: `timeline-model.ts` treats an event with
+  `relationship: linked` and a parent absent from the currently loaded items as
+  `unlinked`, and `ActivityPage.tsx` renders the same “Unlinked activity” state
+  as genuinely unresolved activity. It mentions that the parent is not in the
+  loaded page, but the model/UI state still conflates the two cases. Preserve
+  “validated parent not loaded yet” separately from “unresolved parent” and add
+  focused coverage before promoting SCN-030 to acceptance.
+- The prototype uses `/activity` with an in-page selected trace, while the
+  mutable UI proposal names `/traces` and `/traces/:traceId`; direct-link route
+  behavior remains undecided. The preview says “Not reported” for absent values;
+  the checklist says “Unavailable”. Choose and approve the route and exact copy.
+- The synthetic preview's continuation only reveals fixture rows. It does not
+  exercise the approved server-managed traversal, pending request state, manual
+  refresh, failed-refresh retention, or request races. Its visual structure is
+  useful for review only.
+- Local integration readiness is currently blocked: Vite's `/api` proxy targets
+  `127.0.0.1:8080`. The shared browser page's `GET /api/v1/auth/context` returned
+  404; direct read-only GETs to both that path and `/actuator/health` on port
+  8080 also returned 404. The listener uses Java 17 and a Spring Boot 3.5.5
+  classpath, inconsistent with the intended backend's Java 25 / Spring Boot 4.1.2
+  manifest. It was not started or stopped by this review. Identify the intended
+  backend process/port before expecting the frontend to establish a real
+  session; do not treat this as a timeline product defect or stop the
+  unidentified listener without approval.
+- The user confirmed the frontend worktree changes are theirs. No frontend or
+  backend source was modified in this review. No freeze, lock, backend
+  implementation, or real persisted-data acceptance occurred.
+
+### Decisions recorded after this addendum
+
+DR-045/046 subsequently approved SCN-031–039 wording; `/activity` and
+`/activity/:traceId` routes; “Not reported” for omitted values and “Unavailable”
+for unavailable details; and traversal errors 410 `TRAVERSAL_EXPIRED`, 429
+`TRAVERSAL_LIMIT` with `Retry-After`, and 422 `TRAVERSAL_TOO_LARGE`.
+DR-047 further approved direct trace links, collapsed event cards and focus
+retention, localized UTC timestamps, prototype page headings/intro, and
+loading/empty/error/session copy.
+DR-048 approved prototype metadata labels and polite load-more/refresh status
+messages. DR-049 approved generic 400 `REQUEST_INVALID` for malformed, tampered,
+or wrong-scope cursors; the user subsequently approved SCN-040 wording as
+written. All SCN-031–040 wording is now approved but remains unfrozen.
+These decisions close those review questions but do not freeze the plan or prove
+the preview behavior. Trace-list membership uses the same server-managed
+snapshot and caps as event pages, including the shared five-active-traversal
+quota. Remaining metadata labels, announcement/focus details beyond the
+approved behavior, other error presentation, current backend 404, and timeline
+fixture/runtime readiness remain open.
+
+### User-owned frontend reorganization — 2026-11-03
+
+- The user confirmed the ongoing frontend rename/reorganization is intended and
+  requested read-only documentation reconciliation. Current observed entry/
+  route/client/auth/style files are `ApplicationEntry.tsx`,
+  `ApplicationRoutes.tsx`, `ApplicationApiClient.ts`,
+  `AuthenticationContext.tsx`, `ApplicationStyles.css`, and
+  `src/api-contracts/`; timeline preview
+  files are under `src/features/activity-timeline/`.
+- Current `npm run lint` and `npm run typecheck` pass. The last production build
+  predates the latest rename. The focused docs test
+  `tests/supporting/api-client.test.mjs` failed after the rename because it still
+  imports the removed `src/api.ts`. No source or test files were changed to mask
+  that failure.
+- The preview still uses in-memory fixtures, makes no timeline API call, and
+  its model still conflates a validated parent not loaded in this page with an
+  unresolved parent. Current implementation checks remain pending until the
+  user-owned reorganization stabilizes.

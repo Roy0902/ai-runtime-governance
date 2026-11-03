@@ -1,6 +1,7 @@
 # Activity timeline frontend acceptance scenarios
 
-Version: 0.1. Prepared: 2026-10-29. Phase 3 draft; **not frozen or executed**.
+Version: 0.7. Updated: 2026-11-03. SCN-031–040 wording is approved under DR-045–049;
+the complete scenario set remains **unfrozen and unexecuted**.
 Sources: [confirmed specification](../../../REQUIREMENTS.md#metadata-only-activity-timeline-confirmed-first-frontend-slice),
 [scoped requirements](./00-ingestion.md), [domain model](./01-domain-model.md),
 [approved intent v0.1](./02-intent-v0.1.md), approval DR-017.
@@ -324,6 +325,108 @@ Feature: Inspect private metadata-only activity traces
     And unloaded E1 is not described as telemetry loss
     When Human A continues inspection until E1 is loaded
     Then E2 is nested under E1 without duplicating E2
+
+    @REQ-activity-timeline-005 @REQ-activity-timeline-006 @SCN-activity-timeline-031 @reg
+    Scenario: Concurrently committed activity cannot shift a traversal snapshot
+      Given Human A has 201 committed events in one trace with a stable receipt order
+      And the first successful read returns the first 200 events and a continuation
+      When a controlled event ELATE is committed with an order key before the continuation position
+      And Human A follows the continuation from the first read
+      Then exactly the remaining event from the original committed membership is returned
+      And no event from that traversal is duplicated or skipped
+      And ELATE is absent from that traversal
+      When Human A refreshes the trace
+      Then ELATE is inspectable in the new traversal
+
+    @REQ-activity-timeline-005 @REQ-activity-timeline-010 @SCN-activity-timeline-032 @reg
+    Scenario: An expired event traversal fails explicitly
+      Given Human A has an active event traversal with a continuation
+      When the controlled clock advances beyond five minutes from traversal creation
+      And Human A follows the continuation
+      Then the continuation fails with code "TRAVERSAL_EXPIRED"
+      And it does not return a successful empty page or protected event data
+      And a fresh inspection can create a new traversal after reauthorization
+
+    @REQ-activity-timeline-005 @REQ-activity-timeline-010 @SCN-activity-timeline-033 @reg
+    Scenario: An account cannot exceed its active event traversal limit
+      Given Human A already owns five unexpired active event traversals
+      When Human A starts another event traversal
+      Then the read fails with code "TRAVERSAL_LIMIT"
+      And no sixth event traversal or partial successful page is created
+      When one existing event traversal expires
+      Then Human A can start a new event traversal after reauthorization
+
+    @REQ-activity-timeline-005 @REQ-activity-timeline-010 @SCN-activity-timeline-034 @reg
+    Scenario: An event traversal exceeding its member cap is rejected explicitly
+      Given Human A has a trace with 10001 committed events
+      When Human A starts an event traversal for that trace
+      Then the read fails with code "TRAVERSAL_LIMIT"
+      And no partial event page is reported as a successful traversal
+      And no traversal with more than 10000 members is retained
+
+    @REQ-activity-timeline-007 @REQ-activity-timeline-010 @SCN-activity-timeline-035 @reg
+    Scenario: A failed refresh preserves already loaded data as stale
+      Given Human A has loaded event E1 for an authorized trace
+      And a later manual refresh cannot obtain retained metadata
+      When Human A refreshes the trace
+      Then E1 remains visible and is identified as stale
+      And an explicit refresh failure is announced with a retry option
+      And the trace is not presented as successfully empty or complete
+      When the dependency becomes available and Human A retries
+      Then the refreshed retained activity replaces the stale state without duplicating events
+
+    @REQ-activity-timeline-001 @REQ-activity-timeline-010 @SCN-activity-timeline-036 @reg
+    Scenario: A late response cannot replace the trace selected after navigation
+      Given Human A opens trace TA and its event request remains pending
+      When Human A navigates to another authorized trace TB
+      And TB's response arrives before TA's delayed response
+      And TA's delayed response then arrives
+      Then TB remains the selected trace with only TB's activity displayed
+      And TA's response is ignored or canceled
+
+    @REQ-activity-timeline-005 @REQ-activity-timeline-010 @SCN-activity-timeline-037 @reg
+    Scenario: A pending continuation cannot be submitted twice
+      Given Human A has a trace with another event page available
+      When Human A activates the continuation control while its request is pending
+      And Human A attempts to activate that control again before the response
+      Then only one continuation request is issued
+      And the control exposes its pending disabled state
+      When the response arrives
+      Then each returned event is appended exactly once
+      And keyboard focus remains at the continuation control
+
+    @REQ-activity-timeline-001 @REQ-activity-timeline-010 @SCN-activity-timeline-038 @reg @a11y
+    Scenario: Timeline inspection remains operable and announced with a keyboard
+      Given Human A opens an authorized trace using only a keyboard
+      When Human A focuses and activates an event expansion control
+      Then the event expands and its control reports the expanded state
+      And focus remains on the activated control
+      When Human A starts continuation
+      Then the pending and newly loaded states are announced through a polite status region
+      And all timeline actions remain reachable in a logical keyboard order
+
+    @REQ-activity-timeline-001 @REQ-activity-timeline-005 @SCN-activity-timeline-039 @reg
+    Scenario: A new trace cannot shift an active trace-list traversal
+      Given Human A owns 51 committed trace summaries in a stable list order
+      And the first successful list read returns the first 50 traces and a continuation
+      When a new trace TNEW is committed with a sort key before the continuation position
+      And Human A follows the continuation from the first read
+      Then exactly the remaining trace from the original committed membership is returned
+      And no trace from that traversal is duplicated or skipped
+      And TNEW is absent from that traversal
+      When Human A refreshes the trace list
+      Then TNEW is inspectable in the new list traversal
+
+      @REQ-activity-timeline-001 @REQ-activity-timeline-005 @REQ-activity-timeline-010 @SCN-activity-timeline-040 @reg
+      Scenario: Invalid cursors disclose no protected traversal data
+        Given Human A has a valid continuation cursor CA for their trace TA
+        And Human B has a valid continuation cursor CB for a different private scope
+        When Human A modifies CA and requests the next page for TA
+        Then the response is HTTP 400 with code "REQUEST_INVALID" and a generic message
+        And no event data or cursor value is included in the response
+        When Human A submits CB as a continuation for TA
+        Then the response is HTTP 400 with code "REQUEST_INVALID" and a generic message
+        And no event data or cursor value is included in the response
 ```
 
 For SCN-014's complete case, the fixture includes trusted positive completeness
@@ -336,52 +439,53 @@ execution-status value.
 
 | Requirement | Primary scenario suffixes |
 |---|---|
-| REQ-activity-timeline-001 | 001, 002, 003, 011, 027 |
+| REQ-activity-timeline-001 | 001, 002, 003, 011, 027, 036, 038, 039, 040 |
 | REQ-activity-timeline-002 | 001, 004, 020, 021, 025, 030 |
 | REQ-activity-timeline-003 | 005 |
 | REQ-activity-timeline-004 | 006, 007, 022 |
-| REQ-activity-timeline-005 | 004, 008, 009, 010, 011, 012, 023, 024, 025, 029, 030 |
-| REQ-activity-timeline-006 | 007, 010, 013, 014, 015, 023, 024, 030 |
+| REQ-activity-timeline-005 | 004, 008, 009, 010, 011, 012, 023, 024, 025, 029, 030, 031, 032, 033, 034, 037, 038, 039, 040 |
+| REQ-activity-timeline-006 | 007, 010, 013, 014, 015, 023, 024, 030, 031, 033, 034 |
 | REQ-activity-timeline-007 | 012, 016, 017 |
 | REQ-activity-timeline-008 | 018 |
 | REQ-activity-timeline-009 | 005, 019, 022 |
-| REQ-activity-timeline-010 | 021, 026 |
+| REQ-activity-timeline-010 | 021, 026, 032, 033, 034, 035, 036, 037, 038, 040 |
 | REQ-activity-timeline-011 | 001, 028 |
 
 Invariant coverage by suffix:
 
-- 001: SCN-002/003/027; 002: SCN-005/019; 003: SCN-004/010/011.
+- 001: SCN-002/003/027/039/040; 002: SCN-005/019; 003: SCN-004/010/011.
 - 004: SCN-008/009; 005: SCN-010/011/030; 006: SCN-012/016/017/029.
 - 007: SCN-013/014/015; 008: SCN-006/007/022; 009: SCN-018.
-- 010: SCN-020/021; 011: SCN-023/024/030; 012: SCN-026.
+- 010: SCN-020/021; 011: SCN-023/024/030/031/032/033/034/037/039/040; 012: SCN-026/032/033/034/035/036/040.
 - 013: SCN-005/019/022; 014: SCN-028.
 
 Cases still blocked before freeze:
 
 | Candidate | Why it is not a ready acceptance expectation | Existing ambiguity |
 |---|---|---|
-| Exact HTTP statuses, error schema, cursor tampering/expiry and concurrent traversal | Wire/security/query contract not yet selected | AMB-activity-timeline-004 |
-| Exact accessible labels, date format/time zone, loading/empty/error copy, focus and refresh-retention behavior | UI contract not yet declared | AMB-activity-timeline-005 |
+| Focus/announcement behavior beyond approved labels, UTC time format and status copy | UI interaction contract is mostly recorded; exact scenario-derived focus/announcement details remain | AMB-activity-timeline-005 |
 | Exact login fixture bootstrap, verification/2FA setup, authority-origin permissions and ingest setup | Real auth/data setup must not be bypassed by fake successful sessions | AMB-activity-timeline-006/007 |
-| Equal timestamp ordering for identifiers beyond simple ASCII fixtures | Event-ID syntax/comparison and precision belong to the exact contract | AMB-activity-timeline-004 |
+| Equal timestamp ordering and source-time precision | Canonical UUID syntax and timestamp representation are drafted in the shared schema; exact conformance/error behavior remains under review | AMB-activity-timeline-004 |
 
-These candidates are not passing tests. If promoted to SCNs before resolution,
-they must be tagged unspecified and excluded from freeze until concretized.
-No scenario file, red run, browser pass, lock or frozen manifest exists yet.
+SCN-031–040 wording is approved by DR-045–049, but the scenarios are not frozen
+or executed. Remaining candidates in the table are not passing tests. Any unspecified
+behavior must remain excluded from a freeze until concretized. No timeline
+acceptance test file, red run, browser pass, lock or frozen manifest exists yet.
 
 ## Phase 4 handoff
 
-30 business scenario IDs cover the eleven scoped requirements and fourteen
-invariants. Browser acceptance must prove the inspection outcomes; native tests
-and controlled setup supplement checks of persistence exclusions, duplicate/
+40 business scenario IDs cover the eleven scoped requirements and fourteen
+invariants. SCN-031–040 wording is approved but not frozen. Browser acceptance
+must prove the inspection outcomes; native tests and controlled setup supplement
+checks of persistence exclusions, duplicate/
 authority rejection and missing-parent integrity. Do not claim browser rendering
 alone proves those storage/authorization properties.
 
 Review additions SCN-029/030 derive from the already-approved available-duration
 and loading-versus-loss rules. Existing SCN-001 through SCN-028 and the approved
-intent are unchanged. Exact loading presentation and duration formatting still
-require UI-contract approval.
+intent are unchanged. DR-047/048 record the selected loading presentation and
+timestamp format.
 
-Next prepare one shared read/event/UI contract matrix and native setup baseline,
-then implementation design plus separate frontend/backend tasks. Tests must be
-authored red after review/freeze and before product implementation.
+Next resolve remaining implementation/readiness details, review and approve the
+revised feature plan, then freeze/lock and author genuine red acceptance before
+product implementation.
