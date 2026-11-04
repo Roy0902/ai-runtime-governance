@@ -1,0 +1,9 @@
+{
+  "feature": "guard-injection-literals",
+  "planSha256": "b99b117c0dcc31290cb52af584a45bbe130a0a97a7c7d084d4f60ab8954169ac",
+  "frozenAt": "2026-11-04T04:52:17.441Z",
+  "tests": {
+    "tests/api/guard-injection-literals.spec.ts": "13c94698809d8ba2b0e54b6a86359b717575553a2c5b3c98e1b335ad1ee8cdf5"
+  },
+  "testsLockedAt": "2026-11-04T04:53:38.999Z"
+}

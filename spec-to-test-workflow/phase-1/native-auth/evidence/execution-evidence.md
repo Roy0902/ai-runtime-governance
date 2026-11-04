@@ -1020,3 +1020,46 @@ code-point offsets and evaluated through the existing decision core.
 The detector plan and API tests are separately frozen and locked as
 `guard-sensitive-data-catalog`; the original guard-core plan and tests remain
 unchanged.
+
+Boundary hardening after the API run added backend checks for exactly 65,536
+UTF-8 message bytes and exactly 1,024 detections. The full backend JUnit suite
+then passed **24/24**.
+
+## Literal prompt-injection indicator slice: 2026-11-04
+
+The user approved a small literal-only indicator set for the sensitive-data
+catalog. Added six case-insensitive, word-bounded phrases that produce
+`REQUIRE_APPROVAL`; near-matches do not. Sensitive-data redactions still run
+before the approval-required outcome. Unsafe-content and invalid/weak-prompt
+rules remain deferred.
+
+The new test-only route remains token-protected and disabled outside the test
+profile. No production route or forwarding behavior was added.
+
+| Gate | Result |
+|---|---|
+| Red-first injection API tests before implementation | **2 failed, 1 passed**; only approved phrases were missing |
+| Backend JUnit | **24/24 passed** |
+| Guard core + sensitive-data + injection API acceptance | **16/16 passed** |
+| `npm run ai:verify` | all **14** frozen features OK |
+
+The injection plan and API tests are separately frozen and locked as
+`guard-injection-literals`; earlier guard feature plans and tests remain
+unchanged.
+
+## Native-auth acceptance setup follow-up 05: 2026-11-04
+
+Added a test-only follow-up for original SCN-022/023/031/036/063. It waits for
+password-reset and authenticator-replacement responses, uses two independent
+sessions for SCN-022, supplies the confirmed enrollment password, and aligns
+TOTP generation with the controlled server clock. Original tests remain
+unchanged.
+
+| Gate | Result |
+|---|---|
+| Corrected native-auth browser follow-up 05 | **5/5 passed** |
+| Follow-up plan and test | Frozen and locked as `native-auth-followup-05` |
+| `npm run ai:verify` | all **15** frozen features OK |
+
+This corrects test setup and synchronization only; it does not change product
+behavior. SCN-077's absent local key fixture remains unresolved.
