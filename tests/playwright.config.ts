@@ -12,6 +12,7 @@ const backendPort = Number(process.env.GOVERNANCE_PORT ?? 8080);
 const frontendPort = Number(process.env.FRONTEND_PORT ?? 5173);
 const mailHttpPort = Number(process.env.MAILPIT_HTTP_PORT ?? 8025);
 const mailSmtpPort = Number(process.env.MAILPIT_SMTP_PORT ?? 1025);
+const upstreamPort = Number(process.env.FAKE_UPSTREAM_PORT ?? 19090);
 const testClockFile = process.env.TEST_CLOCK_FILE
   ?? join(root, 'local-env', 'runtime', 'acceptance', 'clock-now.txt');
 const testFaultsFile = process.env.GOVERNANCE_TEST_FAULTS_FILE
@@ -28,6 +29,7 @@ process.env.TEST_CLOCK_TOKEN ??= randomBytes(32).toString('base64url');
 process.env.MAILPIT_URL ??= mailOrigin;
 process.env.API_BASE_URL ??= backendOrigin;
 process.env.GOVERNANCE_BACKEND_URL ??= backendOrigin;
+process.env.FAKE_UPSTREAM_URL ??= `http://127.0.0.1:${upstreamPort}`;
 process.env.TEST_CLOCK_FILE ??= testClockFile;
 process.env.GOVERNANCE_TEST_FAULTS_FILE ??= testFaultsFile;
 process.env.GOVERNANCE_DISPATCH_FILE ??= dispatchFile;
@@ -91,12 +93,26 @@ export default defineConfig({
       timeout: 60_000,
     },
     {
+      command: `"${node}" "${join(root, 'tests', 'support', 'fake-upstream.mjs')}"`,
+      cwd: root,
+      url: `http://127.0.0.1:${upstreamPort}/health`,
+      reuseExistingServer: false,
+      timeout: 30_000,
+      env: {
+        FAKE_UPSTREAM_PORT: String(upstreamPort),
+      },
+    },
+    {
       command: `"${java}" -jar "${jar}"`,
       cwd: backendDir,
       url: `${backendOrigin}/actuator/health`,
       reuseExistingServer: false,
       timeout: 120_000,
       env: {
+        GOVERNANCE_UPSTREAM_BASE_URL:
+          process.env.GOVERNANCE_UPSTREAM_BASE_URL ?? `http://127.0.0.1:${upstreamPort}/v1`,
+        GOVERNANCE_UPSTREAM_API_KEY: process.env.GOVERNANCE_UPSTREAM_API_KEY ?? 'acceptance-upstream-key',
+        GOVERNANCE_GATEWAY_MODELS: process.env.GOVERNANCE_GATEWAY_MODELS ?? 'gpt-4o',
         GOVERNANCE_PORT: String(backendPort),
         SPRING_PROFILES_ACTIVE: 'test',
         GOVERNANCE_BASE_URL: frontendOrigin,
