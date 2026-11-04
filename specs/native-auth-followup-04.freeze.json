@@ -1,0 +1,9 @@
+{
+  "feature": "native-auth-followup-04",
+  "planSha256": "1cf71fba40485988714810221c36d6aa07756902e381304ccedd2a67d22e4966",
+  "frozenAt": "2026-11-04T03:22:46.506Z",
+  "tests": {
+    "tests/specs/native-auth-followup-04.spec.ts": "7af27f0e333bf71a708bb81a0385307c784c6d3486c3c02a40443c47097a8d87"
+  },
+  "testsLockedAt": "2026-11-04T03:22:47.130Z"
+}

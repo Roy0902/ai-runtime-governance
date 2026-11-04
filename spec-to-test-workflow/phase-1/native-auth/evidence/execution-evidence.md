@@ -921,3 +921,102 @@ Behaviors added:
 
 Deferred: detector patterns/catalog contents, approval delivery, persistence,
 dispatch, gateway integration and the remaining guard scenarios.
+
+## Native-auth full acceptance rerun: 2026-11-04
+
+The backend was packaged with the pinned Java 25.0.5 and Maven 3.9.16 toolchain.
+`npm run ai:verify` passed all 11 frozen features. The full native-auth API and
+browser suites were run with `GOVERNANCE_PORT=18080`; the existing service on
+8080 was not used or changed. The frontend proxy followed the configured
+`GOVERNANCE_BACKEND_URL`. An earlier attempt on 8080 lost the test-control
+endpoint during the run, so that result was discarded.
+
+| Gate | Command / configuration | Result |
+|---|---|---|
+| Backend package | `mvn -f ..\ai-runtime-governance-backend\pom.xml -DskipTests package` | **BUILD SUCCESS** |
+| Frozen artifacts | `npm run ai:verify` | **11/11 features OK** |
+| Native-auth API + browser | Playwright 1.64.1, API and browser projects, native-auth suites, backend on port 18080 | **92/112 passed; 20 failed** |
+
+Twelve failures match the previously recorded locked cases: browser
+SCN-001/007/015/039/054/062/094; API SCN-037/057/073/092; and follow-up-02
+SCN-037. Do not edit the locked tests.
+
+Eight additional failures need triage before the native-auth checkpoint can be
+closed: browser SCN-022/023/031/034/036/063, browser follow-up-03 SCN-039, and
+API SCN-077. The API SCN-077 test could not provision its second TOTP key
+because `local-env/runtime/key2.bin` is absent from this checkout. No key was
+created or copied during the run. The other additional failures are not yet
+classified as product defects or test/setup issues; preserve the locked oracles
+while investigating.
+
+Focused triage on port 18080 reran the six additional original browser cases:
+SCN-022/023/031/034/036 failed again, while SCN-063 passed. Findings:
+
+- SCN-022/023 click `Change password` and immediately navigate/assert in another
+  page without waiting for the reset form's success status. The reset page
+  reports completion asynchronously; these are test-ordering candidates, not a
+  demonstrated session-revocation defect.
+- SCN-031/034/036 submit enrollment without filling the form's Password field.
+  The current page includes and submits that field; failures occur before the
+  intended TOTP/acknowledgement boundary is established. SCN-034's frozen
+  scenario does not name password as a tested factor, so its precondition and
+  implementation contract need review. Do not remove the password check or
+  alter the locked tests without an approved follow-up.
+- SCN-063 failed in the full run but passed in isolation. Its test reads account
+  state immediately after clicking replacement completion; treat it as an
+  order/race candidate until a response barrier is tested in a reviewed
+  follow-up.
+- Browser follow-up-03 SCN-039 remains part of the previously recorded
+  replacement-flow failures. API SCN-077 is blocked by its absent local key
+  fixture; no approved generation or provisioning procedure was found here.
+
+No application source or test files were changed for this rerun.
+
+## SCN-034 password precondition follow-up: 2026-11-04
+
+The user confirmed that password proof remains required during initial
+enrollment completion. Added a separate, test-only correction in
+`specs/native-auth-followup-04.md` and
+`tests/specs/native-auth-followup-04.spec.ts`; the original plan and locked
+SCN-034 test remain unchanged.
+
+The follow-up supplies the correct password and TOTP while withholding the
+recovery-code acknowledgement. It verifies the exact acknowledgement error and
+that neither MFA nor a private scope is committed, then retries the same
+operation with acknowledgement and verifies successful enrollment.
+
+| Gate | Result |
+|---|---|
+| Corrected SCN-034 browser follow-up on port 18080 | **1/1 passed** |
+| Follow-up plan freeze | `npm run ai:freeze -- native-auth-followup-04` succeeded |
+| Follow-up test lock | `npm run ai:lock-tests -- native-auth-followup-04` succeeded |
+| Frozen artifact verification | **12/12 features OK** |
+
+This is a corrected setup baseline for existing behavior, not a feature-missing
+red run. The new test is locked; the original failing test is preserved.
+
+## Sensitive-data guard detector vertical slice: 2026-11-04
+
+The user approved a sensitive-data-first catalog using fixed built-in patterns,
+the existing typed markers and priority bands, and no caller-supplied regex.
+Added `GuardDetectorCatalog` and connected it to the existing test-only,
+token-protected `POST /__test/guard/detect` controller route. No production
+forwarding route was added.
+
+The initial catalog detects bounded ASCII email addresses, international
+`+`-prefixed 8–15 digit phone numbers, values for common password/secret/key
+assignments, selected AWS/GitHub/Slack/`sk-` token prefixes, Luhn-valid
+13–19-digit card numbers, and MOD-97-valid IBANs. Injection/safety and
+invalid/weak-prompt rules remain deferred. Findings are converted to Unicode
+code-point offsets and evaluated through the existing decision core.
+
+| Gate | Result |
+|---|---|
+| Red-first detector API cases before implementation | **4/4 failed** on missing `/__test/guard/detect` |
+| Backend JUnit | **22/22 passed** |
+| Guard core + detector API acceptance | **13/13 passed** |
+| `npm run ai:verify` | all **13** frozen features OK |
+
+The detector plan and API tests are separately frozen and locked as
+`guard-sensitive-data-catalog`; the original guard-core plan and tests remain
+unchanged.

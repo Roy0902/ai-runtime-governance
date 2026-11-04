@@ -1,0 +1,9 @@
+{
+  "feature": "guard-sensitive-data-catalog",
+  "planSha256": "55902f631b52492e5640f6edd1dc0613c4d566b986e4f0e5b5545c37c7a4b7e4",
+  "frozenAt": "2026-11-04T03:53:39.296Z",
+  "tests": {
+    "tests/api/guard-sensitive-data-catalog.spec.ts": "64adc9e7b14066fe60e350eca74fcce5f37be46e23a48d73fd003a3a6537c7ac"
+  },
+  "testsLockedAt": "2026-11-04T03:54:29.349Z"
+}
