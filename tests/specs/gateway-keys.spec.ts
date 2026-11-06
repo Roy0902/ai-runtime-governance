@@ -82,6 +82,17 @@ test.describe('Gateway keys', () => {
     expect(token).toMatch(/^arg_gw_/);
     await expect(page.getByRole('heading', { name: 'OpenCode', level: 3 })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'VS Code Copilot BYOK', level: 3 })).toBeVisible();
+    const openCodeConfig = JSON.parse(await page.locator('pre').first().innerText()) as {
+      model: string;
+      provider: Record<string, {
+        npm: string;
+        options: { apiKey: string; baseURL: string };
+      }>;
+    };
+    expect(openCodeConfig.model).toMatch(/^governance\//);
+    expect(openCodeConfig.provider.governance.npm).toBe('@ai-sdk/openai-compatible');
+    expect(openCodeConfig.provider.governance.options.apiKey).toBe(token);
+    expect(openCodeConfig.provider.governance.options.baseURL).toContain('/v1');
 
     const backend = process.env.API_BASE_URL ?? 'http://127.0.0.1:8080';
     const active = await page.request.get(`${backend}/v1/models`, {
