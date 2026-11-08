@@ -60,6 +60,10 @@ test('enrollment page exposes the setup contract to assistive technology', async
   await openEnrollment(page, email);
 
   await expect(page.getByRole('heading', { name: 'Set up your authenticator' })).toBeVisible();
+  const qr = page.getByRole('img', { name: 'Authenticator QR code' });
+  await expect(qr).toBeVisible();
+  await expect(qr.locator('svg')).toHaveCount(1);
+  expect(await qr.locator('path').count()).toBeGreaterThan(0);
   await expect(page.getByLabel('Manual key')).toBeVisible();
   await expect(page.getByRole('list', { name: 'Recovery codes' })).toBeVisible();
   await expect(page.getByRole('checkbox', { name: 'I have saved my recovery codes' })).toBeVisible();
