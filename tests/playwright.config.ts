@@ -40,7 +40,7 @@ const java = process.env.JAVA_HOME
 const localNode = join(root, '.local-tools', 'node-v24.22.0-win-x64', 'node.exe');
 const node = process.env.NODE_EXE
   ?? (existsSync(localNode) ? localNode : process.execPath);
-const jar = join(backendDir, 'target', 'ai-runtime-governance-backend-0.1.0-SNAPSHOT.jar');
+const jar = join(backendDir, 'target', 'ai-runtime-governance-backend-0.1.0.jar');
 
 export default defineConfig({
   testDir: '.',
@@ -137,6 +137,9 @@ export default defineConfig({
       url: frontendOrigin,
       reuseExistingServer: false,
       timeout: 120_000,
+      env: {
+        GOVERNANCE_BACKEND_URL: backendOrigin,
+      },
     },
   ],
 });

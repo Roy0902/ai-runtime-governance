@@ -2,11 +2,11 @@ import { expect, test } from '@playwright/test';
 import { control, inspect } from '../support/api';
 import {
   expectAccount,
+  openEnrollment,
   PASSWORD,
   register,
   totp,
   uniqueEmail,
-  verifyEmail,
 } from '../support/native-auth';
 
 test.describe('Native-auth follow-up 04 browser cases', () => {
@@ -18,9 +18,8 @@ test.describe('Native-auth follow-up 04 browser cases', () => {
   test('[SCN-native-auth-034] Password proof isolates the saved-code acknowledgement oracle', async ({ page }) => {
     const email = uniqueEmail();
     await register(page, email);
-    await verifyEmail(page, email);
-    await page.getByRole('link', { name: 'Continue to setup' }).click();
-    await expect(page.getByRole('heading', { name: 'Set up your authenticator', level: 1 })).toBeVisible();
+    await openEnrollment(page, email);
+    await expect(page.getByRole('heading', { name: 'Set up your authenticator' })).toBeVisible();
 
     const key = (await page.getByLabel('Manual key').innerText()).trim();
     await page.getByRole('textbox', { name: 'Password' }).fill(PASSWORD);
@@ -39,7 +38,7 @@ test.describe('Native-auth follow-up 04 browser cases', () => {
     expect(incomplete.scopeId).toBeNull();
     expect(incomplete.mfaState).not.toBe('ENROLLED');
 
-    await acknowledgement.check();
+    await page.getByText('I have saved my recovery codes').click();
     const completed = page.waitForResponse((response) =>
       response.url().includes('/api/v1/auth/enrollment/complete'),
     );

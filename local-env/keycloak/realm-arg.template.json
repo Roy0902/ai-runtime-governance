@@ -1,0 +1,168 @@
+{
+  "realm": "arg",
+  "enabled": true,
+  "displayName": "AI Runtime Governance",
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "registrationEmailAsUsername": true,
+  "verifyEmail": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "maxFailureWaitSeconds": 900,
+  "minimumQuickLoginWaitSeconds": 60,
+  "waitIncrementSeconds": 60,
+  "quickLoginCheckMilliSeconds": 1000,
+  "maxDeltaTimeSeconds": 43200,
+  "failureFactor": 30,
+  "passwordPolicy": "length(12)",
+  "otpPolicyType": "totp",
+  "otpPolicyAlgorithm": "HmacSHA1",
+  "otpPolicyInitialCounter": 0,
+  "otpPolicyDigits": 6,
+  "otpPolicyLookAheadWindow": 1,
+  "otpPolicyPeriod": 30,
+  "otpPolicyCodeReusable": false,
+  "accessTokenLifespan": 300,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "eventsEnabled": true,
+  "eventsListeners": [
+    "jboss-logging"
+  ],
+  "adminEventsEnabled": true,
+  "adminEventsDetailsEnabled": true,
+  "roles": {
+    "realm": [
+      {
+        "name": "user",
+        "description": "Can sign in to the web application"
+      },
+      {
+        "name": "gateway-user",
+        "description": "Can use the governed model gateway"
+      }
+    ]
+  },
+  "requiredActions": [
+    {
+      "alias": "CONFIGURE_TOTP",
+      "name": "Configure OTP",
+      "providerId": "CONFIGURE_TOTP",
+      "enabled": true,
+      "defaultAction": true,
+      "priority": 54,
+      "config": {}
+    },
+    {
+      "alias": "CONFIGURE_RECOVERY_AUTHN_CODES",
+      "name": "Recovery Authentication Codes",
+      "providerId": "CONFIGURE_RECOVERY_AUTHN_CODES",
+      "enabled": true,
+      "defaultAction": true,
+      "priority": 130,
+      "config": {}
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "arg-bff",
+      "name": "AI Runtime Governance BFF",
+      "description": "Confidential BFF client used by the Spring backend",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "__ARG_BFF_CLIENT_SECRET__",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "http://127.0.0.1:5173/api/v1/auth/callback",
+        "http://127.0.0.1:5173/api/v1/keycloak/callback",
+        "http://localhost:5173/api/v1/auth/callback",
+        "http://localhost:5173/api/v1/keycloak/callback",
+        "http://127.0.0.1:18080/api/v1/keycloak/callback",
+        "http://localhost:18080/api/v1/keycloak/callback"
+      ],
+      "webOrigins": [
+        "http://127.0.0.1:5173",
+        "http://localhost:5173",
+        "http://127.0.0.1:18080",
+        "http://localhost:18080"
+      ],
+      "attributes": {
+        "post.logout.redirect.uris": "http://127.0.0.1:5173/*##http://localhost:5173/*##http://127.0.0.1:18080/*##http://localhost:18080/*",
+        "backchannel.logout.session.required": "true"
+      },
+      "protocolMappers": [
+        {
+          "name": "realm roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.name": "realm_access.roles",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ],
+      "fullScopeAllowed": true
+    },
+    {
+      "clientId": "arg-backend",
+      "name": "AI Runtime Governance backend admin client",
+      "description": "Service account used by the Spring backend to create accounts and send verification email",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "__ARG_BACKEND_CLIENT_SECRET__",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "redirectUris": [],
+      "webOrigins": [],
+      "fullScopeAllowed": true
+    },
+    {
+      "clientId": "arg-test",
+      "name": "AI Runtime Governance test client",
+      "description": "Local/test-only client for automated API tests",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "http://127.0.0.1:5173/*"
+      ],
+      "webOrigins": [
+        "http://127.0.0.1:5173"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "fullScopeAllowed": true
+    }
+  ],
+  "smtpServer": {
+    "host": "127.0.0.1",
+    "port": "1025",
+    "from": "no-reply@example.test",
+    "fromDisplayName": "AI Runtime Governance",
+    "replyTo": "no-reply@example.test",
+    "auth": "false",
+    "starttls": "false",
+    "ssl": "false"
+  }
+}

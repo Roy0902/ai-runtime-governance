@@ -8,5 +8,5 @@ if not exist "%JAVA_EXE%" (
   exit /b 5
 )
 if not defined GOVERNANCE_BACKEND_DIR set "GOVERNANCE_BACKEND_DIR=%ROOT%\..\ai-runtime-governance-backend"
-"%JAVA_EXE%" -jar "%GOVERNANCE_BACKEND_DIR%\target\ai-runtime-governance-backend-0.1.0-SNAPSHOT.jar" admin %*
+"%JAVA_EXE%" -jar "%GOVERNANCE_BACKEND_DIR%\target\ai-runtime-governance-backend-0.1.0.jar" admin %*
 exit /b %ERRORLEVEL%

@@ -1,11 +1,12 @@
 import { expect, test } from '@playwright/test';
 import { advanceClock } from '../support/api';
 import {
+  openAuthenticatorSettings,
+  openEnrollment,
   PASSWORD,
   register,
   registerAndEnroll,
   uniqueEmail,
-  verifyEmail,
 } from '../support/native-auth';
 
 /**
@@ -17,7 +18,7 @@ import {
 
 test('register page exposes headings, named controls and live regions', async ({ page }) => {
   await page.goto('/register');
-  await expect(page.getByRole('heading', { name: 'Create account', level: 1 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Create account' })).toBeVisible();
   await expect(page.getByRole('textbox', { name: 'Email' })).toBeVisible();
   await expect(page.getByRole('textbox', { name: 'New password' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Create account' })).toBeVisible();
@@ -25,25 +26,25 @@ test('register page exposes headings, named controls and live regions', async ({
   await page.getByRole('textbox', { name: 'Email' }).fill(uniqueEmail());
   await page.getByRole('textbox', { name: 'New password' }).fill('short-pass1');
   await page.getByRole('button', { name: 'Create account' }).click();
-  await expect(page.getByRole('alert')).toContainText('Password must be 12 to 128 characters.');
+  await expect(page.getByRole('alert')).toContainText('Use at least 12 characters.');
 
   await page.getByRole('textbox', { name: 'Email' }).fill(uniqueEmail());
   await page.getByRole('textbox', { name: 'New password' }).fill(PASSWORD);
   await page.getByRole('button', { name: 'Create account' }).click();
   await expect(page.getByRole('status')).toContainText(
-    "If this request is eligible, we'll send an email with the next steps.",
+    'Account created. Check your email to verify your address.',
   );
 });
 
 test('sign-in page has a linear keyboard order and announces failure', async ({ page }) => {
   await page.goto('/sign-in');
-  await expect(page.getByRole('heading', { name: 'Sign in', level: 1 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
 
   await page.getByRole('textbox', { name: 'Email' }).focus();
   await page.keyboard.press('Tab');
-  await expect(page.getByRole('textbox', { name: 'Password' })).toBeFocused();
+  await expect(page.getByRole('link', { name: 'Forgot password?' })).toBeFocused();
   await page.keyboard.press('Tab');
-  await expect(page.getByRole('textbox', { name: 'Authenticator or recovery code' })).toBeFocused();
+  await expect(page.getByRole('textbox', { name: 'Password' })).toBeFocused();
   await page.keyboard.press('Tab');
   await expect(page.getByRole('button', { name: 'Sign in' })).toBeFocused();
 
@@ -56,10 +57,9 @@ test('sign-in page has a linear keyboard order and announces failure', async ({ 
 test('enrollment page exposes the setup contract to assistive technology', async ({ page }) => {
   const email = uniqueEmail();
   await register(page, email);
-  await verifyEmail(page, email);
-  await page.getByRole('link', { name: 'Continue to setup' }).click();
+  await openEnrollment(page, email);
 
-  await expect(page.getByRole('heading', { name: 'Set up your authenticator', level: 1 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Set up your authenticator' })).toBeVisible();
   await expect(page.getByLabel('Manual key')).toBeVisible();
   await expect(page.getByRole('list', { name: 'Recovery codes' })).toBeVisible();
   await expect(page.getByRole('checkbox', { name: 'I have saved my recovery codes' })).toBeVisible();
@@ -70,7 +70,7 @@ test('step-up dialog traps focus and closes with Escape', async ({ page }) => {
   const account = await registerAndEnroll(page, uniqueEmail());
   await advanceClock(page.request, 11 * 60 * 1000);
 
-  await page.getByRole('link', { name: 'Replace authenticator' }).click();
+  await openAuthenticatorSettings(page);
   await page.getByRole('button', { name: 'Start replacement' }).click();
 
   const dialog = page.getByRole('dialog', { name: 'Confirm your identity' });
@@ -79,7 +79,7 @@ test('step-up dialog traps focus and closes with Escape', async ({ page }) => {
   await expect(password).toBeFocused();
 
   await page.keyboard.press('Shift+Tab');
-  await expect(page.getByRole('button', { name: 'Cancel' })).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Close dialog' })).toBeFocused();
 
   await page.keyboard.press('Escape');
   await expect(dialog).toHaveCount(0);

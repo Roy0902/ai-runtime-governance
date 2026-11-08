@@ -4,6 +4,8 @@ import {
   expectAccount,
   latestLink,
   NEW_PASSWORD,
+  openAuthenticatorSettings,
+  openEnrollment,
   PASSWORD,
   register,
   registerAndEnroll,
@@ -42,7 +44,7 @@ test.describe('Native-auth follow-up 05 browser cases', () => {
       );
 
       await other.goto('/account');
-      await expect(other.getByRole('heading', { name: 'Sign in', level: 1 })).toBeVisible();
+      await expect(other.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
       await advanceClock(page.request, 30_000);
       await signIn(page, account.email, NEW_PASSWORD, totp(account.manualKey));
       await expectAccount(page);
@@ -70,7 +72,7 @@ test.describe('Native-auth follow-up 05 browser cases', () => {
     expect(account.gatewayEntitlement).toBe('ABSENT');
     expect((await page.request.get('/api/v1/account')).status()).toBe(401);
     await page.goto('/account');
-    await expect(page.getByRole('heading', { name: 'Sign in', level: 1 })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
   });
 
   test('[SCN-native-auth-031] Provide password and fixed server time for the previous TOTP step', async ({
@@ -79,13 +81,12 @@ test.describe('Native-auth follow-up 05 browser cases', () => {
     expect((await control(page.request, 'clock', { now: FIXED_CLOCK })).ok).toBe(true);
     const email = uniqueEmail();
     await register(page, email);
-    await verifyEmail(page, email);
-    await page.getByRole('link', { name: 'Continue to setup' }).click();
+    await openEnrollment(page, email);
     const key = (await page.getByLabel('Manual key').innerText()).trim();
 
     await page.getByRole('textbox', { name: 'Password' }).fill(PASSWORD);
     await page.getByRole('textbox', { name: 'Six-digit code' }).fill(totp(key, -1));
-    await page.getByRole('checkbox', { name: 'I have saved my recovery codes' }).check();
+    await page.getByText('I have saved my recovery codes').click();
     const completion = page.waitForResponse((response) =>
       response.url().includes('/api/v1/auth/enrollment/complete'),
     );
@@ -100,14 +101,13 @@ test.describe('Native-auth follow-up 05 browser cases', () => {
     expect((await control(page.request, 'clock', { now: FIXED_CLOCK })).ok).toBe(true);
     const email = uniqueEmail();
     await register(page, email);
-    await verifyEmail(page, email);
-    await page.getByRole('link', { name: 'Continue to setup' }).click();
+    await openEnrollment(page, email);
     const key = (await page.getByLabel('Manual key').innerText()).trim();
     await advanceClock(page.request, (24 * 60 * 60 - 1) * 1000);
 
     await page.getByRole('textbox', { name: 'Password' }).fill(PASSWORD);
     await page.getByRole('textbox', { name: 'Six-digit code' }).fill(totp(key));
-    await page.getByRole('checkbox', { name: 'I have saved my recovery codes' }).check();
+    await page.getByText('I have saved my recovery codes').click();
     const completion = page.waitForResponse((response) =>
       response.url().includes('/api/v1/auth/enrollment/complete'),
     );
@@ -121,11 +121,11 @@ test.describe('Native-auth follow-up 05 browser cases', () => {
     const before = await inspect(page.request, 'account', { email: account.email });
     expect(before.scopeId).toBeTruthy();
 
-    await page.getByRole('link', { name: 'Replace authenticator' }).click();
+    await openAuthenticatorSettings(page);
     await page.getByRole('button', { name: 'Start replacement' }).click();
     const newKey = (await page.getByLabel('Manual key').innerText()).trim();
     await page.getByRole('textbox', { name: 'Six-digit code' }).fill(totp(newKey));
-    await page.getByRole('checkbox', { name: 'I have saved my recovery codes' }).check();
+    await page.getByText('I have saved my recovery codes').click();
     const completion = page.waitForResponse((response) =>
       response.request().method() === 'POST'
       && response.url().includes('/api/v1/account/authenticator-replacements/')

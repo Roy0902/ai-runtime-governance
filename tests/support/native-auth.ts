@@ -31,12 +31,27 @@ export function tag(id: string, title: string): string {
 
 export async function register(page: Page, email: string, password = PASSWORD): Promise<void> {
   await page.goto('/register');
-  await expect(page.getByRole('heading', { name: 'Create account', level: 1 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Create account' })).toBeVisible();
   await page.getByRole('textbox', { name: 'Email' }).fill(email);
   await page.getByRole('textbox', { name: 'New password' }).fill(password);
   await page.getByRole('button', { name: 'Create account' }).click();
   await expect(page.getByRole('status')).toContainText(
-    "If this request is eligible, we'll send an email with the next steps.",
+    'Account created. Check your email to verify your address.',
+  );
+}
+
+export async function expectDuplicateRegistration(
+  page: Page,
+  email: string,
+  password = PASSWORD,
+): Promise<void> {
+  await page.goto('/register');
+  await expect(page.getByRole('heading', { name: 'Create account' })).toBeVisible();
+  await page.getByRole('textbox', { name: 'Email' }).fill(email);
+  await page.getByRole('textbox', { name: 'New password' }).fill(password);
+  await page.getByRole('button', { name: 'Create account' }).click();
+  await expect(page.getByRole('alert')).toContainText(
+    'An account with this email already exists.',
   );
 }
 
@@ -47,13 +62,38 @@ export async function signIn(
   factor?: string,
 ): Promise<void> {
   await page.goto('/sign-in');
-  await expect(page.getByRole('heading', { name: 'Sign in', level: 1 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
   await page.getByRole('textbox', { name: 'Email' }).fill(email);
   await page.getByRole('textbox', { name: 'Password' }).fill(password);
-  if (factor) {
-    await page.getByRole('textbox', { name: 'Authenticator or recovery code' }).fill(factor);
-  }
   await page.getByRole('button', { name: 'Sign in' }).click();
+  if (factor) {
+    const code = page.getByRole('textbox', { name: 'Authenticator or recovery code' });
+    await code.waitFor({ state: 'visible', timeout: 3_000 }).catch(() => {});
+    if (await code.isVisible()) {
+      await code.fill(factor);
+      await page.getByRole('button', { name: 'Verify code' }).click();
+    }
+  }
+}
+
+export async function expectSignInPage(page: Page): Promise<void> {
+  await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
+}
+
+export async function signOut(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Open sidebar' }).click();
+  await page.getByRole('button', { name: 'Sign out' }).click();
+  await page.waitForURL(/\/(signed-out|sign-in)/, { timeout: 10_000 }).catch(() => {});
+}
+
+export async function openAuthenticatorSettings(page: Page): Promise<void> {
+  await page.goto('/account/authenticator');
+  await expect(page.getByRole('heading', { name: 'Replace authenticator' })).toBeVisible();
+}
+
+export async function openRecoveryCodes(page: Page): Promise<void> {
+  await page.goto('/account/recovery-codes');
+  await expect(page.getByRole('heading', { name: 'Generate new recovery codes' })).toBeVisible();
 }
 
 export async function expectAccount(page: Page): Promise<void> {
@@ -68,11 +108,11 @@ export async function expectAccount(page: Page): Promise<void> {
 
 export async function requestReset(page: Page, email: string): Promise<void> {
   await page.goto('/forgot-password');
-  await expect(page.getByRole('heading', { name: 'Reset password', level: 1 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Reset password' })).toBeVisible();
   await page.getByRole('textbox', { name: 'Email' }).fill(email);
   await page.getByRole('button', { name: 'Send reset email' }).click();
   await expect(page.getByRole('status')).toContainText(
-    "If this request is eligible, we'll send an email with the next steps.",
+    'If an account exists, a password reset email has been sent.',
   );
 }
 
@@ -107,9 +147,20 @@ export async function latestLink(
 export async function verifyEmail(page: Page, email: string): Promise<void> {
   const link = await latestLink(page, email, 'verify');
   await page.goto(link);
-  await expect(page.getByRole('heading', { name: 'Verify email', level: 1 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Verify email' })).toBeVisible();
   await page.getByRole('button', { name: 'Verify email' }).click();
   await expect(page.getByRole('status')).toContainText('Email verified.');
+}
+
+export async function openEnrollment(
+  page: Page,
+  email: string,
+  password = PASSWORD,
+): Promise<void> {
+  await verifyEmail(page, email);
+  await signIn(page, email, password);
+  await page.waitForURL(/\/setup\/enroll/, { timeout: 10_000 }).catch(() => {});
+  await expect(page.getByRole('heading', { name: 'Set up your authenticator' })).toBeVisible();
 }
 
 export async function completeEnrollment(
@@ -117,9 +168,7 @@ export async function completeEnrollment(
   email: string,
   password = PASSWORD,
 ): Promise<{ manualKey: string; recoveryCodes: string[] }> {
-  await verifyEmail(page, email);
-  await page.getByRole('link', { name: 'Continue to setup' }).click();
-  await expect(page.getByRole('heading', { name: 'Set up your authenticator', level: 1 })).toBeVisible();
+  await openEnrollment(page, email, password);
   const manualKey = (await page.getByLabel('Manual key').innerText()).trim();
   const recoveryCodes = await page
     .getByRole('list', { name: 'Recovery codes' })
@@ -127,7 +176,7 @@ export async function completeEnrollment(
     .allTextContents();
   await page.getByRole('textbox', { name: 'Password' }).fill(password);
   await page.getByRole('textbox', { name: 'Six-digit code' }).fill(totp(manualKey));
-  await page.getByRole('checkbox', { name: 'I have saved my recovery codes' }).check();
+  await page.getByText('I have saved my recovery codes').click();
   const completion = page.waitForResponse(
     (response) => response.url().includes('/api/v1/auth/enrollment/complete'),
   );
